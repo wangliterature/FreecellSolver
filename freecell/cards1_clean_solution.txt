@@ -1,0 +1,150 @@
+variant=freecell
+moves=143
+
+  0.	 move 1 card: Tableau[5] -> FreeCell[0]
+  1.	 move 1 card: Tableau[5] -> FreeCell[1]
+  2.	 move 1 card: Tableau[5] -> Foundation[C] (auto)
+  3.	 move 1 card: FreeCell[1] -> Foundation[C] (auto)
+  4.	 move 1 card: Tableau[5] -> Foundation[S] (auto)
+  5.	 move 1 card: Tableau[4] -> FreeCell[1]
+  6.	 move 1 card: Tableau[4] -> Tableau[1]
+  7.	 move 1 card: Tableau[4] -> FreeCell[2]
+  8.	 move 1 card: Tableau[4] -> FreeCell[3]
+  9.	 move 1 card: Tableau[4] -> Foundation[D] (auto)
+ 10.	 move 1 card: Tableau[4] -> Tableau[0]
+ 11.	 move 1 card: FreeCell[1] -> Tableau[4]
+ 12.	 move 1 card: Tableau[0] -> Tableau[4]
+ 13.	 move 1 card: Tableau[7] -> FreeCell[1]
+ 14.	 move 1 card: Tableau[7] -> Tableau[6]
+ 15.	 move 1 card: Tableau[7] -> Tableau[1]
+ 16.	 move 1 card: Tableau[4] -> Tableau[0]
+ 17.	 move 1 card: Tableau[4] -> Tableau[6]
+ 18.	 move 1 card: Tableau[0] -> Tableau[6]
+ 19.	 move 1 card: FreeCell[2] -> Tableau[4]
+ 20.	 move 1 card: Tableau[2] -> Tableau[7]
+ 21.	 move 1 card: Tableau[1] -> Tableau[2]
+ 22.	 move 1 card: Tableau[0] -> FreeCell[2]
+ 23.	 move 1 card: Tableau[0] -> Tableau[2]
+ 24.	 move 1 card: Tableau[0] -> Tableau[4]
+ 25.	 move 1 card: Tableau[0] -> Tableau[6]
+ 26.	 move 1 card: Tableau[0] -> Foundation[S] (auto)
+ 27.	 move 1 card: FreeCell[0] -> Tableau[6]
+ 28.	 move 1 card: Tableau[0] -> FreeCell[0]
+ 29.	 move 1 card: FreeCell[1] -> Tableau[0]
+ 30.	 move 2 cards: Tableau[0] -> Tableau[5]
+ 31.	 move 1 card: FreeCell[0] -> Tableau[0]
+ 32.	 move 3 cards: Tableau[5] -> Tableau[0]
+ 33.	 move 1 card: FreeCell[2] -> Tableau[5]
+ 34.	 move 3 cards: Tableau[6] -> Tableau[5]
+ 35.	 move 1 card: Tableau[3] -> FreeCell[0]
+ 36.	 move 1 card: Tableau[3] -> FreeCell[1]
+ 37.	 move 1 card: Tableau[3] -> FreeCell[2]
+ 38.	 move 1 card: FreeCell[3] -> Tableau[3]
+ 39.	 move 1 card: FreeCell[2] -> Tableau[3]
+ 40.	 move 2 cards: Tableau[1] -> Tableau[3]
+ 41.	 move 2 cards: Tableau[2] -> Tableau[3]
+ 42.	 move 3 cards: Tableau[5] -> Tableau[6]
+ 43.	 move 2 cards: Tableau[5] -> Tableau[1]
+ 44.	 move 3 cards: Tableau[1] -> Tableau[5]
+ 45.	 move 3 cards: Tableau[6] -> Tableau[5]
+ 46.	 move 1 card: Tableau[1] -> FreeCell[2]
+ 47.	 move 1 card: Tableau[1] -> Tableau[3]
+ 48.	 move 2 cards: Tableau[4] -> Tableau[3]
+ 49.	 move 1 card: FreeCell[0] -> Tableau[4]
+ 50.	 move 3 cards: Tableau[3] -> Tableau[4]
+ 51.	 move 2 cards: Tableau[3] -> Tableau[2]
+ 52.	 move 3 cards: Tableau[4] -> Tableau[2]
+ 53.	 move 1 card: Tableau[7] -> Tableau[2]
+ 54.	 move 1 card: Tableau[4] -> FreeCell[0]
+ 55.	 move 1 card: FreeCell[2] -> Tableau[4]
+ 56.	 move 2 cards: Tableau[3] -> Tableau[4]
+ 57.	 move 3 cards: Tableau[3] -> Tableau[1]
+ 58.	 move 2 cards: Tableau[1] -> Tableau[3]
+ 59.	 move 2 cards: Tableau[4] -> Tableau[3]
+ 60.	 move 1 card: Tableau[4] -> FreeCell[2]
+ 61.	 move 2 cards: Tableau[1] -> Tableau[4]
+ 62.	 move 1 card: Tableau[1] -> FreeCell[3]
+ 63.	 move 1 card: Tableau[1] -> Foundation[D] (auto)
+ 64.	 move 1 card: FreeCell[2] -> Tableau[1]
+ 65.	 move 2 cards: Tableau[3] -> Tableau[1]
+ 66.	 move 2 cards: Tableau[3] -> Tableau[4]
+ 67.	 move 2 cards: Tableau[1] -> Tableau[4]
+ 68.	 move 1 card: Tableau[1] -> FreeCell[2]
+ 69.	 move 1 card: FreeCell[3] -> Tableau[1]
+ 70.	 move 1 card: Tableau[3] -> Tableau[1]
+ 71.	 move 1 card: Tableau[3] -> FreeCell[3]
+ 72.	 move 1 card: FreeCell[2] -> Tableau[3]
+ 73.	 move 2 cards: Tableau[3] -> Tableau[1]
+ 74.	 move 1 card: FreeCell[0] -> Tableau[3]
+ 75.	 move 1 card: FreeCell[3] -> Tableau[3]
+ 76.	 move 3 cards: Tableau[2] -> Tableau[3]
+ 77.	 move 3 cards: Tableau[2] -> Tableau[4]
+ 78.	 move 3 cards: Tableau[3] -> Tableau[4]
+ 79.	 move 1 card: Tableau[2] -> FreeCell[0]
+ 80.	 move 1 card: Tableau[7] -> FreeCell[2]
+ 81.	 move 1 card: Tableau[7] -> Tableau[2]
+ 82.	 move 1 card: Tableau[7] -> Tableau[6]
+ 83.	 move 2 cards: Tableau[6] -> Tableau[7]
+ 84.	 move 2 cards: Tableau[2] -> Tableau[7]
+ 85.	 move 1 card: Tableau[2] -> FreeCell[3]
+ 86.	 move 1 card: Tableau[2] -> Tableau[0]
+ 87.	 move 1 card: FreeCell[0] -> Tableau[2]
+ 88.	 move 2 cards: Tableau[6] -> Tableau[0]
+ 89.	 move 1 card: FreeCell[3] -> Tableau[6]
+ 90.	 move 2 cards: Tableau[2] -> Tableau[1]
+ 91.	 move 1 card: Tableau[2] -> Tableau[6]
+ 92.	 move 4 cards: Tableau[7] -> Tableau[0]
+ 93.	 move 1 card: FreeCell[2] -> Tableau[2]
+ 94.	 move 3 cards: Tableau[6] -> Tableau[7]
+ 95.	 move 1 card: Tableau[6] -> Tableau[3]
+ 96.	 move 1 card: Tableau[6] -> Foundation[H] (auto)
+ 97.	 move 1 card: Tableau[4] -> Foundation[H] (auto)
+ 98.	 move 1 card: Tableau[5] -> Foundation[D] (auto)
+ 99.	 move 1 card: Tableau[0] -> Foundation[H] (auto)
+100.	 move 1 card: Tableau[2] -> Foundation[C] (auto)
+101.	 move 1 card: Tableau[4] -> Foundation[S] (auto)
+102.	 move 1 card: Tableau[5] -> Foundation[C] (auto)
+103.	 move 1 card: Tableau[0] -> Foundation[S] (auto)
+104.	 move 1 card: Tableau[3] -> Foundation[D] (auto)
+105.	 move 1 card: Tableau[4] -> Foundation[H] (auto)
+106.	 move 1 card: Tableau[5] -> Foundation[D] (auto)
+107.	 move 1 card: Tableau[0] -> Foundation[H] (auto)
+108.	 move 1 card: Tableau[3] -> Foundation[S] (auto)
+109.	 move 1 card: Tableau[4] -> Foundation[C] (auto)
+110.	 move 1 card: Tableau[5] -> Foundation[S] (auto)
+111.	 move 1 card: Tableau[0] -> Foundation[C] (auto)
+112.	 move 1 card: Tableau[3] -> Foundation[H] (auto)
+113.	 move 1 card: Tableau[4] -> Foundation[D] (auto)
+114.	 move 1 card: Tableau[5] -> Foundation[H] (auto)
+115.	 move 1 card: Tableau[0] -> Foundation[D] (auto)
+116.	 move 1 card: Tableau[4] -> Foundation[S] (auto)
+117.	 move 1 card: Tableau[5] -> Foundation[S] (auto)
+118.	 move 1 card: Tableau[6] -> Tableau[2]
+119.	 move 1 card: Tableau[6] -> Foundation[C] (auto)
+120.	 move 1 card: Tableau[0] -> Foundation[C] (auto)
+121.	 move 1 card: Tableau[1] -> Foundation[D] (auto)
+122.	 move 1 card: Tableau[4] -> Foundation[H] (auto)
+123.	 move 1 card: Tableau[7] -> Foundation[H] (auto)
+124.	 move 1 card: Tableau[0] -> Foundation[D] (auto)
+125.	 move 1 card: Tableau[1] -> Foundation[S] (auto)
+126.	 move 1 card: Tableau[4] -> Foundation[C] (auto)
+127.	 move 1 card: Tableau[7] -> Foundation[S] (auto)
+128.	 move 1 card: Tableau[0] -> Foundation[C] (auto)
+129.	 move 1 card: Tableau[1] -> Foundation[D] (auto)
+130.	 move 1 card: Tableau[4] -> Foundation[H] (auto)
+131.	 move 1 card: Tableau[7] -> Foundation[H] (auto)
+132.	 move 1 card: Tableau[0] -> Foundation[D] (auto)
+133.	 move 1 card: Tableau[1] -> Foundation[C] (auto)
+134.	 move 1 card: Tableau[4] -> Foundation[S] (auto)
+135.	 move 1 card: FreeCell[1] -> Foundation[S] (auto)
+136.	 move 1 card: Tableau[0] -> Foundation[C] (auto)
+137.	 move 1 card: Tableau[1] -> Foundation[D] (auto)
+138.	 move 1 card: Tableau[4] -> Foundation[H] (auto)
+139.	 move 1 card: Tableau[0] -> Foundation[D] (auto)
+140.	 move 1 card: Tableau[1] -> Foundation[C] (auto)
+141.	 move 1 card: Tableau[2] -> Foundation[H] (auto)
+142.	 move 1 card: Tableau[4] -> Foundation[S] (auto)
+
+expandedStates=62159
+queuedStates=128415
+message=Solved
