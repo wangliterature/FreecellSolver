@@ -7,6 +7,6 @@ import java.util.List;
  * 1.状态
  * 2.移动的步
  */
-record AppliedMoveResult(FreeCellState state, List<FreeCellMove> autoMoves) {
+public record AppliedMoveResult(FreeCellState state, List<FreeCellMove> autoMoves) {
 
 }

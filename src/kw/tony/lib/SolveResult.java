@@ -1,10 +1,10 @@
-package kw.tony;
+package kw.tony.lib;
 
 import java.util.List;
 
-public record SolveResult(
+public record SolveResult<M>(
         boolean solved,
-        List<SolutionMove> moves,
+        List<M> moves,
         int expandedStates,
         int queuedStates,
         String message

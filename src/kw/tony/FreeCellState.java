@@ -26,7 +26,7 @@ public class FreeCellState {
         this.foundations = Arrays.copyOf(foundations, foundations.length);
     }
 
-    boolean isSolved() {
+    public boolean isSolved() {
         return foundationCount() == 52;
     }
 
@@ -64,7 +64,7 @@ public class FreeCellState {
      * @param depth
      * @return
      */
-    int evaluate(int depth) {
+    public int evaluate(int depth) {
         int score = foundationCount() * 200;
         score += emptyFreecells() * 25;
         score += emptyTableauColumns() * 35;
@@ -77,7 +77,7 @@ public class FreeCellState {
     }
 
 
-    List<FreeCellMove> generateMoves() {
+    public List<FreeCellMove> generateMoves() {
         List<ScoredMove> scoredMoves = new ArrayList<>();
         addFreecellToTableauMoves(scoredMoves);
         addTableauToTableauMoves(scoredMoves);
@@ -92,7 +92,7 @@ public class FreeCellState {
         return moves;
     }
 
-    AppliedMoveResult applyMove(FreeCellMove move) {
+    public AppliedMoveResult applyMove(FreeCellMove move) {
         int[][] nextTableau = copyColumns(tableau);
         int[] nextFreecells = Arrays.copyOf(freecells, freecells.length);
         int[] nextFoundations = Arrays.copyOf(foundations, foundations.length);
@@ -109,7 +109,7 @@ public class FreeCellState {
         return normalize(copyColumns(tableau), Arrays.copyOf(freecells, freecells.length), Arrays.copyOf(foundations, foundations.length));
     }
 
-    String canonicalKey() {
+    public String canonicalKey() {
         String[] columnKeys = new String[tableau.length];
         for (int columnIndex = 0; columnIndex < tableau.length; columnIndex++) {
             StringBuilder builder = new StringBuilder(tableau[columnIndex].length * 4);

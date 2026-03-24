@@ -1,10 +1,10 @@
 package kw.tony;
 
-record FreeCellMove(Source source,
-                    int sourceIndex,
-                    Destination destination,
-                    int destinationIndex,
-                    int count) {
+public record FreeCellMove(Source source,
+                           int sourceIndex,
+                           Destination destination,
+                           int destinationIndex,
+                           int count) {
     enum Source {
         TABLEAU,
         FREECELL
