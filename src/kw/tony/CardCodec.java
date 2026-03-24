@@ -12,14 +12,14 @@ public class CardCodec {
         return rankText(rank(cardId)) + suitText(suitIndex(cardId));
     }
 
-    static int parse(String token){
+    static int parse(String token) {
         String value = normalize(token);
-        if (value.isEmpty() || value.equals("0") || value.equals("--")||value.equals("?") || value.equals("??")){
+        if (value.isEmpty() || value.equals("0") || value.equals("--") || value.equals("?") || value.equals("??")) {
             return 0;
         }
 
-        if (value.length()!=2 && value.length() != 3){
-            throw new IllegalArgumentException("invalid card token "+token);
+        if (value.length() != 2 && value.length() != 3) {
+            throw new IllegalArgumentException("Invalid card token: " + token);
         }
 
         String rankToken = value.substring(0, value.length() - 1);
@@ -104,9 +104,9 @@ public class CardCodec {
     private static int suitBase(String suitToken){
         return switch (suitToken){
             case "s" -> 100;
-            case "h" -> 100;
-            case "d" -> 100;
-            case "c" -> 100;
+            case "h" -> 200;
+            case "d" -> 300;
+            case "c" -> 400;
             default -> throw new IllegalArgumentException("Iv suit token");
         };
     }
