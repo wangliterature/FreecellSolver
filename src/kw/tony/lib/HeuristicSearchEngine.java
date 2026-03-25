@@ -57,7 +57,7 @@ public class HeuristicSearchEngine<S, M> {
                         node,
                         move,
                         nextDepth,
-                        nextDepth + problem.evaluate(next, nextDepth)
+                        problem.evaluate(next, nextDepth)
                 ));
             }
         }

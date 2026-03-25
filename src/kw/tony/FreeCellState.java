@@ -72,7 +72,7 @@ public class FreeCellState {
         score += longestOrderedRun() * 8;
         score -= blockersAboveNeededCards() * 18;
         score -= cardsInFreecells() * 15;
-        score -= depth * 2;
+        score -= depth * 44;
         return score;
     }
 
