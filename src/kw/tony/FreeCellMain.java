@@ -15,8 +15,10 @@ public class FreeCellMain {
 //            SolveResult result = new FreeCellSolverEngine().solve(deal.state());
             FreeCellProblem freeCellProblem = new FreeCellProblem(deal.state());
             HeuristicSearchEngine heuristicSearchEngine = new HeuristicSearchEngine();
-            kw.tony.lib.SolveResult result = heuristicSearchEngine.solve(freeCellProblem);
 
+            long l = System.currentTimeMillis();
+            kw.tony.lib.SolveResult result = heuristicSearchEngine.solve(freeCellProblem);
+            System.out.println(System.currentTimeMillis() - l+"   =======================  ");
             if (!result.solved()) {
                 System.out.println("No solution found.");
                 System.out.println("Reason: " + result.message());
