@@ -1,7 +1,9 @@
 package kw.tony;
 
+import kw.tony.lib.MoveResult;
 import kw.tony.lib.SearchProblem;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class FreeCellProblem implements SearchProblem<FreeCellState, FreeCellMove> {
@@ -28,8 +30,12 @@ public class FreeCellProblem implements SearchProblem<FreeCellState, FreeCellMov
     }
 
     @Override
-    public FreeCellState applyMove(FreeCellState state, FreeCellMove move) {
-        return state.applyMove(move).state();
+    public MoveResult<FreeCellState, FreeCellMove> applyMove(FreeCellState state, FreeCellMove move) {
+        AppliedMoveResult result = state.applyMove(move);
+        List<FreeCellMove> allMoves = new ArrayList<>();
+        allMoves.add(move);                  // 手动动作
+        allMoves.addAll(result.autoMoves()); // 自动进 foundation 的动作
+        return new MoveResult<>(result.state(), allMoves);
     }
 
     @Override
