@@ -3,13 +3,15 @@ package kw.tony;
 import kw.tony.lib.HeuristicSearchEngine;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 public class FreeCellMain {
     public static void main(String[] args) {
-        Path inputPath = Path.of("D:\\work\\SolitireClean\\FreecellApp\\freecell\\cards1.txt").toAbsolutePath();
+        Path inputPath = Path.of("freecell\\cards1.txt").toAbsolutePath();
         try {
             ParsedFreeCellDeal deal = new FreeCellInputParser().parse(inputPath);
 //            SolveResult result = new FreeCellSolverEngine().solve(deal.state());
@@ -34,9 +36,9 @@ public class FreeCellMain {
             System.out.println("Expanded states: " + result.expandedStates());
             System.out.println("Queued states: " + result.queuedStates());
 
-//            Path outputPath = outputPathFor(inputPath);
+            Path outputPath = outputPathFor(inputPath);
 //            Files.write(outputPath, renderSolution(result), StandardCharsets.UTF_8);
-//            System.out.println("Wrote " + outputPath);
+            System.out.println("Wrote " + outputPath);
         } catch (IOException ioException) {
             throw new IllegalStateException("Failed to read or write files for " + inputPath, ioException);
         }

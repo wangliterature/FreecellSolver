@@ -72,13 +72,16 @@ public class HeuristicSearchEngine<S, M> {
      */
     private List<M> reconstruct(SearchNode<S, M> node) {
         List<M> path = new ArrayList<>();
+        List<S> state = new ArrayList<>();
         //状态 的父类去找
         while (node.parent != null) {
             path.add(node.move);
             node = node.parent;
+            state.add(node.state);
         }
         //逆向
         Collections.reverse(path);
+        Collections.reverse(state);
         return path;
     }
 }
