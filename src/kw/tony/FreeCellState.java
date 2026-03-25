@@ -65,14 +65,14 @@ public class FreeCellState {
      * @return
      */
     public int evaluate(int depth) {
-        int score = foundationCount() * 100;
+        int score = foundationCount() * 200;
         score += emptyFreecells() * 25;
         score += emptyTableauColumns() * 35;
         score += totalOrderedPairs() * 12;
         score += longestOrderedRun() * 8;
         score -= blockersAboveNeededCards() * 18;
         score -= cardsInFreecells() * 15;
-        score -= depth * 30;
+        score -= depth * 20;
         return score;
     }
 
