@@ -5,23 +5,28 @@ package com.solvitaire.app;
 
 /**
  * 桌面牌堆
+ *
+ *  1.groupIndex  编号
+ * 2.
  */
 public final class StackGroup {
     private final SolverContext context;
     //组id
     int groupIndex;
-    private int layoutMode;
+    //名字
     String name;
+    //列数量   8 4 4
     int stackCount;
+
     int flags;
-    //空个数
+    //空
     int emptyStackCount;
+    //放牌栈的
     CardStack[] stacks;
 
-    StackGroup(SolverContext context, String name, int groupIndex, int stackCount, int layoutMode, int flags) {
+    StackGroup(SolverContext context, String name, int groupIndex, int stackCount, int flags) {
         this.context = context;
         this.groupIndex = groupIndex;
-        this.layoutMode = layoutMode;
         this.name = name;
         this.stackCount = stackCount;
         this.flags = flags;
@@ -36,8 +41,9 @@ public final class StackGroup {
 
     }
 
+    /// 标记是都是复制的
     StackGroup(StackGroup sourceGroup, boolean workingCopy) {
-        this(sourceGroup.context, sourceGroup.name, sourceGroup.groupIndex, sourceGroup.stackCount, sourceGroup.layoutMode, sourceGroup.flags);
+        this(sourceGroup.context, sourceGroup.name, sourceGroup.groupIndex, sourceGroup.stackCount, sourceGroup.flags);
         this.emptyStackCount = sourceGroup.emptyStackCount;
         int stackIndex = 0;
         while (stackIndex < sourceGroup.stacks.length) {
@@ -61,6 +67,11 @@ public final class StackGroup {
         return cardCount;
     }
 
+    /**
+     * 这部分应该是
+     * @param completedSuitRun
+     * @return
+     */
     int addCompletedSuitRun(CardRun completedSuitRun) {
         if ((this.flags & 0x40) == 0) {
             this.context.fail("Cannot add a run to a stackset that is not SpiderSuits");

@@ -24,9 +24,6 @@ public abstract class BaseSolver {
     int[][] g;
     int[] h;
     int[] i;
-    int[] progressComplexityBases;
-    double[] progressComplexityWeights;
-    int minimumProgressScore;
     int m;
     int decksOfCards;
     int cardPoolDefaultSize;
@@ -43,19 +40,14 @@ public abstract class BaseSolver {
     private int O;
     private int P;
     int[][] r;
-    int dealAreaCardCount;
-    int stockCardCount;
-    int sendTurnCount;
     int maxSearchDepth = 298;
     private int statusUpdateCounter = 0;
     int searchCreditLimit;
-    int[][] y;
     Card[] cardPoolArray;
     int poolCardIndex;
     private HashMap[] R = new HashMap[10];
     private HashMap[] S = new HashMap[10];
     boolean isSolver = false;
-
     int D = -1;
     private int deepestRecursionDepth;
     private int deepestRecursionComplexity;
@@ -79,7 +71,7 @@ public abstract class BaseSolver {
 
     abstract void appendBoardState(StringBuffer var1);
 
-    abstract void analyzeSpiderBoard(int var1);
+
 
     abstract boolean analyzeSpiderBoard(CardStack var1, CardStack var2);
 
@@ -760,23 +752,6 @@ public abstract class BaseSolver {
         return "?";
     }
 
-    static String e(int n2) {
-        switch (n2) {
-            case 1: {
-                return "\u2660";
-            }
-            case 2: {
-                return "\u2665";
-            }
-            case 3: {
-                return "\u2666";
-            }
-            case 4: {
-                return "\u2663";
-            }
-        }
-        return "?";
-    }
 
     static String f(int n2) {
         switch (n2 %= 100) {
@@ -847,16 +822,8 @@ public abstract class BaseSolver {
         return "?";
     }
 
-    static String h(int n2) {
-        return String.valueOf(BaseSolver.f(n2)) + " of " + BaseSolver.d(n2) + "s";
-    }
-
-    static String i(int n2) {
+    static String convetValue(int n2) {
         return String.valueOf(BaseSolver.g(n2 % 100)) + BaseSolver.m(n2 / 100);
-    }
-
-    static String equealData(Card nT2) {
-        return String.valueOf(BaseSolver.g(nT2.rank)) + BaseSolver.m(nT2.suit);
     }
 
     final int analyzeSpiderBoard(HashMap hashMap, int n2) {
@@ -916,36 +883,7 @@ public abstract class BaseSolver {
         return n3;
     }
 
-    final boolean analyzeSpiderBoard(CardStack os_02, int n2) {
-        if (os_02.topRun != null && os_02.topRun.cardCount == 1 && os_02.topRun.cards[0].cardId == 0) {
-            BaseSolver op_02 = this;
-            GameState nY2 = op_02.solverContext.searchState;
-            if (op_02.analyzeSpiderBoard(nY2, n2, false) != 0) {
-                if (this.solverContext.logLevel <= 4) {
-                    this.solverContext.log("Exposing a card would give a solution, so do not read");
-                }
-                return true;
-            }
 
-            int n4 = this.e(os_02);
-            if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Read card on stack " + os_02.stackIndex + " value " + n4);
-            }
-            if (!this.isSolver) {
-                if (n4 <= 0) {
-                    this.solverContext.fail("ERROR - failed to read unknown card on stack " + os_02.stackIndex);
-                } else {
-                    if (this.solverContext.logLevel <= 4) {
-                        this.solverContext.log("Read unknown card " + n4);
-                    }
-                    os_02.topRun.setSingleCardFromEncodedValue(n4);
-
-                    this.analyzeSpiderBoard(os_02);
-                }
-            }
-        }
-        return true;
-    }
 
     final int e(CardStack os_02) {
         this.solverContext.bridge.readHighlightColumnIndex = os_02.stackIndex % 10;
@@ -981,22 +919,6 @@ public abstract class BaseSolver {
             this.solverContext.fail("Unexpected failure to read a card<br>Did a dialog pop up?<br>Did you set the challenge objective right?");
         }
         return n4;
-    }
-
-    final int j(int n2) {
-        int n3 = n2;
-        double d2 = 0.0;
-        n2 = 0;
-        n2 = 0;
-        int n4 = n3;
-        BaseSolver op_02 = this;
-        n4 = op_02.analyzeSpiderBoard(n4, 0, 0, 0.0);
-        if ((n4 = op_02.solverContext.complexity + n4) <= 0) {
-            int n5 = op_02.solverContext.complexity;
-            op_02.solverContext.complexity = n4;
-            return n5;
-        }
-        return 999999;
     }
 
     final int analyzeSpiderBoard(int n2, int n3, int n4, double d2) {
@@ -1114,49 +1036,6 @@ public abstract class BaseSolver {
         return -1;
     }
 
-    final boolean equealData(int n2, boolean bl) {
-        return this.analyzeSpiderBoard(1, bl, 0);
-    }
-
-    final boolean analyzeSpiderBoard(int n2, boolean bl, int n3) {
-        HashMap hashMap = new HashMap(104);
-        int n4 = this.analyzeSpiderBoard(hashMap);
-        this.decksOfCards = n2;
-        n2 = 0;
-        int n5 = 0;
-        int n6 = 0;
-        int n7 = 0;
-        int n8 = 1;
-        while (n8 < 5) {
-            int n9 = 1;
-            while (n9 < 14) {
-                int n10 = 0;
-                Integer n11 = (Integer)hashMap.get(n8 * 100 + n9);
-                if (n11 != null) {
-                    n10 = n11;
-                }
-                n7 += n10;
-                if (n10 > (this.decksOfCards << 2) / this.suitCount) {
-                    n5 = n8 * 100 + n9;
-                    n6 = n10;
-                    this.solverContext.fail("Incorrect count of " + n6 + " for the " + BaseSolver.h(n5));
-                    n2 = 1;
-                }
-                ++n9;
-            }
-            ++n8;
-        }
-        if (n2 != 0) {
-            this.solverContext.log("Suit point calculation: max club = " + this.solverContext.fontStats.e + " min spade = " + this.solverContext.fontStats.f);
-            this.solverContext.fail("*** ERROR - counted " + n4 + " cards, bad card " + n5 + " count of " + n6);
-        }
-        if (bl && n3 == 0 && n7 != this.decksOfCards * 52) {
-            n2 = 1;
-            this.solverContext.fail("Needed " + this.decksOfCards * 52 + " cards but only read " + n7);
-        }
-        return n2 == 0;
-    }
-
     void analyzeSpiderBoard(HashMap<Integer,Integer> hashMap, int key, String string) {
         Integer count = hashMap.get(key);
         if (count == null) {
@@ -1242,127 +1121,24 @@ public abstract class BaseSolver {
         if (this.solverContext.files.maxMoves < 999 && n3 > this.solverContext.files.maxMoves) {
             return 1;
         }
-        if (this.solverContext.files.b == 6) {
-            nY2.scoreByDepth[nY2.depth] = n3 = this.analyzeSpiderBoard(nY2, false);
-            if (this.solverContext.logLevel <= 3) {
-                this.solverContext.log("Current score is " + n3);
-            }
-            if (n3 >= this.solverContext.files.g) {
-                n2 = 1;
-                if (nY2.solutionLength < this.solverContext.files.maxMoves && (this.F < this.solverContext.files.g || this.solverContext.bestSolutionState.solutionLength > nY2.solutionLength)) {
-                    this.F = n3;
-                    this.analyzeSpiderBoard(nY2, "Can make target with " + this.F + " in " + nY2.solutionLength + " moves", true, true);
-                }
-            } else {
-                boolean bl3;
-                boolean bl4 = bl3 = n3 > 0 && (n3 > this.F || this.solverContext.bestSolutionState != null && n3 == this.F && this.solverContext.bestSolutionState.solutionLength > nY2.solutionLength);
-                if (this.E) {
-                    if (bl2 & bl3) {
-                        this.F = n3;
-                        this.analyzeSpiderBoard(nY2, "Can clear board with " + this.F + " in " + nY2.solutionLength + " moves", true, false);
-                    }
-                } else {
-                    if (this.solverContext.variantId != 4 && this.solverContext.variantId != 5) {
-                        bl2 = false;
-                    }
-                    if (bl3 || bl2) {
-                        this.F = n3;
-                        this.analyzeSpiderBoard(nY2, "Best score currently " + this.F + " in " + nY2.solutionLength + " moves", bl2, false);
-                    }
-                }
-            }
-            if (this.analyzeSpiderBoard(bl)) {
-                this.solverContext.files.l = this.F;
-                n2 = 2;
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Board cleared with score standing at " + this.solverContext.files.l + " vs target of " + this.solverContext.files.g);
-                }
-
-            }
-        } else if (this.solverContext.files.b == 3 || this.solverContext.files.b == 5 || this.solverContext.files.b == 4) {
-            String string;
-            int n4;
-            int n5;
-            if (this.solverContext.files.b == 5) {
-                n3 = this.equealData(nY2, false);
-                n5 = this.solverContext.files.n;
-                n4 = this.solverContext.files.i - n5;
-                string = "Best solution currently %d stacks in %d moves";
-            } else {
-                n3 = this.analyzeSpiderBoard(nY2, false, this.solverContext.files.suit, this.solverContext.files.c);
-                if (this.solverContext.files.b == 4) {
-                    n5 = 0;
-                    n4 = 1;
-                    string = "Best solution currently %d card in %d moves";
-                } else {
-                    n5 = this.solverContext.files.m;
-                    n4 = this.solverContext.files.h - n5;
-                    string = "Best solution currently %d cards in %d moves";
-                }
-            }
-            if (n3 >= n4) {
-                n2 = 1;
-                if (nY2.solutionLength < this.solverContext.files.maxMoves && (this.G < n4 || this.solverContext.bestSolutionState.solutionLength > nY2.solutionLength)) {
-                    this.G = n3;
-                    this.analyzeSpiderBoard(nY2, String.format(string, n5 + this.G, nY2.solutionLength), false, true);
-                }
-            } else {
-                boolean bl5;
-                boolean bl6 = bl5 = n3 > 0 && (n3 > this.G || n3 == this.G && this.solverContext.bestSolutionState.solutionLength > nY2.solutionLength);
-                if (this.E) {
-                    if (bl2 & bl5) {
-                        this.G = n3;
-                        this.analyzeSpiderBoard(nY2, String.format(string, n5 + this.G, nY2.solutionLength), true, false);
-                        n2 = 1;
-                    }
-                } else {
-                    if (this.solverContext.variantId != 4 && this.solverContext.variantId != 5) {
-                        bl2 = false;
-                    }
-                    if (bl5 || bl2) {
-                        this.G = n3;
-                        this.analyzeSpiderBoard(nY2, String.format(string, n5 + this.G, nY2.solutionLength), bl2, false);
-                        if (bl2) {
-                            n2 = 1;
-                        }
-                    }
-                }
-            }
-            if (this.analyzeSpiderBoard(bl)) {
-                n2 = 2;
-                if (this.solverContext.files.b == 3) {
-                    this.solverContext.files.m += this.G;
-
-                } else if (this.solverContext.files.b == 4) {
-
-                } else {
-                    this.solverContext.files.n += this.G;
-
-                }
-                this.G = 0;
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Target card/stack count now " + n4);
-                }
-            }
-        } else if (this.solverContext.files.b == 1 || this.solverContext.files.b == 2) {
-            if (bl2) {
-                n2 = 1;
-                if (nY2.solutionLength < this.solverContext.files.maxMoves && (this.solverContext.bestSolutionState.solutionLength == 0 || nY2.solutionLength < this.solverContext.bestSolutionState.solutionLength)) {
-                    this.analyzeSpiderBoard(nY2, "Best solution currently " + nY2.solutionLength + " moves", true, true);
-                }
-            }
-            if (this.analyzeSpiderBoard(bl)) {
-                n2 = 2;
-                this.solverContext.files.k = ++this.solverContext.files.k;
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Board cleared, accum now " + this.solverContext.files.k);
-                }
-
-            } else if (!(!bl || this.solverContext.solverMode != 3 && this.solverContext.solverMode != 1 || this.solverContext.variantId != 4 && this.solverContext.variantId != 5)) {
-                n2 = 2;
-                this.solverContext.bestSolutionState.reset();
+        if (bl2) {
+            n2 = 1;
+            if (nY2.solutionLength < this.solverContext.files.maxMoves && (this.solverContext.bestSolutionState.solutionLength == 0 || nY2.solutionLength < this.solverContext.bestSolutionState.solutionLength)) {
+                this.analyzeSpiderBoard(nY2, "Best solution currently " + nY2.solutionLength + " moves", true, true);
             }
         }
+        if (this.analyzeSpiderBoard(bl)) {
+            n2 = 2;
+            this.solverContext.files.k = ++this.solverContext.files.k;
+            if (this.solverContext.logLevel <= 5) {
+                this.solverContext.log("Board cleared, accum now " + this.solverContext.files.k);
+            }
+
+        } else if (!(!bl || this.solverContext.solverMode != 3 && this.solverContext.solverMode != 1 || this.solverContext.variantId != 4 && this.solverContext.variantId != 5)) {
+            n2 = 2;
+            this.solverContext.bestSolutionState.reset();
+        }
+
         if (n2 == 2) {
             this.isSolver = true;
             if (this.solverContext.logLevel <= 9) {

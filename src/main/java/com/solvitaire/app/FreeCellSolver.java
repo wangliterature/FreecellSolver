@@ -1051,7 +1051,7 @@ final class FreeCellSolver extends BaseSolver {
             }
             n4 = 0;
             while (n4 < n5) {
-                stringBuffer.append(FreeCellSolver.i(this.g[n3][n4]));
+                stringBuffer.append(FreeCellSolver.convetValue(this.g[n3][n4]));
                 stringBuffer.append(",");
                 ++n4;
             }
@@ -1062,14 +1062,14 @@ final class FreeCellSolver extends BaseSolver {
             stringBuffer.append("# Work:\n");
             n3 = 0;
             while (n3 < 4) {
-                stringBuffer.append(FreeCellSolver.i(this.c[n3]));
+                stringBuffer.append(FreeCellSolver.convetValue(this.c[n3]));
                 stringBuffer.append(",");
                 ++n3;
             }
             stringBuffer.append("\n# Aces:\n");
             n3 = 0;
             while (n3 < 4) {
-                stringBuffer.append(FreeCellSolver.i(this.b[n3]));
+                stringBuffer.append(FreeCellSolver.convetValue(this.b[n3]));
                 stringBuffer.append(",");
                 ++n3;
             }
@@ -1079,10 +1079,6 @@ final class FreeCellSolver extends BaseSolver {
     @Override
     final StringBuffer createStateHeader(String string, int n2) {
         return new StringBuffer(String.valueOf(string) + "[" + n2 + ":" + this.moveToAcesAttempts + "," + this.toSpaceAttempts + "," + this.fromSpaceAttempts + "," + this.moveToWorkAreaAttempts + "," + this.fromWorkAreaAttempts + "," + this.exposeAceAttempts + "," + this.alternatingJoinAttempts + "," + this.splitMatchAttempts + "," + 0 + "]: ");
-    }
-
-    @Override
-    final void analyzeSpiderBoard(int n2) {
     }
 
     @Override

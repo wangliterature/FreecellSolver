@@ -97,21 +97,7 @@ final class CardStack {
     }
 
 
-    final CardRun popFirstRun() {
-        CardRun removedRun = null;
-        if (!this.runs.isEmpty()) {
-            removedRun = this.runs.removeFirst();
-            if (this.runs.isEmpty()) {
-                this.topRun = null;
-                if (this.ownerGroup != null) {
-                    ++this.ownerGroup.emptyStackCount;
-                }
-            } else {
-                this.topRun = this.runs.getLast();
-            }
-        }
-        return removedRun;
-    }
+
 
     /**
      * 弹出最上层的
@@ -134,19 +120,6 @@ final class CardStack {
     }
 
 
-    final void prependRun(CardRun run) {
-        if (this.runs.isEmpty()) {
-            this.appendRun(run);
-            //加入  空列减去1
-            if (this.ownerGroup != null) {
-                --this.ownerGroup.emptyStackCount;
-            }
-        } else {
-            this.runs.offerFirst(run);
-        }
-        run.stack = this;
-        this.topRun = this.runs.getLast();
-    }
 
     final void clear() {
         this.runs = new LinkedList<>();
@@ -340,21 +313,6 @@ final class CardStack {
         this.removeRun(this.topRun);
     }
 
-    final CardRun getPreviousRun() {
-        int runCount = this.runs.size();
-        return runCount < 2 ? null : this.runs.get(runCount - 2);
-    }
-
-    static void swapRuns(CardStack firstStack, CardStack secondStack) {
-        LinkedList<CardRun> swappedRuns = firstStack.runs;
-        firstStack.runs = secondStack.runs;
-        secondStack.runs = swappedRuns;
-        firstStack.topRun = firstStack.runs.isEmpty() ? null : firstStack.runs.getLast();
-        secondStack.topRun = secondStack.runs.isEmpty() ? null : secondStack.runs.getLast();
-    }
-
-
-
     final CardRun appendRun1(CardRun run) {
         return this.appendRun(run);
     }
@@ -370,11 +328,7 @@ final class CardStack {
         return cardCount;
     }
 
-    final void setTopRunFlagged(boolean flagged) {
-        if (this.topRun != null) {
-            this.topRun.isFaceDown = flagged;
-        }
-    }
+
 
     public final String toString() {
         return String.valueOf(this.workingCopy ? "Work" : "") + this.ownerGroup.name + ":" + this.stackIndex % 10;

@@ -136,9 +136,9 @@ public final class FreeCellStandaloneMain {
 
    private static GameState allocateFreeCellState(SolverContext context) {
       GameState state = new GameState();
-      state.stackGroups[0] = new StackGroup(context, "Stack", 0, 8, 7, 9);
-      state.stackGroups[1] = new StackGroup(context, "WorkArea", 1, 4, 1, 2);
-      state.stackGroups[2] = new StackGroup(context, "Aces", 2, 4, 1, 2);
+      state.stackGroups[0] = new StackGroup(context, "Stack", 0, 8, 9);
+      state.stackGroups[1] = new StackGroup(context, "WorkArea", 1, 4, 2);
+      state.stackGroups[2] = new StackGroup(context, "Aces", 2, 4, 2);
       state.stackGroups[2].stacks[0].foundationSuit = 2;
       state.stackGroups[2].stacks[1].foundationSuit = 4;
       state.stackGroups[2].stacks[2].foundationSuit = 3;

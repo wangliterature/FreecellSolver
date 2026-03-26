@@ -33,7 +33,6 @@ public class SolverContext {
    SolverFileSet files;
 
    BpStub fontStats = new BpStub();
-   TableStub table = new TableStub();
 
    void log(String message) {
       System.out.println(message);
