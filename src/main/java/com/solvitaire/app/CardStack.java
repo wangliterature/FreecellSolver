@@ -21,7 +21,7 @@ final class CardStack {
     LinkedList<CardRun> runs = new LinkedList<>();
     //主要是用在成功牌堆中的
     int foundationSuit; //foundation 的花色
-    //是否交替
+    //是否交替     Freecell是交替的
     boolean alternatingColors; //是否红黑交替
 
     boolean workingCopy = false;
@@ -69,6 +69,11 @@ final class CardStack {
         return this.topRun != null && this.topRun.cardCount != 0 ? this.topRun.cards[this.topRun.cardCount - 1].rank : 0;
     }
 
+    /**
+     * 设置为Run
+     * @param run
+     * @return
+     */
     final CardRun appendRun(CardRun run) {
         if (run.cardCount == 0) {
             this.context.fail("ERROR adding empty run to stack");
@@ -99,9 +104,6 @@ final class CardStack {
         this.topRun = this.runs.getLast();
     }
 
-
-
-
     /**
      * 弹出最上层的
      * @return
@@ -122,18 +124,14 @@ final class CardStack {
         return removedRun;
     }
 
-
-
     final void clear() {
         this.runs = new LinkedList<>();
         this.topRun = null;
         if (this.ownerGroup != null) {
             this.ownerGroup.emptyStackCount = this.ownerGroup.stacks.length;
         }
-
         this.workingCopy = false;
     }
-
 
     final int evaluateJoinFrom(CardStack sourceStack, int moveMode, boolean exactMatchOnly) {
         int joinCount = -1;
@@ -200,9 +198,9 @@ final class CardStack {
         return 0;
     }
 
-    final int evaluateJoin(CardRun destinationRun, CardRun sourceRun, boolean allowSplit, boolean allowPartialJoin) {
+    int evaluateJoin(CardRun destinationRun, CardRun sourceRun, boolean allowSplit, boolean allowPartialJoin) {
         int joinCount = -1;
-        Card sourceTopCard = sourceRun.cards[sourceRun.cardCount - 1];
+        Card sourceTopCard = sourceRun.cards[sourceRun.cardCount - 1];  //取出最后一个
         if (sourceTopCard == null) {
             return -1;
         }
@@ -244,7 +242,7 @@ final class CardStack {
         return joinCount;
     }
 
-    final int moveCardsFrom(CardStack sourceStack, int cardCount, StackGroup completedSuitGroup) {
+    int moveCardsFrom(CardStack sourceStack, int cardCount, StackGroup completedSuitGroup) {
         if (cardCount > 0) {
             if (this.topRun == null) {
                 CardRun movedRun = new CardRun();
@@ -272,7 +270,8 @@ final class CardStack {
         return cardCount;
     }
 
-    final void undoMoveCardsFrom(CardStack sourceStack, int cardCount, StackGroup completedSuitGroup) {
+    //将最顶上的移动出去
+    void undoMoveCardsFrom(CardStack sourceStack, int cardCount, StackGroup completedSuitGroup) {
         if (cardCount > 0 && cardCount != 20) {
             if (cardCount > 100) {
                 int removedSuit = cardCount / 100;
@@ -311,11 +310,8 @@ final class CardStack {
         this.removeRun(this.topRun);
     }
 
-    final CardRun appendRun1(CardRun run) {
-        return this.appendRun(run);
-    }
-
-    final int getCardCount() {
+    //牌的张树
+    int getCardCount() {
         int cardCount = 0;
         for (CardRun run : this.runs) {
             cardCount += run.cardCount;
@@ -325,8 +321,8 @@ final class CardStack {
 
 
 
-    public final String toString() {
-        return String.valueOf(this.workingCopy ? "Work" : "") + this.ownerGroup.name + ":" + this.stackIndex % 10;
+    public String toString() {
+        return this.workingCopy ? "Work" : "" + this.ownerGroup.name + ":" + this.stackIndex % 10;
     }
 }
 

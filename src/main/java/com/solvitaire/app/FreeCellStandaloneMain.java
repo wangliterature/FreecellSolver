@@ -23,7 +23,7 @@ public final class FreeCellStandaloneMain {
 //         System.exit(1);
 //      }
 
-      Path inputFile = Path.of("sample/cards1.txt").toAbsolutePath();
+      Path inputFile = Path.of("sample/cards3.txt").toAbsolutePath();
       SanitizedInput sanitizedInput = sanitizeInput(inputFile);
       Path actualInputFile = sanitizedInput.inputFile;
       Path originalSolutionFile = solutionFileFor(inputFile);
@@ -31,7 +31,7 @@ public final class FreeCellStandaloneMain {
 
       try {
          SolverContext context = new SolverContext();
-         context.logLevel = 8;
+         context.logLevel = 1;
          context.variantId = FREECELL_VARIANT;
          context.files = new SolverFileSet(actualInputFile);
          context.files.b = 1;

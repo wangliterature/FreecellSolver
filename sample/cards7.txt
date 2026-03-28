@@ -1,0 +1,8 @@
+freecell
+3d,8s,4s,9d,5d,8h,6h,2c,
+2s,2d,Qh,10d,Ah,Qs,9h,10c,
+7s,Qc,10s,Kc,6c,Ks,Kd,5h,
+9c,Qd,Jh,5c,Jc,Ad,7h,As,
+4h,8c,Jd,8d,9s,7c,10h,3h,
+Kh,4c,3s,2h,4d,3c,6d,7d,
+Js,Ac,6s,5s,

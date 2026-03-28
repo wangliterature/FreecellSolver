@@ -40,11 +40,14 @@ final class CardRun {
         return CardRun.isRed(card2) ^ CardRun.isRed(card3);
     }
 
+    //  花色
     private static boolean isRed(Card card) {
         return card.suit == 1 || card.suit == 4;
     }
 
     /**
+     * 首先开始的那个牌最后一张，  你现在有几张来进行比较呢   最后比较的结果  就需要小于几，    topRun本身就是一个有序列
+     *
      * @param card1 要移动的牌
      * @param card2 目标牌
      * @param n2 最大允许差值（比如13）

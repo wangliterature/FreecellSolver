@@ -21,13 +21,13 @@ public abstract class BaseSolver {
     String filePath;
     //牌局的堆数
     int stackSize;
-    int[][] g;
+    int[][] tableCardArray;
     int[] h;
     int[] i;
     int m;
     int decksOfCards;
     int cardPoolDefaultSize;
-    int suitCount;
+
     private long b;
     private long c;
     private int buetMaxSize;
@@ -39,7 +39,7 @@ public abstract class BaseSolver {
     private int N;
     private int O;
     private int P;
-    int[][] r;
+    int[][] tableArray;
     int maxSearchDepth = 298;
     private int statusUpdateCounter = 0;
     int searchCreditLimit;
@@ -71,7 +71,7 @@ public abstract class BaseSolver {
 
     abstract void appendBoardState(StringBuffer var1);
 
-    abstract boolean analyzeSpiderBoard(CardStack var1, CardStack var2);
+
 
     abstract void dumpState(int var1, boolean var2);
 
@@ -156,7 +156,7 @@ public abstract class BaseSolver {
         this.poolCardIndex = 0;
 //        第一轮搜索先从“最严格/最保守”的预算开始
         this.solverContext.searchCredit = 0;
-
+//        在base init中，将递归深度和播放位置设置为0
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("In baseinit, set recursiondepth and playlocation to 0");
         }
@@ -166,8 +166,8 @@ public abstract class BaseSolver {
         }
         //搜素状态
         this.solverContext.searchState = null;
-        //花色
-        this.suitCount = 4;
+
+
         this.F = 0;
         this.G = 0;
 //        完整解已经成立
@@ -546,123 +546,29 @@ public abstract class BaseSolver {
     final boolean loadCheckpointState() {
         Object object;
         int n2;
-        boolean bl = true;
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("Into loadCheckpoint for game mode " + this.solverContext.solverMode);
         }
-        if (this.solverContext.solverMode == 0 || this.solverContext.solverMode == 1 || this.solverContext.solverMode == 6) {
-            if (this.solverContext.solverMode == 0) {
-                this.solverContext.files.setOutputDirectory(this.filePath, false);
-            }
-            n2 = this.solverContext.files.getEndFileIndex();
-            if (this.solverContext.solverMode == 1) {
-                int n3 = this.solverContext.files.getCurrentFileIndex(false);
-                if (this.solverContext.logLevel <= 4) {
-                    this.solverContext.log("All cards request, next checkpoint " + n3 + " endFile " + n2);
-                }
-                if (n3 >= n2) {
-
-                } else {
-
-                    String string = null;
-                    while (this.solverContext.files.getCurrentFileIndex(false) <= n2) {
-                        string = this.solverContext.files.getInputFileName();
-                        if (this.solverContext.logLevel <= 4) {
-                            this.solverContext.log("Testing for card file " + string);
-                        }
-                        object = new File(String.valueOf(this.solverContext.files.outputDirectory) + string);
-                        if (this.solverContext.solverMode != 1 || ((File)object).exists()) break;
-
-                    }
-                    if (this.solverContext.logLevel <= 9) {
-                        this.solverContext.log("***Loading history file " + string);
-                    }
-                }
-            } else {
-                bl = false;
-            }
-        } else if (this.solverContext.solverMode == 3) {
-            if (this.solverContext.t) {
-                bl = true;
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Capture request in standalone mode so set readcards to true");
-                }
-            } else {
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Regular capture so cards come from the screen, readCards=false");
-                }
-                bl = false;
-            }
-        } else if (this.solverContext.solverMode == 4) {
-            String string = this.solverContext.files.getPlaybackFileName();
-            if (string == null) {
-                this.solverContext.fail("No solution exists for " + this.solverContext.files.getInputFileName());
-            }
-            String string2 = this.solverContext.readTextFile(String.valueOf(this.solverContext.files.outputDirectory) + string);
-            if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Playback mode so reading file " + string + " gave solution:" + string2);
-            }
-            String[] stringArray3 = string2.split(",");
-            this.solverContext.bestSolutionState.reset();
-            n2 = 0;
-            while (n2 < stringArray3.length) {
-                int n4;
-                if (stringArray3[n2].startsWith("\r") || stringArray3[n2].startsWith("\n")) break;
-                stringArray3[n2] = stringArray3[n2].trim();
-                if (stringArray3[n2].contains(":")) {
-                    String[] stringArray = stringArray3[n2].split(":");
-                    stringArray3[n2] = stringArray[0];
-                    this.solverContext.bestSolutionState.moveAnnotations[n2] = Integer.parseInt(stringArray[1].trim()) * 10000;
-                    boolean bl2 = false;
-                    if (this.solverContext.bestSolutionState.moveAnnotations[n2] < 0) {
-                        bl2 = true;
-                        this.solverContext.bestSolutionState.moveAnnotations[n2] = -this.solverContext.bestSolutionState.moveAnnotations[n2];
-                    }
-                    if (stringArray.length > 2) {
-                        int n5 = n2;
-                        this.solverContext.bestSolutionState.moveAnnotations[n5] = this.solverContext.bestSolutionState.moveAnnotations[n5] + Integer.parseInt(stringArray[2].trim()) * 100;
-                        if (stringArray.length > 3) {
-                            int n6 = n2;
-                            this.solverContext.bestSolutionState.moveAnnotations[n6] = this.solverContext.bestSolutionState.moveAnnotations[n6] + Integer.parseInt(stringArray[3].trim());
-                        } else {
-                            int n7 = n2;
-                            this.solverContext.bestSolutionState.moveAnnotations[n7] = this.solverContext.bestSolutionState.moveAnnotations[n7] + 99;
-                        }
-                    } else {
-                        int n8 = n2;
-                        this.solverContext.bestSolutionState.moveAnnotations[n8] = this.solverContext.bestSolutionState.moveAnnotations[n8] + 9999;
-                    }
-                    if (bl2) {
-                        this.solverContext.bestSolutionState.moveAnnotations[n2] = -this.solverContext.bestSolutionState.moveAnnotations[n2];
-                    }
-                } else {
-                    this.solverContext.bestSolutionState.moveAnnotations[n2] = 0;
-                }
-                int n9 = Integer.parseInt(stringArray3[n2]);
-                this.solverContext.bestSolutionState.moves[n2] = n4 = Move.b(n9);
-                this.solverContext.bestSolutionState.depth = n2 + 1;
-                ++n2;
-            }
-            this.isSolver = true;
+        if (this.solverContext.logLevel <= 5) {
+            this.solverContext.log("Capture request in standalone mode so set readcards to true");
         }
-        if (bl) {
-            String[] stringArray = this.solverContext.readAllLines(String.valueOf(this.solverContext.files.outputDirectory) + this.solverContext.files.getInputFileName());
-            if (stringArray == null) {
-                return false;
-            }
-            String[] stringArray2 = stringArray[0].split(",");
-            object = stringArray2.length < 2 ? null : stringArray2[1];
-            n2 = 0;
-            while (n2 < stringArray.length) {
-                if (stringArray[n2] == null) break;
-                ++n2;
-            }
-            if (n2 < 6) {
-                this.solverContext.fail("Input file has too few lines");
-            } else if (!this.loadStateFromLines((String)object, stringArray, n2)) {
-                return false;
-            }
+        String[] contentArray = this.solverContext.readAllLines(String.valueOf(this.solverContext.files.outputDirectory) + this.solverContext.files.getInputFileName());
+        if (contentArray == null) {
+            return false;
         }
+        String[] contentFristArray = contentArray[0].split(",");
+        object = contentFristArray.length < 2 ? null : contentFristArray[1];
+        n2 = 0;
+        while (n2 < contentArray.length) {
+            if (contentArray[n2] == null) break;
+            ++n2;
+        }
+        if (n2 < 6) {
+            this.solverContext.fail("Input file has too few lines");
+        } else if (!this.loadStateFromLines((String)object, contentArray, n2)) {
+            return false;
+        }
+
         return true;
     }
 
@@ -973,7 +879,7 @@ public abstract class BaseSolver {
             }
             --n7;
         }
-        return this.analyzeSpiderBoard(os_02, os_03);
+        return false;
     }
 
     final void analyzeSpiderBoard(long l2) {

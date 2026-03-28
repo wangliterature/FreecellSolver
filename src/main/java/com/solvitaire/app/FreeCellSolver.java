@@ -46,23 +46,13 @@ final class FreeCellSolver extends BaseSolver {
     static private String[] moveModeNames = new String[]{"?", "toAces", "fromSpace", "toSpace", "fromWork", "toWork", "matching", "toAcesAuto", "expose", "matchWithSplit", "toSpaceKing"};
     final static int[] targetFoundationIndexBySuit;
     static private int[] antagonistFoundationIndexBySuit;
-    private FreeCellBridge freeCellBridge;
     int[] b;
     int[] c;
 
     static {
-        int[] nArray = new int[5];
-        nArray[0] = -1;
-        nArray[1] = 3;
-        nArray[3] = 2;
-        nArray[4] = 1;
-        targetFoundationIndexBySuit = nArray;
-        int[] nArray2 = new int[5];
-        nArray2[0] = -1;
-        nArray2[1] = 1;
-        nArray2[2] = 2;
-        nArray2[4] = 3;
-        antagonistFoundationIndexBySuit = nArray2;
+//        目标基础指数按花色分类
+        targetFoundationIndexBySuit = new int[]{-1,3,2,1};
+        antagonistFoundationIndexBySuit = new int[]{-1,1,2,3};
     }
 
     FreeCellSolver(SolverContext om_02) {
@@ -82,10 +72,10 @@ final class FreeCellSolver extends BaseSolver {
     final boolean initializeSolver() {
         this.initializeBaseState();
         this.filePath = String.valueOf(this.solverContext.workspaceRoot) + "freecell" + File.separator;
-        this.g = new int[50][this.stackSize];
+        this.tableCardArray = new int[50][this.stackSize];
         this.b = new int[4];
         this.c = new int[4];
-        this.r = new int[this.stackSize][MAX_TABLEAU_HEIGHT];
+        this.tableArray = new int[this.stackSize][MAX_TABLEAU_HEIGHT];
         this.h = new int[this.stackSize];
         this.i = new int[this.stackSize];
         if (!this.solverContext.bridge.solverInitialState()) {
@@ -747,11 +737,6 @@ final class FreeCellSolver extends BaseSolver {
     }
 
     @Override
-    final boolean analyzeSpiderBoard(CardStack os_02, CardStack os_03) {
-        return false;
-    }
-
-    @Override
     final int analyzeSpiderBoard(GameState nY2, boolean bl, int n2, int n3) {
         if (bl) {
             return 0;
@@ -898,7 +883,7 @@ final class FreeCellSolver extends BaseSolver {
 
     @Override
     final boolean loadStateFromLines(String string, String[] stringArray, int n2) {
-        StackGroup ot_02 = this.solverContext.initialState.stackGroups[0];
+        StackGroup fristStackGroup = this.solverContext.initialState.stackGroups[0];
         int n3 = 7;
         boolean bl = false;
         int[] nArray = new int[]{7, 7, 7, 7, 6, 6, 6, 6};
@@ -923,28 +908,29 @@ final class FreeCellSolver extends BaseSolver {
             }
         }
         try {
+            //解析数据，将数据放入， 创建cardRun
             for (int i = 0; i < n3; ++i) {
                 String[] stringArray3 = stringArray[i + 1].split(",");
                 for (int j = 0; j < stringArray3.length; ++j) {
                     if (nArray[j] <= i) continue;
-                    CardStack os_02 = ot_02.stacks[j];
-                    String string2 = stringArray3[j];
-                    int n5 = this.solverContext.parseCardCode(string2);
-                    this.g[i][j] = n5;
+                    CardStack tempCardStack = fristStackGroup.stacks[j];
+                    String entry = stringArray3[j];
+                    int n5 = this.solverContext.parseCardCode(entry);
+                    this.tableCardArray[i][j] = n5;
                     if (this.solverContext.logLevel <= 2) {
                         this.solverContext.log("Loading card " + n5 + " into stack " + j + " level " + i);
                     }
-                    CardRun ok_02 = os_02.topRun;
-                    CardRun ok_03 = new CardRun(this.getCardFromPool(os_02, n5));
-                    if (ok_02 != null) {
-                        int n6 = os_02.evaluateJoin(ok_02, ok_03, false, false);
+                    CardRun cardRun = tempCardStack.topRun;
+                    CardRun tempCreateRun = new CardRun(this.getCardFromPool(tempCardStack, n5));
+                    if (cardRun != null) {
+                        int n6 = tempCardStack.evaluateJoin(cardRun, tempCreateRun, false, false);
                         if (n6 > 0) {
-                            ok_02.appendFromRun(ok_03, n6);
+                            cardRun.appendFromRun(tempCreateRun, n6);
                         } else {
-                            os_02.appendRun1(ok_03);
+                            tempCardStack.appendRun(tempCreateRun);
                         }
                     } else {
-                        os_02.appendRun1(ok_03);
+                        tempCardStack.appendRun(tempCreateRun);
                     }
                 }
             }
@@ -956,7 +942,7 @@ final class FreeCellSolver extends BaseSolver {
                     this.c[i] = n7;
                     if (n7 <= 0) continue;
                     CardStack os_03 = this.solverContext.initialState.stackGroups[1].stacks[i];
-                    os_03.appendRun1(new CardRun(this.getCardFromPool(os_03, n7)));
+                    os_03.appendRun(new CardRun(this.getCardFromPool(os_03, n7)));
                 }
                 String[] stringArray5 = stringArray[n3 + 2].split(",");
                 for (int i = 0; i < 4; ++i) {
@@ -968,7 +954,7 @@ final class FreeCellSolver extends BaseSolver {
                     int n10 = n8 % 100;
                     CardStack os_04 = this.solverContext.initialState.stackGroups[2].stacks[i];
                     CardRun ok_04 = new CardRun(this.getCardFromPool(os_04, n9 * 100 + 1));
-                    os_04.appendRun1(ok_04);
+                    os_04.appendRun(ok_04);
                     for (int j = 2; j <= n10; ++j) {
                         ok_04.appendFromRun(new CardRun(this.getCardFromPool(os_04, n9 * 100 + j)), 1);
                     }
@@ -1042,7 +1028,7 @@ final class FreeCellSolver extends BaseSolver {
             if (n3 == n2 - 1) {
                 n4 = this.stackSize - 1;
                 while (n4 >= 0) {
-                    if (this.g[n3][n4] != 0) {
+                    if (this.tableCardArray[n3][n4] != 0) {
                         n5 = n4 + 1;
                         break;
                     }
@@ -1051,7 +1037,7 @@ final class FreeCellSolver extends BaseSolver {
             }
             n4 = 0;
             while (n4 < n5) {
-                stringBuffer.append(FreeCellSolver.convetValue(this.g[n3][n4]));
+                stringBuffer.append(FreeCellSolver.convetValue(this.tableCardArray[n3][n4]));
                 stringBuffer.append(",");
                 ++n4;
             }

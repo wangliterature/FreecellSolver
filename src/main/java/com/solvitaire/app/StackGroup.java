@@ -38,7 +38,6 @@ public final class StackGroup {
             ++stackIndex;
         }
         this.emptyStackCount = stackCount;
-
     }
 
     /// 标记是都是复制的
@@ -92,6 +91,8 @@ public final class StackGroup {
     }
 
     /**
+     * group下面有很多栈
+     *
      * 删除完成花色
      * @return
      */
