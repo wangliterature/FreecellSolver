@@ -113,10 +113,10 @@ final class FreeCellSolver extends BaseSolver {
             this.equealData(4);
         }
         if (!this.isSolver) {
-            FreeCellSolver nz_02 = this;
+            FreeCellSolver solver = this;
             int n4 = n2;
-            GameState nY2 = nz_02.solverContext.searchState;
-            n3 = nz_02.analyzeSpiderBoard(nY2, n4, false);
+            GameState nY2 = solver.solverContext.searchState;
+            n3 = solver.analyzeSpiderBoard(nY2, n4, false);
             if (n3 == 2) {
                 if (this.solverContext.logLevel <= 4) {
                     this.solverContext.log("Solved state solved so backout 999");
@@ -492,7 +492,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
             } else {
                 CardStack[] os_0Array = this.solverContext.searchState.stackGroups[2].stacks;
-                int n26 = this.solverContext.searchState.stackGroups[2].stacks.length;
+                int n26 = os_0Array.length;
                 int n27 = 0;
                 while (n27 < n26) {
                     CardStack os_013 = os_0Array[n27];
@@ -687,37 +687,21 @@ final class FreeCellSolver extends BaseSolver {
                 this.calCardGroupCardNum(hashMap, this.solverContext.initialState.stackGroups[2], 1);
     }
 
+    /**
+     * 所有列是不是只有一个解了
+     * @param gameState
+     * @return
+     */
     @Override
-    final int analyzeSpiderBoard(GameState nY2, boolean bl, int n2, int n3) {
-        if (bl) {
-            return 0;
-        }
-        if (nY2 == null) {
-            return 0;
-        }
-        if (nY2.stackGroups[2] == null) {
-            return 0;
-        }
-        int n4 = 0;
-        CardStack[] os_0Array = nY2.stackGroups[2].stacks;
-        int n5 = os_0Array.length;
-        for (int i = 0; i < n5; ++i) {
-            CardStack os_02 = os_0Array[i];
-            if (os_02.topRun == null || os_02.topRun.cardCount < n3 || n2 != 0 && os_02.topRun.cards[os_02.topRun.cardCount - 1].suit != n2) continue;
-            ++n4;
-        }
-        return n4;
-    }
-
-    @Override
-    final int analyzeSpiderBoard(GameState gameState) {
+    final int isOneStep(GameState gameState) {
         if (gameState == null) {
             return 999;
         }
-        //为什么？
+        //stack group 有3个部分    这是取目标区域
         if (gameState.stackGroups[2] == null) {
             return 999;
         }
+        //牌堆中  是不是有多个可以run的，是不是都有续
         if (this.solverContext.files.maxMoves == 999) {
             boolean bl = true;
             CardStack[] cardStackArray = gameState.stackGroups[0].stacks;
@@ -730,74 +714,34 @@ final class FreeCellSolver extends BaseSolver {
                 if (this.solverContext.logLevel <= 5) {
                     this.solverContext.log("Freecell completed because stacks sequenced, depth " + gameState.depth);
                 }
-                return gameState.depth;
+                return gameState.depth; //说明成功了
             }
         }
-        return gameState.depth + 52 - gameState.stackGroups[2].countCards();
+        return gameState.depth + 52 - gameState.stackGroups[2].countCards(); //加深度
     }
 
-    static int analyzeSpiderBoard(StackGroup stackGroup, int n2) {
-        if (stackGroup == null) {
-            return 0;
-        }
-        CardStack[] cardStack = stackGroup.stacks;
-        int n3 = cardStack.length;
-        int n4 = 0;
-        while (n4 < n3) {
-            CardStack cs = cardStack[n4];
-            if (cs.topRun != null && cs.topRun.cards[cs.topRun.cardCount - 1].suit == n2) {
-                return cs.topRun.cardCount;
-            }
-            ++n4;
-        }
-        return 0;
-    }
-
-    static int sumLargestRuns(StackGroup stackGroup, int n2) {
-        if (stackGroup == null) {
-            return 0;
-        }
-        int[] nArray = new int[4];
-
-        CardStack[] cardStacks = stackGroup.stacks;
-        int cardStackLength = cardStacks.length;
-        int n6 = 0;
-        while (n6 < cardStackLength) {
-            CardStack cardStack = cardStacks[n6];
-            if (cardStack.topRun != null) {
-                nArray[n6] = cardStack.topRun.cardCount;
-            }
-            ++n6;
-            ++n6;
-        }
-        Arrays.sort(nArray);
-        n6 = 3;
-        int n4 = 0;
-        while (n6 > 3 - n2) {
-            n4 += nArray[n6];
-            --n6;
-        }
-        return n4;
-    }
-
-
+    /**
+     * cardRun是否有效
+     * @param gamState
+     * @return
+     */
     @Override
-    final boolean analyzeSpiderBoard(GameState nY2, int n2) {
-        if (nY2 == null) {
+    final boolean isCardRunValid(GameState gamState) {
+        if (gamState == null) {
             return false;
         }
-        if (nY2.stackGroups[2] == null) {
+        if (gamState.stackGroups[2] == null) {
             return false;
         }
-        n2 = 1;
-        CardStack[] os_0Array = nY2.stackGroups[0].stacks;
-        int n3 = os_0Array.length;
+        int flag = 1;
+        CardStack[] cardStackArray = gamState.stackGroups[0].stacks;
+        int n3 = cardStackArray.length;
         for (int i = 0; i < n3; ++i) {
-            if (os_0Array[i].runs.size() <= 1) continue;
-            n2 = 0;
+            if (cardStackArray[i].runs.size() <= 1) continue;
+            flag = 0;
             break;
         }
-        return n2 != 0;
+        return flag != 0;
     }
 
     @Override
@@ -810,7 +754,6 @@ final class FreeCellSolver extends BaseSolver {
         if (n2 != 8) {
             this.solverContext.invalidInput("FreeCell input file must have 7 rows of cards", false);
         }
-
         try {
             //解析数据，将数据放入， 创建cardRun
             for (int i = 0; i < n3; ++i) {

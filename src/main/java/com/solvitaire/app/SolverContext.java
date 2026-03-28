@@ -22,7 +22,7 @@ public class SolverContext {
    int depth = 0;
    long searchStepCount = 0L;
    boolean foundCompleteSolution = false;
-   boolean t = true;
+
    boolean initAI = false;
    boolean Y = false;
    String workspaceRoot = "";

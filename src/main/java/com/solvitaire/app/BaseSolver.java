@@ -29,7 +29,7 @@ public abstract class BaseSolver {
     int cardPoolDefaultSize;
 
     private long b;
-    private long c;
+    private long lastBridgeUpdateTimeMs;
     private int buetMaxSize;
     transient private boolean state;
     private int[] K = null;
@@ -70,13 +70,9 @@ public abstract class BaseSolver {
 
     abstract void appendBoardState(StringBuffer var1);
 
-
-
     abstract void dumpState(int var1, boolean var2);
 
-
-
-    abstract boolean analyzeSpiderBoard(GameState var1, int var2);
+    abstract boolean isCardRunValid(GameState var1);
 
     BaseSolver(SolverContext solverContext, int searchCreditLimit) {
         this.solverContext = solverContext;
@@ -900,17 +896,19 @@ public abstract class BaseSolver {
         return blArray;
     }
     
-    final int analyzeSpiderBoard(GameState nY2, int n2, boolean bl) {
+    final int analyzeSpiderBoard(GameState gameState, int n2, boolean bl) {
         if (this.isSolver) {
             return 2;
         }
-        nY2.solutionLength = nY2.depth;
-        if (this.solverContext.foundCompleteSolution && this.solverContext.bestSolutionState.solutionLength < nY2.solutionLength) {
+        //深度     比较深度   如果找到解，   比较一下深度
+        gameState.solutionLength = gameState.depth;
+        if (this.solverContext.foundCompleteSolution &&
+                this.solverContext.bestSolutionState.solutionLength < gameState.solutionLength) {
             return 1;
         }
         n2 = 0;
-        int n3 = this.analyzeSpiderBoard(nY2);
-        boolean bl2 = this.analyzeSpiderBoard(nY2, n3);
+        int n3 = this.isOneStep(gameState);
+        boolean bl2 = this.isCardRunValid(gameState);
         if (bl2) {
             n2 = 1;
         }
@@ -919,8 +917,8 @@ public abstract class BaseSolver {
         }
         if (bl2) {
             n2 = 1;
-            if (nY2.solutionLength < this.solverContext.files.maxMoves && (this.solverContext.bestSolutionState.solutionLength == 0 || nY2.solutionLength < this.solverContext.bestSolutionState.solutionLength)) {
-                this.analyzeSpiderBoard(nY2, "Best solution currently " + nY2.solutionLength + " moves", true, true);
+            if (gameState.solutionLength < this.solverContext.files.maxMoves && (this.solverContext.bestSolutionState.solutionLength == 0 || gameState.solutionLength < this.solverContext.bestSolutionState.solutionLength)) {
+                this.analyzeSpiderBoard(gameState, "Best solution currently " + gameState.solutionLength + " moves", true, true);
             }
         }
         if (this.analyzeSpiderBoard(bl)) {
@@ -955,7 +953,7 @@ public abstract class BaseSolver {
         if (bl) {
             this.E = true;
         }
-        this.c = System.currentTimeMillis();
+        this.lastBridgeUpdateTimeMs = System.currentTimeMillis();
         if (bl2) {
             this.solverContext.foundCompleteSolution = true;
         }
@@ -966,8 +964,8 @@ public abstract class BaseSolver {
             return false;
         }
         if (bl || this.solverContext.searchStepCount % 1000L == 0L) {
-            if (this.solverContext.bridge.lastBridgeUpdateTimeMs > this.c) {
-                this.c = this.solverContext.bridge.lastBridgeUpdateTimeMs;
+            if (this.solverContext.bridge.lastBridgeUpdateTimeMs > this.lastBridgeUpdateTimeMs) {
+                this.lastBridgeUpdateTimeMs = this.solverContext.bridge.lastBridgeUpdateTimeMs;
             }
             if (this.solverContext.foundCompleteSolution || this.E) {
                 if (this.solverContext.logLevel <= 5) {
@@ -983,15 +981,11 @@ public abstract class BaseSolver {
 
 
 
-    int analyzeSpiderBoard(GameState nY2, boolean bl, int n2, int n3) {
-        return -1;
-    }
-
     int analyzeSpiderBoard(GameState nY2, boolean bl) {
         return -1;
     }
 
-    int analyzeSpiderBoard(GameState nY2) {
+    int isOneStep(GameState nY2) {
         return nY2.depth + 1;
     }
 
