@@ -17,7 +17,6 @@ public class SolverContext {
    int solverMode = 3;
 //   每轮搜索会从这个复杂度预算开始，然后逐渐减小
    int searchCredit = 0;
-
    int complexity = 0;
    int depth = 0;
    long searchStepCount = 0L;
@@ -34,7 +33,6 @@ public class SolverContext {
    GameState playbackState = new GameState();
    SolverFileSet files;
 
-   BpStub fontStats = new BpStub();
 
    void log(String message) {
       System.out.println(message);
@@ -86,14 +84,6 @@ public class SolverContext {
       }
    }
 
-   String readTextFile(String path) {
-      try {
-         return Files.readString(Paths.get(path), StandardCharsets.UTF_8);
-      } catch (IOException iOException) {
-         throw new IllegalStateException("Failed to read " + path, iOException);
-      }
-   }
-
    static void ensureDirectory(String path) {
       try {
          Files.createDirectories(Paths.get(path));
@@ -103,8 +93,6 @@ public class SolverContext {
    }
 
    final int parseCardCode(String string) {
-
-
       string = string.trim().toLowerCase();
       if (string.isEmpty()) {
          return 0;
@@ -173,20 +161,6 @@ public class SolverContext {
             return 0;
       }
    }
-
-   static String describeThrowable(Throwable throwable) {
-      return throwable.toString();
-   }
-
-   static final class BpStub {
-      final FontStub font = new FontStub();
-   }
-
-   static final class FontStub {
-      String name = "solver";
-   }
-
-
 }
 
 

@@ -141,7 +141,7 @@ public final class Move {
         return ((n2 ^ n3) & 0xFFFFFF) == 0 && (n2 &= 0x8000000) == (n3 &= 0x8000000);
     }
 
-    //撤销
+    //打印用的  可以忽略
     static String[] undoOpt(SolverBridge solverBridge, int[] nArray, int n2, int n3, boolean bl) {
         Vector<String> vector = new Vector<String>();
         if (bl) {
@@ -151,7 +151,7 @@ public final class Move {
                 n4 = nArray[n2];
                 int n5 = n4 >> 24;
                 if ((n5 & 4) == 0) {
-                    vector.add(String.format(" %3d.\t Undo %s", n2, solverBridge.a(n4, n5)));
+                    vector.add(String.format(" %3d.\t Undo %s", n2, solverBridge.printMoveLog(n4, n5)));
                 }
                 --n2;
             }
@@ -161,7 +161,7 @@ public final class Move {
                 int n6 = nArray[n2];
                 int n7 = n6 >> 24;
                 if ((n7 & 4) == 0) {
-                    vector.add(String.format(" %3d.\t %s", n2, solverBridge.a(n6, n7)));
+                    vector.add(String.format(" %3d.\t %s", n2, solverBridge.printMoveLog(n6, n7)));
                 }
                 ++n2;
             }

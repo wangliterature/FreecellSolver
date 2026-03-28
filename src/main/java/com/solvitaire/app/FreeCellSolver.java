@@ -661,7 +661,6 @@ final class FreeCellSolver extends BaseSolver {
                                 if (this.solverContext.logLevel <= 5) {
                                     this.solverContext.log("Invoking play() due to unknown cards, stack " + os_03.stackIndex + " lastCard " + nT3 + " peek " + os_03.runs.peekFirst());
                                 }
-                                this.solverContext.bridge.a(this.solverContext.searchState, os_04, false, true, false);
                                 this.solverContext.sleepBriefly(1000L, "Wait for auto to complete");
                             }
                             this.search(n13, 0);

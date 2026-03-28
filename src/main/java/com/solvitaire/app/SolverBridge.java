@@ -1,12 +1,9 @@
 package com.solvitaire.app;
 
 abstract class SolverBridge {
-   int readHighlightColumnIndex = 0;
-   int readHighlightRowIndex = 0;
    long lastBridgeUpdateTimeMs = 0L;
    int specialSourceGroupIndex = -1;
    int specialDestinationGroupIndex = -1;
-
    protected final BaseSolver solver;
    protected final SolverContext context;
 
@@ -23,18 +20,12 @@ abstract class SolverBridge {
       return this.loadInitialState();
    }
 
-   int a(GameState state, CardStack stack, boolean playback, boolean allowAuto, boolean interactive) {
-      return 0;
-   }
-
-
-   String a(int move, int flags) {
+   String printMoveLog(int move, int flags) {
       Move decodedMove = new Move(this.context, move, flags);
       String rawMove = Move.undoOpt(move);
       if ((flags & 8) != 0) {
          return this.describeSpecialMove(decodedMove, rawMove);
       }
-
       StringBuilder description = new StringBuilder();
       description.append("move ")
          .append(decodedMove.movedCardCount)
@@ -92,17 +83,6 @@ abstract class SolverBridge {
       return groupName + "[" + stack.stackIndex + "]";
    }
 
-   static int a(int[] sourceMoves, int[] targetMoves, int depth) {
-      if (sourceMoves == null || targetMoves == null) {
-         return 0;
-      }
-
-      int count = Math.min(depth, Math.min(sourceMoves.length, targetMoves.length));
-      if (count > 0) {
-         System.arraycopy(sourceMoves, 0, targetMoves, 0, count);
-      }
-      return count;
-   }
 }
 
 

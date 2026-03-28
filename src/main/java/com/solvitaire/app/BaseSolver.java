@@ -234,10 +234,7 @@ public abstract class BaseSolver {
 
         //初始化部分
         if (this.initializeSolver()) {
-            String string = "n/a";
-            if (this.solverContext.fontStats != null && this.solverContext.fontStats.font != null) {
-                string = this.solverContext.fontStats.font.name;
-            }
+            String string = "solver";
             if (this.solverContext.logLevel <= 9) {
                 this.solverContext.log("*** " + this.getSolverName() + " initialisation complete, font " + string +
                         ", mode " +   "," + " (Solvitaire version " + "5.1.2" + " on " + new Date() + ")");
@@ -307,7 +304,6 @@ public abstract class BaseSolver {
                     this.solverContext.log("Play solution");
                 }
                 this.solverContext.initialState.moveAnnotations = Arrays.copyOf(this.solverContext.bestSolutionState.moveAnnotations, this.solverContext.bestSolutionState.moveAnnotations.length);
-                this.solverContext.bridge.a(this.solverContext.bestSolutionState, null, true, true, false);
                 if (!this.solverContext.Y) {
                     if (this.solverContext.logLevel > 5) break;
                     this.solverContext.log("Solved so exit process loop");
@@ -362,7 +358,6 @@ public abstract class BaseSolver {
             this.solverContext.log("Found longer solution");
             this.equealData(9);
             this.dumpState(9, false);
-            this.solverContext.bridge.a(this.solverContext.searchState, null, false, false, false);
         } else if (this.K[0] == -1) {
             if (this.solverContext.searchState.depth < this.K.length - 1) {
                 return false;
