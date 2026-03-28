@@ -35,13 +35,13 @@ public final class GameState {
 
     GameState(GameState sourceState, boolean workingCopy) {
         this.stackGroups = new StackGroup[10];
-        int n2 = 0;
+        int stackGroupIndex = 0;
         //复制StackGroup
-        while (n2 < 10) {
-            if (sourceState.stackGroups[n2] != null) {
-                this.stackGroups[n2] = new StackGroup(sourceState.stackGroups[n2], workingCopy);
+        while (stackGroupIndex < 10) {
+            if (sourceState.stackGroups[stackGroupIndex] != null) {
+                this.stackGroups[stackGroupIndex] = new StackGroup(sourceState.stackGroups[stackGroupIndex], workingCopy);
             }
-            ++n2;
+            ++stackGroupIndex;
         }
         this.currentDealIndex = sourceState.currentDealIndex;
         this.progressIndex = sourceState.progressIndex;

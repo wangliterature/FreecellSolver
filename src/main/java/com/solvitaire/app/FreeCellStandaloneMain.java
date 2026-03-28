@@ -36,6 +36,7 @@ public final class FreeCellStandaloneMain {
          context.files = new SolverFileSet(actualInputFile);
          context.files.b = 1;
          context.files.variantSlug = "freecell";
+         //创建牌的几个区域
          context.initialState = allocateFreeCellState(context);
          context.bestSolutionState = new GameState();
          context.playbackState = new GameState();
@@ -139,7 +140,7 @@ public final class FreeCellStandaloneMain {
       state.stackGroups[0] = new StackGroup(context, "Stack", 0, 8, 9);
       state.stackGroups[1] = new StackGroup(context, "WorkArea", 1, 4, 2);
       state.stackGroups[2] = new StackGroup(context, "Aces", 2, 4, 2);
-      state.stackGroups[2].stacks[0].foundationSuit = 2;
+      state.stackGroups[2].stacks[0].foundationSuit = 2;  //区域放什么花色
       state.stackGroups[2].stacks[1].foundationSuit = 4;
       state.stackGroups[2].stacks[2].foundationSuit = 3;
       state.stackGroups[2].stacks[3].foundationSuit = 1;

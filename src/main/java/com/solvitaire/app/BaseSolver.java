@@ -54,8 +54,7 @@ public abstract class BaseSolver {
     private long[] longRandom1;
     private long[] longRandom2;
     boolean E;
-    int F;
-    int G;
+
 
     abstract String getSolverName();
 
@@ -75,7 +74,7 @@ public abstract class BaseSolver {
 
     abstract void dumpState(int var1, boolean var2);
 
-    abstract int analyzeSpiderBoard(CardStack var1);
+
 
     abstract boolean analyzeSpiderBoard(GameState var1, int var2);
 
@@ -167,9 +166,6 @@ public abstract class BaseSolver {
         //搜素状态
         this.solverContext.searchState = null;
 
-
-        this.F = 0;
-        this.G = 0;
 //        完整解已经成立
         this.solverContext.foundCompleteSolution = false;
         this.E = false;
@@ -725,119 +721,65 @@ public abstract class BaseSolver {
         return String.valueOf(BaseSolver.g(n2 % 100)) + BaseSolver.m(n2 / 100);
     }
 
-    final int analyzeSpiderBoard(HashMap hashMap, int n2) {
-        int n3;
-        Integer n4;
-        Integer n5 = n2;
-        if (n2 == -1) {
+    final int everyCardNum(HashMap<Integer,Integer> hashMap, int cardId) {
+        if (cardId == -1) {
             this.solverContext.fail("ERROR - Card could not be identified");
         }
-        if ((n4 = (Integer)hashMap.get(n5)) == null) {
-            n3 = 1;
+        int cardCount = 1;
+        if (hashMap.get(cardId) == null) {
+            cardCount = 1;
         } else {
-            n3 = n4;
-            ++n3;
+            ++cardCount;
         }
-        hashMap.put(n5, n3);
-        return n3;
+        hashMap.put(cardId, cardCount);
+        return cardCount;
     }
 
-    final int analyzeSpiderBoard(HashMap hashMap, StackGroup ot_02, int n2) {
-        int n3 = 0;
-        CardStack[] os_0Array = ot_02.stacks;
-        int n4 = ot_02.stacks.length;
-        int n5 = 0;
-        while (n5 < n4) {
-            CardStack os_02 = os_0Array[n5];
-            int n6 = n2;
-            int n7 = 0;
-            int n8 = 0;
-            for (Object object : os_02.runs) {
-                CardRun ok_02 = (CardRun)object;
-                int n9 = 0;
-                while (n9 < ok_02.cardCount) {
-                    if (ok_02.cards[n9].cardId != 0) {
+    /**
+     * 计算每一个stack的个数
+     * @param hashMap
+     * @param stackGroup
+     * @param maxNum
+     * @return
+     */
+    final int calCardGroupCardNum(HashMap<Integer,Integer> hashMap, StackGroup stackGroup, int maxNum) {
+        int allStackNum = 0;
+        CardStack[] cardStacks = stackGroup.stacks;
+        int stackLength = stackGroup.stacks.length;
+        int index = 0;
+        while (index < stackLength) {
+            CardStack cardStack = cardStacks[index];
+            int runNUm = 0;
+            int everyStackNum = 0;
+            for (CardRun cardRun : cardStack.runs) {
+                int cardRunIndex = 0;
+                //cardRun的长度不为0
+                while (cardRunIndex < cardRun.cardCount) {
+                    if (cardRun.cards[cardRunIndex].cardId != 0) {
                         if (this.solverContext.logLevel <= 0) {
-                            this.solverContext.log("Testing stack " + os_02.stackIndex + " run " + n7 + " entry " + n9 + " card " + ok_02.cards[n9]);
+                            this.solverContext.log("Testing stack " + cardStack.stackIndex + " run " + runNUm + " entry " + cardRunIndex + " card " + cardRun.cards[cardRunIndex]);
                         }
-                        ++n7;
-                        int n10 = this.analyzeSpiderBoard(hashMap, ok_02.cards[n9].cardId);
-                        if (n10 > n6) {
-                            Card nT2 = ok_02.cards[n9];
-                            Card nT3 = nT2;
-                            nT3 = ok_02.cards[n9];
+                        ++runNUm;
+                        //计算每一张牌的个数
+                        int everyCardNum = this.everyCardNum(hashMap, cardRun.cards[cardRunIndex].cardId);
+                        //这里主要是校验     如果数量大于1   spider > 2
+                        if (everyCardNum > maxNum) {
+                            Card nT2 = cardRun.cards[cardRunIndex];
+                            Card nT3 = cardRun.cards[cardRunIndex];
                             this.solverContext.fail("ERROR - Too many " + BaseSolver.f(nT2.cardId) + " of " + BaseSolver.d(nT3.cardId) + "s in the deck");
                         }
-                        ++n8;
+                        ++everyStackNum;
                     }
-                    ++n9;
+                    ++cardRunIndex;
                 }
             }
-            n3 += n8;
-            ++n5;
+            allStackNum += everyStackNum;
+            ++index;
         }
         if (this.solverContext.logLevel <= 3) {
-            this.solverContext.log("Numcards after stack " + ot_02.name + " is " + n3);
+            this.solverContext.log("Numcards after stack " + stackGroup.name + " is " + allStackNum);
         }
-        return n3;
-    }
-
-
-
-    final int e(CardStack os_02) {
-        this.solverContext.bridge.readHighlightColumnIndex = os_02.stackIndex % 10;
-        if ((os_02.ownerGroup.flags & 2) != 0) {
-            this.solverContext.bridge.readHighlightRowIndex = os_02.ownerGroup.groupIndex;
-            if (this.solverContext.logLevel <= 4) {
-                this.solverContext.log("Horizontal stack " + os_02.stackIndex + " so playrow is " + this.solverContext.bridge.readHighlightRowIndex);
-            }
-        } else {
-            this.solverContext.bridge.readHighlightRowIndex = os_02.runs.size() - 1;
-            if (this.solverContext.logLevel <= 4) {
-                this.solverContext.log("Vertical stack " + os_02.stackIndex + " so playrow is " + this.solverContext.bridge.readHighlightRowIndex);
-            }
-        }
-        BaseSolver op_02 = this;
-        int n3 = this.solverContext.searchState.moves[this.solverContext.searchState.depth];
-        GameState nY2 = op_02.solverContext.searchState;
-        if (op_02.analyzeSpiderBoard(nY2, n3, false) != 0) {
-            return -1;
-        }
-        this.state = true;
-        int n4 = this.solverContext.bridge.a(this.solverContext.searchState, os_02, false, true, false);
-        this.state = false;
-        if (this.isSolver) {
-            this.solverContext.log("Solved while reading a card, so return without the card");
-            return -1;
-        }
-        if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log("***Completed read of unknown card " + n4 + " on row " + this.solverContext.bridge.readHighlightRowIndex + " stack " + os_02.stackIndex);
-        }
-        this.equealData(4);
-        if (n4 == -1) {
-            this.solverContext.fail("Unexpected failure to read a card<br>Did a dialog pop up?<br>Did you set the challenge objective right?");
-        }
-        return n4;
-    }
-
-    final int analyzeSpiderBoard(int n2, int n3, int n4, double d2) {
-        n4 = (int)((double)n2 + d2 * (double)n4);
-        if (d2 > 0.0) {
-            if (n2 > n3) {
-                this.solverContext.fail("Incrementing by " + d2 + " but complexity base " + n2 + " greater than cap " + n3);
-            }
-            if (n4 > n3) {
-                n4 = n3;
-            }
-        } else if (d2 < 0.0) {
-            if (n2 < n3) {
-                this.solverContext.fail("Decrementing by " + d2 + " but complexity base " + n2 + " less than cap " + n3);
-            }
-            if (n4 < n3) {
-                n4 = n3;
-            }
-        }
-        return n4;
+        return allStackNum;
     }
 
     final boolean equealData(CardStack os_02, CardStack os_03) {
@@ -1071,9 +1013,7 @@ public abstract class BaseSolver {
         return false;
     }
 
-    int equealData(GameState nY2, boolean bl) {
-        return -1;
-    }
+
 
     int analyzeSpiderBoard(GameState nY2, boolean bl, int n2, int n3) {
         return -1;

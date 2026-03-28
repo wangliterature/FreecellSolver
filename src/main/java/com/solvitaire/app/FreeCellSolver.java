@@ -82,8 +82,7 @@ final class FreeCellSolver extends BaseSolver {
             return false;
         }
         this.solverContext.searchState = new GameState(this.solverContext.initialState, true);
-        this.F = 0;
-        this.G = 0;
+
         if (this.solverContext.files.maxMoves < 999) {
             if (this.solverContext.logLevel <= 5) {
                 this.solverContext.log("Using modified search for max move target");
@@ -730,10 +729,12 @@ final class FreeCellSolver extends BaseSolver {
         return bl;
     }
 
-    @Override
-    final int analyzeSpiderBoard(CardStack os_02) {
-        HashMap hashMap = new HashMap(52);
-        return this.analyzeSpiderBoard(hashMap, this.solverContext.initialState.stackGroups[0], 1) + this.analyzeSpiderBoard(hashMap, this.solverContext.initialState.stackGroups[1], 1) + this.analyzeSpiderBoard(hashMap, this.solverContext.initialState.stackGroups[2], 1);
+
+    final int countCardNum() {
+        HashMap<Integer,Integer> hashMap = new HashMap(52);
+        return this.calCardGroupCardNum(hashMap, this.solverContext.initialState.stackGroups[0], 1) +
+                this.calCardGroupCardNum(hashMap, this.solverContext.initialState.stackGroups[1], 1) +
+                this.calCardGroupCardNum(hashMap, this.solverContext.initialState.stackGroups[2], 1);
     }
 
     @Override
@@ -759,42 +760,42 @@ final class FreeCellSolver extends BaseSolver {
     }
 
     @Override
-    final int analyzeSpiderBoard(GameState nY2) {
-        if (nY2 == null) {
+    final int analyzeSpiderBoard(GameState gameState) {
+        if (gameState == null) {
             return 999;
         }
-        if (nY2.stackGroups[2] == null) {
+        //为什么？
+        if (gameState.stackGroups[2] == null) {
             return 999;
         }
         if (this.solverContext.files.maxMoves == 999) {
             boolean bl = true;
-            CardStack[] os_0Array = nY2.stackGroups[0].stacks;
-            int n2 = os_0Array.length;
-            for (int i = 0; i < n2; ++i) {
-                if (os_0Array[i].runs.size() <= 1) continue;
+            CardStack[] cardStackArray = gameState.stackGroups[0].stacks;
+            for (int i = 0; i < cardStackArray.length; ++i) {
+                if (cardStackArray[i].runs.size() <= 1) continue;
                 bl = false;
                 break;
             }
             if (bl) {
                 if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Freecell completed because stacks sequenced, depth " + nY2.depth);
+                    this.solverContext.log("Freecell completed because stacks sequenced, depth " + gameState.depth);
                 }
-                return nY2.depth;
+                return gameState.depth;
             }
         }
         if (this.solverContext.files.b != 4) {
             if (this.solverContext.files.b == 3) {
-                int n3 = FreeCellSolver.sumLargestRuns(nY2.stackGroups[2], this.solverContext.files.h);
+                int n3 = FreeCellSolver.sumLargestRuns(gameState.stackGroups[2], this.solverContext.files.h);
                 int n4 = this.solverContext.files.c * this.solverContext.files.h - n3;
-                return nY2.depth + n4;
+                return gameState.depth + n4;
             }
-            return nY2.depth + 52 - nY2.stackGroups[2].countCards();
+            return gameState.depth + 52 - gameState.stackGroups[2].countCards();
         }
-        int n5 = FreeCellSolver.analyzeSpiderBoard(nY2.stackGroups[2], this.solverContext.files.suit);
+        int n5 = FreeCellSolver.analyzeSpiderBoard(gameState.stackGroups[2], this.solverContext.files.suit);
         int n6 = 0;
         int n7 = this.solverContext.files.suit * 100 + n5 + 1;
         int n8 = this.solverContext.files.suit * 100 + this.solverContext.files.c;
-        CardStack[] os_0Array2 = nY2.stackGroups[0].stacks;
+        CardStack[] os_0Array2 = gameState.stackGroups[0].stacks;
         int n9 = os_0Array2.length;
         for (int i = 0; i < n9; ++i) {
             for (Object object : os_0Array2[i].runs) {
@@ -807,14 +808,14 @@ final class FreeCellSolver extends BaseSolver {
                 }
             }
         }
-        CardStack[] os_0Array3 = nY2.stackGroups[1].stacks;
+        CardStack[] os_0Array3 = gameState.stackGroups[1].stacks;
         int n10 = os_0Array3.length;
         for (int i = 0; i < n10; ++i) {
             int n11 = os_0Array3[i].getTopCardValue();
             if (n11 < n7 || n11 > n8) continue;
             ++n6;
         }
-        return nY2.depth + n6;
+        return gameState.depth + n6;
     }
 
     static int analyzeSpiderBoard(StackGroup stackGroup, int n2) {
@@ -887,26 +888,11 @@ final class FreeCellSolver extends BaseSolver {
         int n3 = 7;
         boolean bl = false;
         int[] nArray = new int[]{7, 7, 7, 7, 6, 6, 6, 6};
-        if (string == null) {
-            if (n2 != 8) {
-                this.solverContext.invalidInput("FreeCell input file must have 7 rows of cards", false);
-            }
-        } else {
-            bl = true;
-            n3 = 0;
-            String[] stringArray2 = string.split(":");
-            try {
-                for (int i = 0; i < 8; ++i) {
-                    int n4 = Integer.parseInt(stringArray2[i]);
-                    nArray[i] = n4;
-                    if (n4 <= n3) continue;
-                    n3 = n4;
-                }
-            }
-            catch (NumberFormatException numberFormatException) {
-                this.solverContext.invalidInput("Error parsing Freecell options for partially completed deck", false);
-            }
+
+        if (n2 != 8) {
+            this.solverContext.invalidInput("FreeCell input file must have 7 rows of cards", false);
         }
+
         try {
             //解析数据，将数据放入， 创建cardRun
             for (int i = 0; i < n3; ++i) {
@@ -934,37 +920,10 @@ final class FreeCellSolver extends BaseSolver {
                     }
                 }
             }
-            if (bl) {
-                String[] stringArray4 = stringArray[n3 + 1].split(",");
-                for (int i = 0; i < 4; ++i) {
-                    String string3 = stringArray4[i];
-                    int n7 = this.solverContext.parseCardCode(string3);
-                    this.c[i] = n7;
-                    if (n7 <= 0) continue;
-                    CardStack os_03 = this.solverContext.initialState.stackGroups[1].stacks[i];
-                    os_03.appendRun(new CardRun(this.getCardFromPool(os_03, n7)));
-                }
-                String[] stringArray5 = stringArray[n3 + 2].split(",");
-                for (int i = 0; i < 4; ++i) {
-                    String string4 = stringArray5[i];
-                    int n8 = this.solverContext.parseCardCode(string4);
-                    this.b[i] = n8;
-                    if (n8 <= 0) continue;
-                    int n9 = n8 / 100;
-                    int n10 = n8 % 100;
-                    CardStack os_04 = this.solverContext.initialState.stackGroups[2].stacks[i];
-                    CardRun ok_04 = new CardRun(this.getCardFromPool(os_04, n9 * 100 + 1));
-                    os_04.appendRun(ok_04);
-                    for (int j = 2; j <= n10; ++j) {
-                        ok_04.appendFromRun(new CardRun(this.getCardFromPool(os_04, n9 * 100 + j)), 1);
-                    }
-                }
-            }
-        }
-        catch (Exception exception) {
+        } catch (Exception exception) {
             this.solverContext.invalidInput("Error interpreting the card data.  Probably unexpected number of cards somewhere in the file.", false);
         }
-        if (this.analyzeSpiderBoard((CardStack)null) != 52) {
+        if (this.countCardNum() != 52) {
             this.solverContext.invalidInput("ERROR - Did not read 52 cards from the file", false);
         }
         return true;
@@ -974,6 +933,7 @@ final class FreeCellSolver extends BaseSolver {
     final void appendBoardState(StringBuffer stringBuffer) {
         int n2 = 0;
         boolean bl = false;
+        //名字
         stringBuffer.append(SolverContext.VARIANT_NAMES[this.solverContext.variantId]);
         int n3 = 0;
         while (n3 < 4) {
@@ -1064,7 +1024,18 @@ final class FreeCellSolver extends BaseSolver {
 
     @Override
     final StringBuffer createStateHeader(String string, int n2) {
-        return new StringBuffer(String.valueOf(string) + "[" + n2 + ":" + this.moveToAcesAttempts + "," + this.toSpaceAttempts + "," + this.fromSpaceAttempts + "," + this.moveToWorkAreaAttempts + "," + this.fromWorkAreaAttempts + "," + this.exposeAceAttempts + "," + this.alternatingJoinAttempts + "," + this.splitMatchAttempts + "," + 0 + "]: ");
+        return new StringBuffer(
+                string
+                + "[" +
+                        n2 + ":" +
+                        this.moveToAcesAttempts + "," +
+                        this.toSpaceAttempts + "," +
+                        this.fromSpaceAttempts + "," +
+                        this.moveToWorkAreaAttempts + "," +
+                        this.fromWorkAreaAttempts + "," +
+                        this.exposeAceAttempts + "," +
+                        this.alternatingJoinAttempts + "," +
+                        this.splitMatchAttempts + "," + 0 + "]: ");
     }
 
 }
