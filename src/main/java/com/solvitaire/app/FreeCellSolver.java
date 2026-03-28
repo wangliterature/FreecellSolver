@@ -1081,50 +1081,6 @@ final class FreeCellSolver extends BaseSolver {
         return new StringBuffer(String.valueOf(string) + "[" + n2 + ":" + this.moveToAcesAttempts + "," + this.toSpaceAttempts + "," + this.fromSpaceAttempts + "," + this.moveToWorkAreaAttempts + "," + this.fromWorkAreaAttempts + "," + this.exposeAceAttempts + "," + this.alternatingJoinAttempts + "," + this.splitMatchAttempts + "," + 0 + "]: ");
     }
 
-    @Override
-    final int analyzeSpiderBoard(HashMap hashMap) {
-        int n2;
-        int n3 = 0;
-        int n4 = 0;
-        while (n4 < this.stackSize) {
-            n2 = 0;
-            while (n2 < this.h[n4]) {
-                ++n3;
-                this.analyzeSpiderBoard(hashMap, this.g[n2][n4], "stack");
-                if (this.solverContext.logLevel <= 3) {
-                    this.solverContext.log("Add card " + n4 + "," + n2 + " to check:" + this.g[n2][n4]);
-                }
-                ++n2;
-            }
-            ++n4;
-        }
-        n4 = 0;
-        while (n4 < 4) {
-            if (this.c[n4] > 0) {
-                ++n3;
-                this.analyzeSpiderBoard(hashMap, this.c[n4], "workarea");
-                if (this.solverContext.logLevel <= 3) {
-                    this.solverContext.log("Add workarea card " + n4 + " to check:" + this.c[n4]);
-                }
-            }
-            if (this.b[n4] > 0) {
-                n2 = this.b[n4] % 100;
-                int n5 = this.b[n4] / 100 * 100;
-                n3 += n2;
-                int n6 = 0;
-                while (n6 < n2) {
-                    int n7 = n5 + n6 + 1;
-                    this.analyzeSpiderBoard(hashMap, n7, "aces");
-                    if (this.solverContext.logLevel <= 3) {
-                        this.solverContext.log("Add ace card " + n7 + " to check");
-                    }
-                    ++n6;
-                }
-            }
-            ++n4;
-        }
-        return n3;
-    }
 }
 
 

@@ -7,20 +7,22 @@ import java.util.Arrays;
 
 /**
  * 可以出的牌
+ *
+ * 一列牌会变为多个牌栈
  */
 final class CardRun {
     // 当前有多少张牌
     public int cardCount;
     // 是否背面（蜘蛛纸牌常见）
     boolean isFaceDown;
-    // 最多13张（K→A）
+    // 最多13张（K→A）   最优的时候就是13张
     Card[] cards = new Card[13];
-    // 所属牌堆
+    // 所属牌栈   card所在牌栈    card Run所在牌栈
     CardStack stack;
-    CardRun() {
-        this.cardCount = 0;
-    }
 
+    CardRun() {}
+
+    // 一个牌栈最少一个
     //如果为null， 那就创建设一个
     CardRun(Card card) {
         this.cards[0] = card;
@@ -31,14 +33,6 @@ final class CardRun {
         this.cardCount = card.cardCount;
         this.isFaceDown = card.isFaceDown;
         this.cards = Arrays.copyOf(card.cards, 13);
-    }
-
-    void setSingleCardFromEncodedValue(int cardId) {
-        if (this.cardCount != 1 || cardId <= 0 || this.cards[0].cardId != 0 && this.cards[0].cardId != cardId) {
-            String string = "setCardValue called on run existing length " + this.cardCount + " existing card " + this.cards[0].cardId + " new value " + cardId;
-            System.out.println(string);
-        }
-        this.cards[0].initFromEncodedValue(cardId);
     }
 
     static boolean isAlternatingColor(Card card2, Card card3) {

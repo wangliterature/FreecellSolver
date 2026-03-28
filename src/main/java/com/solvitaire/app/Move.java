@@ -59,7 +59,6 @@ public final class Move {
             if (context.bridge.specialSourceGroupIndex >= 0) {
                 this.sourceGroup = context.initialState.stackGroups[context.bridge.specialSourceGroupIndex];
                 this.sourceStack = this.sourceGroup.stacks[0];
-                return;
             }
         } else {
             this.destinationGroup = context.initialState.stackGroups[suppliedFlags];
@@ -127,24 +126,6 @@ public final class Move {
         return (n2 & 0xFF) % 10;
     }
 
-    static int undoOpt(int n2, int n3, CardStack os_02, CardStack os_03, boolean bl) {
-        int n4 = 0;
-        if (bl) {
-            n4 = 2;
-        }
-        if (n2 > 0) {
-            if (n2 > 100) {
-                n4 |= n2 / 100 << 4;
-            }
-            if (n2 % 100 > 20) {
-                n4 |= 1;
-            }
-            n3 = n2 % 20;
-        }
-        n2 = os_02 == null ? 0 : os_02.ownerGroup.groupIndex * 10 + os_02.stackIndex;
-        int n5 = os_03 == null ? 0 : os_03.ownerGroup.groupIndex * 10 + os_03.stackIndex;
-        return n4 << 24 | n3 << 16 | n2 << 8 | n5;
-    }
 
     static int undoOpt(int n2, int n3, CardStack os_02, CardStack os_03) {
         if (n3 > 13) {
@@ -153,10 +134,6 @@ public final class Move {
         }
         int n4 = os_02 == null ? 0 : os_02.ownerGroup.groupIndex * 10 + os_02.stackIndex;
         int n5 = os_03 == null ? 0 : os_03.ownerGroup.groupIndex * 10 + os_03.stackIndex;
-        return n2 << 24 | n3 << 16 | n4 << 8 | n5;
-    }
-
-    static int undoOpt(int n2, int n3, int n4, int n5) {
         return n2 << 24 | n3 << 16 | n4 << 8 | n5;
     }
 

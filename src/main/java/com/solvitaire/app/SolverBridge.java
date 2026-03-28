@@ -27,9 +27,6 @@ abstract class SolverBridge {
       return 0;
    }
 
-   int a(int[] moves) {
-      return moves == null ? 0 : moves.length;
-   }
 
    String a(int move, int flags) {
       Move decodedMove = new Move(this.context, move, flags);

@@ -71,11 +71,7 @@ public abstract class BaseSolver {
 
     abstract void appendBoardState(StringBuffer var1);
 
-
-
     abstract boolean analyzeSpiderBoard(CardStack var1, CardStack var2);
-
-    abstract int analyzeSpiderBoard(HashMap var1);
 
     abstract void dumpState(int var1, boolean var2);
 
@@ -1034,19 +1030,6 @@ public abstract class BaseSolver {
             return -1;
         }
         return -1;
-    }
-
-    void analyzeSpiderBoard(HashMap<Integer,Integer> hashMap, int key, String string) {
-        Integer count = hashMap.get(key);
-        if (count == null) {
-            count = 1;
-        } else {
-            count++;
-        }
-        if (this.solverContext.logLevel <= 2) {
-            this.solverContext.log("Adding " + string + " card " + key + " giving " + count);
-        }
-        hashMap.put(key, count);
     }
 
     final void getBucket() {

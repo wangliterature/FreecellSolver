@@ -10,7 +10,7 @@ public final class Card {
    int rank;
    //id
    int cardId;
-   //   牌栈
+   //   牌栈 所属的牌栈
    CardStack ownerStack;
    /**
     * 计算牌信息

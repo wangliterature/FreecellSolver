@@ -178,17 +178,13 @@ public class SolverContext {
 
    static final class BpStub {
       final FontStub font = new FontStub();
-      int e = 0;
-      int f = 0;
    }
 
    static final class FontStub {
       String name = "solver";
    }
 
-   static final class TableStub {
-      int drawCount = 1;
-   }
+
 }
 
 
