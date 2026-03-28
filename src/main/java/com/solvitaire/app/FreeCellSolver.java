@@ -4,7 +4,6 @@
 package com.solvitaire.app;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.HashMap;
 
 /*
@@ -97,12 +96,12 @@ final class FreeCellSolver extends BaseSolver {
     }
 
     @Override
-    final void dumpState(int n2, boolean bl) {
-        if (this.solverContext.logLevel <= n2) {
-            this.logWorkMoveInfo(n2);
-            this.analyzeSpiderBoard(n2, this.solverContext.searchState.stackGroups[2]);
-            this.analyzeSpiderBoard(n2, this.solverContext.searchState.stackGroups[1]);
-            this.analyzeSpiderBoard(n2, this.solverContext.searchState.stackGroups[0]);
+    final void dumpState(int logLevel, boolean bl) {
+        if (this.solverContext.logLevel <= logLevel) {
+            this.logWorkMoveInfo(logLevel);
+            this.printStackInfo(logLevel, this.solverContext.searchState.stackGroups[2]);
+            this.printStackInfo(logLevel, this.solverContext.searchState.stackGroups[1]);
+            this.printStackInfo(logLevel, this.solverContext.searchState.stackGroups[0]);
         }
     }
 
@@ -254,20 +253,20 @@ final class FreeCellSolver extends BaseSolver {
         int n2 = 0;
         while (n2 < this.stackSize) {
             FreeCellSolver nz_02 = this;
-            l2 += nz_02.analyzeSpiderBoard(nz_02.solverContext.searchState.stackGroups[0].stacks[n2], l2, true, false);
+            l2 += nz_02.hashValue(nz_02.solverContext.searchState.stackGroups[0].stacks[n2], l2, true);
             ++n2;
         }
-        this.m = 0;
+        this.randomUseIndex = 0;
         n2 = 0;
         while (n2 < 4) {
             FreeCellSolver nz_03 = this;
-            l2 += nz_03.analyzeSpiderBoard(nz_03.solverContext.searchState.stackGroups[2].stacks[n2], l2, false, false);
+            l2 += nz_03.hashValue(nz_03.solverContext.searchState.stackGroups[2].stacks[n2], l2, false);
             ++n2;
         }
         n2 = 0;
         while (n2 < 4) {
             FreeCellSolver nz_04 = this;
-            l2 += nz_04.analyzeSpiderBoard(nz_04.solverContext.searchState.stackGroups[1].stacks[n2], l2, false, false);
+            l2 += nz_04.hashValue(nz_04.solverContext.searchState.stackGroups[1].stacks[n2], l2, false);
             ++n2;
         }
         return l2;
@@ -457,7 +456,7 @@ final class FreeCellSolver extends BaseSolver {
                     }
                     if (n25 != 0) {
                         if (this.solverContext.logLevel <= 3) {
-                            this.solverContext.log("Try and move card up to " + FreeCellSolver.f(n18) + " of " + FreeCellSolver.d(n24 * 100));
+                            this.solverContext.log("Try and move card up to " + FreeCellSolver.bigZm(n18) + " of " + FreeCellSolver.matchSuitColor(n24 * 100));
                         }
                         CardStack[] os_0Array5 = this.solverContext.searchState.stackGroups[0].stacks;
                         n25 = this.solverContext.searchState.stackGroups[0].stacks.length;
@@ -498,7 +497,7 @@ final class FreeCellSolver extends BaseSolver {
                     CardStack os_013 = os_0Array[n27];
                     if (this.D > 0) break;
                     if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Try and move card run to ace of " + FreeCellSolver.d(os_013.foundationSuit * 100));
+                        this.solverContext.log("Try and move card run to ace of " + FreeCellSolver.matchSuitColor(os_013.foundationSuit * 100));
                     }
 
                     CardStack[] os_0Array6 = this.solverContext.searchState.stackGroups[0].stacks;
@@ -638,12 +637,12 @@ final class FreeCellSolver extends BaseSolver {
                     this.solverContext.searchState.moves[this.solverContext.searchState.depth] = n13;
                     ++this.solverContext.searchState.depth;
                     long l2 = this.computeStateHash();
-                    if (n2 == 7 || !this.equealData(os_02, os_03)) {
+                    if (n2 == 7 || !this.isReversalOfPreviousMove(os_02, os_03)) {
                         if (n2 != 7) {
                             this.D = this.checkCurrentStateHash(l2);
                         }
                         if (this.D < 0) {
-                            this.analyzeSpiderBoard(l2);
+                            this.updateHashState(l2);
                             bl = true;
                             n2 = 0;
                             Card nT3 = os_03.getTopCard();

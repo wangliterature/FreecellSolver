@@ -24,7 +24,7 @@ public abstract class BaseSolver {
     int[][] tableCardArray;
     int[] h;
 
-    int m;
+    int randomUseIndex;
     int decksOfCards;
     int cardPoolDefaultSize;
 
@@ -33,9 +33,9 @@ public abstract class BaseSolver {
     transient private boolean state;
     private int[] K = null;
     boolean q = false;
-    private int[] L = new int[414];
-    private int M;
-    private int N;
+    private int[] sieveArray = new int[414];
+    private int num1;
+    private int num2;
     private int O;
 
     int[][] tableArray;
@@ -88,17 +88,17 @@ public abstract class BaseSolver {
                 while (!sieveArray[n3]) {
                     ++n3;
                 }
-                this.L[n4 * 100 + n5] = n3++;
+                this.sieveArray[n4 * 100 + n5] = n3++;
             }
         }
         while (!sieveArray[n3]) {
             ++n3;
         }
-        this.M = n3;
+        this.num1 = n3;
         while (!sieveArray[n3]) {
             ++n3;
         }
-        this.N = n3;
+        this.num2 = n3;
         while (!sieveArray[n3]) {
             ++n3;
         }
@@ -347,7 +347,7 @@ public abstract class BaseSolver {
         return false;
     }
 
-    private boolean o() {
+    private boolean trackSolutionProgress() {
         if (this.K[0] == -2) {
             if (this.solverContext.searchState.depth <= this.K[1]) {
                 return false;
@@ -399,50 +399,49 @@ public abstract class BaseSolver {
         return false;
     }
 
-    final long analyzeSpiderBoard(CardStack os_02, long l2, boolean bl, boolean bl2) {
-        if (bl) {
-            this.m = 0;
+    final long hashValue(CardStack cardStack, long l2, boolean flag) {
+        if (flag) {
+            this.randomUseIndex = 0;
             l2 = 0L;
         }
-        if (os_02.runs.size() == 0) {
-            l2 += (long)this.N;
+        if (cardStack.runs.size() == 0) {
+            l2 += this.num2;
         } else {
-            for (Object object : os_02.runs) {
-                CardRun ok_02 = (CardRun)object;
+            for (CardRun cardRun : cardStack.runs) {
                 int n2 = 0;
-                while (n2 < ok_02.cardCount) {
-                    int n3 = ok_02.cards[n2].cardId;
+                while (n2 < cardRun.cardCount) {
+                    int n3 = cardRun.cards[n2].cardId;
                     if (n3 == 0) {
                         n3 = this.O;
                     }
-                    l2 = bl ? (l2 += this.analyzeSpiderBoard(n3, l2, ok_02.isFaceDown)) : (l2 += this.analyzeSpiderBoard(n3, os_02.stackIndex, l2, ok_02.isFaceDown));
+                    l2 = flag ? (l2 += this.sieveNum(n3, l2)) : (l2 += this.sieveNum2(n3, cardStack.stackIndex, l2));
                     ++n2;
                 }
             }
         }
-        if (!bl) {
-            l2 += (long)this.M * this.longRandom1[this.m];
-            ++this.m;
+        if (!flag) {
+            l2 += (long)this.num1 * this.longRandom1[this.randomUseIndex];
+            ++this.randomUseIndex;
         }
         return l2;
     }
 
-    final long analyzeSpiderBoard(int n2, int n3, long l2, boolean bl) {
-        if (n2 <= 0) {
+    final long sieveNum2(int sieveIndex, int n3, long l2) {
+        if (sieveIndex <= 0) {
             this.solverContext.fail("Logic error: trying to hash invalid card");
         }
-        l2 = (long)this.L[n2] * (this.longRandom1[this.m] + (l2 & Integer.MAX_VALUE)) * (long)(n3 + 1);
-        ++this.m;
+        l2 = (long)this.sieveArray[sieveIndex] * (this.longRandom1[this.randomUseIndex] + (l2 & Integer.MAX_VALUE)) * (long)(n3 + 1);
+        ++this.randomUseIndex;
         return l2;
     }
 
-    private long analyzeSpiderBoard(int n2, long l2, boolean bl) {
-        if (n2 <= 0) {
+    private long sieveNum(int sieveIndex, long num2) {
+        if (sieveIndex <= 0) {
             this.solverContext.fail("Logic error: trying to hash invalid card");
         }
-        l2 = (long)this.L[n2] * (this.longRandom2[this.m] + (l2 & Integer.MAX_VALUE));
-        ++this.m;
-        return l2;
+        num2 = (long)this.sieveArray[sieveIndex] * (this.longRandom2[this.randomUseIndex] + (num2 & Integer.MAX_VALUE));
+        ++this.randomUseIndex;
+        return num2;
     }
 
     final void logWorkMoveInfo(int logLevel) {
@@ -462,20 +461,19 @@ public abstract class BaseSolver {
         }
     }
 
-    final void analyzeSpiderBoard(int n2, StackGroup ot_02) {
-        if (n2 < this.solverContext.logLevel) {
+    final void printStackInfo(int logLevel, StackGroup stackGroup) {
+        if (logLevel < this.solverContext.logLevel) {
             return;
         }
-        n2 = 0;
-        while (n2 < ot_02.stacks.length) {
-            StringBuffer stringBuffer = new StringBuffer(String.valueOf(ot_02.name) + " stack " + n2 + ": ");
-            CardStack os_02 = ot_02.stacks[n2];
-            for (Object object : os_02.runs) {
-                CardRun ok_02 = (CardRun)object;
+        int stackIndex = 0;
+        while (stackIndex < stackGroup.stacks.length) {
+            StringBuffer stringBuffer = new StringBuffer(String.valueOf(stackGroup.name) + " stack " + stackIndex + ": ");
+            CardStack cardStack = stackGroup.stacks[stackIndex];
+            for (CardRun cardRun : cardStack.runs) {
                 int n3 = 0;
-                while (n3 < ok_02.cardCount) {
-                    stringBuffer.append("" + ok_02.cards[n3]);
-                    if (n3 < ok_02.cardCount - 1) {
+                while (n3 < cardRun.cardCount) {
+                    stringBuffer.append("" + cardRun.cards[n3]);
+                    if (n3 < cardRun.cardCount - 1) {
                         stringBuffer.append("+");
                     }
                     ++n3;
@@ -483,7 +481,7 @@ public abstract class BaseSolver {
                 stringBuffer.append(" ");
             }
             this.solverContext.log(stringBuffer.toString());
-            ++n2;
+            ++stackIndex;
         }
     }
 
@@ -495,8 +493,6 @@ public abstract class BaseSolver {
      * @return
      */
     final boolean loadCheckpointState() {
-        Object object;
-        int n2;
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("Into loadCheckpoint for game mode " + this.solverContext.solverMode);
         }
@@ -508,22 +504,21 @@ public abstract class BaseSolver {
             return false;
         }
         String[] contentFristArray = contentArray[0].split(",");
-        object = contentFristArray.length < 2 ? null : contentFristArray[1];
-        n2 = 0;
-        while (n2 < contentArray.length) {
-            if (contentArray[n2] == null) break;
-            ++n2;
+        String name = contentFristArray.length < 2 ? null : contentFristArray[1];
+        int contentIndex = 0;
+        while (contentIndex < contentArray.length) {
+            if (contentArray[contentIndex] == null) break;
+            ++contentIndex;
         }
-        if (n2 < 6) {
+        if (contentIndex < 6) {
             this.solverContext.fail("Input file has too few lines");
-        } else if (!this.loadStateFromLines((String)object, contentArray, n2)) {
+        } else if (!this.loadStateFromLines((String)name, contentArray, contentIndex)) {
             return false;
         }
-
         return true;
     }
 
-    private void equealData(GameState nY2) {
+    private void saveSolutionFile(GameState nY2) {
         StringBuffer stringBuffer = new StringBuffer();
         int n2 = 0;
         while (n2 < nY2.depth) {
@@ -536,26 +531,23 @@ public abstract class BaseSolver {
         }
     }
 
-    private void analyzeSpiderBoard(String string) {
+    private void writeFile(String string) {
         StringBuffer stringBuffer = new StringBuffer();
         this.appendBoardState(stringBuffer);
         SolverContext.ensureDirectory(string);
         this.solverContext.writeTextFile(String.valueOf(string) + this.solverContext.files.getInputFileName(), stringBuffer.toString(), true);
     }
 
-    final String equealData(boolean bl) {
+    final String saveResult(boolean bl) {
         String string;
         if (bl) {
             string = String.valueOf(this.solverContext.files.outputDirectory) + "debug" + File.separator;
-            this.analyzeSpiderBoard(string);
+            this.writeFile(string);
         } else {
             if (this.solverContext.bestSolutionState.depth == 0) {
-                this.solverContext.log("No best moves available so just writing current working moves");
-                BaseSolver op_02 = this;
-                op_02.equealData(op_02.solverContext.searchState);
+                saveSolutionFile(solverContext.searchState);
             } else {
-                BaseSolver op_03 = this;
-                op_03.equealData(op_03.solverContext.bestSolutionState);
+                saveSolutionFile(solverContext.bestSolutionState);
             }
             string = this.solverContext.files.outputDirectory;
         }
@@ -566,7 +558,7 @@ public abstract class BaseSolver {
         return n2 == 1 || n2 == 4;
     }
 
-    static String d(int n2) {
+    static String matchSuitColor(int n2) {
         switch (n2 /= 100) {
             case 1: {
                 return "Spade";
@@ -584,7 +576,7 @@ public abstract class BaseSolver {
         return "Unknown";
     }
 
-    private static String m(int n2) {
+    private static String suitZm(int n2) {
         switch (n2) {
             case 1: {
                 return "s";
@@ -603,7 +595,7 @@ public abstract class BaseSolver {
     }
 
 
-    static String f(int n2) {
+    static String bigZm(int n2) {
         switch (n2 %= 100) {
             case 1: {
                 return "Ace";
@@ -648,7 +640,7 @@ public abstract class BaseSolver {
         return "empty/invalid";
     }
 
-    static String g(int n2) {
+    static String rankNum(int n2) {
         if (n2 > 1 && n2 < 10) {
             return "" + n2;
         }
@@ -673,7 +665,7 @@ public abstract class BaseSolver {
     }
 
     static String convetValue(int n2) {
-        return String.valueOf(BaseSolver.g(n2 % 100)) + BaseSolver.m(n2 / 100);
+        return String.valueOf(BaseSolver.rankNum(n2 % 100)) + BaseSolver.suitZm(n2 / 100);
     }
 
     final int everyCardNum(HashMap<Integer,Integer> hashMap, int cardId) {
@@ -721,7 +713,7 @@ public abstract class BaseSolver {
                         if (everyCardNum > maxNum) {
                             Card nT2 = cardRun.cards[cardRunIndex];
                             Card nT3 = cardRun.cards[cardRunIndex];
-                            this.solverContext.fail("ERROR - Too many " + BaseSolver.f(nT2.cardId) + " of " + BaseSolver.d(nT3.cardId) + "s in the deck");
+                            this.solverContext.fail("ERROR - Too many " + BaseSolver.bigZm(nT2.cardId) + " of " + BaseSolver.matchSuitColor(nT3.cardId) + "s in the deck");
                         }
                         ++everyStackNum;
                     }
@@ -737,29 +729,35 @@ public abstract class BaseSolver {
         return allStackNum;
     }
 
-    final boolean equealData(CardStack os_02, CardStack os_03) {
-        int n2 = this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1];
-        int n3 = (n2 & 0xF0000) >> 16;
-        n2 = this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1];
-        int n4 = n2 >> 24 & 0xFFFFFFFE & 0xFFFFFFFD;
-        int n5 = os_03.ownerGroup.groupIndex * 10 + os_03.stackIndex;
-        int n6 = os_02.ownerGroup.groupIndex * 10 + os_02.stackIndex;
-        int n7 = this.solverContext.searchState.depth - 2;
-        while (n7 >= 0) {
-            n2 = this.solverContext.searchState.moves[n7];
-            int n8 = n2 >> 24 & 0xFFFFFFFE & 0xFFFFFFFD;
+    /**
+     * 检测防止来回横条跳
+     * @param cardStackOne
+     * @param cardStackTwo
+     * @return
+     */
+    final boolean isReversalOfPreviousMove(CardStack cardStackOne, CardStack cardStackTwo) {
+        int move = this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1];
+        int n3 = (move & 0xF0000) >> 16;
+        move = this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1];
+        int n4 = move >> 24 & 0xFFFFFFFE & 0xFFFFFFFD;
+        int n5 = cardStackTwo.ownerGroup.groupIndex * 10 + cardStackTwo.stackIndex;
+        int n6 = cardStackOne.ownerGroup.groupIndex * 10 + cardStackOne.stackIndex;
+        int depth = this.solverContext.searchState.depth - 2;
+        while (depth >= 0) {
+            move = this.solverContext.searchState.moves[depth];
+            int n8 = move >> 24 & 0xFFFFFFFE & 0xFFFFFFFD;
             if ((n8 & 8) != 0) break;
             if ((n8 & 4) == 0) {
-                n2 = this.solverContext.searchState.moves[n7];
-                int n9 = n2 >> 8 & 0xFF;
-                n2 = this.solverContext.searchState.moves[n7];
-                int n10 = n2 & 0xFF;
-                if (n4 == n8 && ((n2 = this.solverContext.searchState.moves[n7]) & 0xF0000) >> 16 == n3 && n10 == n5) {
+                move = this.solverContext.searchState.moves[depth];
+                int n9 = move >> 8 & 0xFF;
+                move = this.solverContext.searchState.moves[depth];
+                int n10 = move & 0xFF;
+                if (n4 == n8 && ((move = this.solverContext.searchState.moves[depth]) & 0xF0000) >> 16 == n3 && n10 == n5) {
                     n8 = 1;
                     int n11 = this.solverContext.searchState.depth - 2;
-                    while (n11 > n7) {
-                        n2 = this.solverContext.searchState.moves[n11];
-                        if ((n2 >> 24 & 4) == 0 && (((n2 = this.solverContext.searchState.moves[n11]) & 0xFF) == n5 || ((n2 = this.solverContext.searchState.moves[n11]) >> 8 & 0xFF) == n5)) {
+                    while (n11 > depth) {
+                        move = this.solverContext.searchState.moves[n11];
+                        if ((move >> 24 & 4) == 0 && (((move = this.solverContext.searchState.moves[n11]) & 0xFF) == n5 || ((move = this.solverContext.searchState.moves[n11]) >> 8 & 0xFF) == n5)) {
                             n8 = 0;
                             break;
                         }
@@ -767,19 +765,19 @@ public abstract class BaseSolver {
                     }
                     if (n8 != 0) {
                         if (this.solverContext.logLevel < 3) {
-                            this.solverContext.log("Move " + Move.undoOpt(this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1]) + " is a reversal of " + Move.undoOpt(this.solverContext.searchState.moves[n7]));
+                            this.solverContext.log("Move " + Move.undoOpt(this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1]) + " is a reversal of " + Move.undoOpt(this.solverContext.searchState.moves[depth]));
                         }
                         return true;
                     }
                 }
                 if (n10 == n6 || n10 == n5 || n9 == n6 || n9 == n5) break;
             }
-            --n7;
+            --depth;
         }
         return false;
     }
 
-    final void analyzeSpiderBoard(long hash) {
+    final void updateHashState(long hash) {
         int bucket = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
         if (bucket >= 10) {
             bucket = 9;
@@ -840,7 +838,7 @@ public abstract class BaseSolver {
             this.statusUpdateCounter = 0;
         }
         if (this.K != null) {
-            this.o();
+            this.trackSolutionProgress();
         }
         if (this.solverContext.searchState.depth < this.solverContext.depth) {
             this.solverContext.depth = this.solverContext.searchState.depth;
@@ -926,7 +924,7 @@ public abstract class BaseSolver {
                 this.solverContext.log("Mode " + this.solverContext.solverMode + " (challenge " + this.solverContext.files.challenge + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.startTime) / 1000L);
             }
             this.printCurrentFinishLog(9, this.solverContext.bestSolutionState, "Solved best moves");
-            this.equealData(false);
+            this.saveResult(false);
         }
         return n2;
     }
