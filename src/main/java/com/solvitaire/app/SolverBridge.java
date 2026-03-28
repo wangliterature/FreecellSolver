@@ -12,12 +12,8 @@ abstract class SolverBridge {
       this.context = solver.solverContext;
    }
 
-   boolean loadInitialState() {
-      return this.solver.loadCheckpointState();
-   }
-
    boolean solverInitialState() {
-      return this.loadInitialState();
+      return this.solver.loadCheckpointState();
    }
 
    String printMoveLog(int move, int flags) {

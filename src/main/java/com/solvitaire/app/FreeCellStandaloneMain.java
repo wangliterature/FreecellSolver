@@ -34,7 +34,7 @@ public final class FreeCellStandaloneMain {
          context.logLevel = 1;
          context.variantId = FREECELL_VARIANT;
          context.files = new SolverFileSet(actualInputFile);
-         context.files.b = 1;
+         context.files.challenge = 1;
          context.files.variantSlug = "freecell";
          //创建牌的几个区域
          context.initialState = allocateFreeCellState(context);

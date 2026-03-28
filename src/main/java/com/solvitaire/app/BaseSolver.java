@@ -918,9 +918,9 @@ public abstract class BaseSolver {
         }
         if (this.analyzeSpiderBoard(bl)) {
             n2 = 2;
-            this.solverContext.files.k = ++this.solverContext.files.k;
+            this.solverContext.files.accumNUm = ++this.solverContext.files.accumNUm;
             if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Board cleared, accum now " + this.solverContext.files.k);
+                this.solverContext.log("Board cleared, accum now " + this.solverContext.files.accumNUm);
             }
 
         } else if (!(!bl || this.solverContext.solverMode != 3 && this.solverContext.solverMode != 1 || this.solverContext.variantId != 4 && this.solverContext.variantId != 5)) {
@@ -931,7 +931,7 @@ public abstract class BaseSolver {
         if (n2 == 2) {
             this.isSolver = true;
             if (this.solverContext.logLevel <= 9) {
-                this.solverContext.log("Mode " + this.solverContext.solverMode + " (challenge " + this.solverContext.files.b + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.b) / 1000L);
+                this.solverContext.log("Mode " + this.solverContext.solverMode + " (challenge " + this.solverContext.files.challenge + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.b) / 1000L);
             }
             this.analyzeSpiderBoard(9, this.solverContext.bestSolutionState, "Solved best moves");
             this.equealData(false);

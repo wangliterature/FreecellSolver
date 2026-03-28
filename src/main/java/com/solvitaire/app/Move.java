@@ -10,9 +10,9 @@ public final class Move {
     //   8bit      8bit    8bit     8bit
     int encodedMove;
 
-//    this.specialMove = (flags & 8) != 0;
-//this.autoMove   = (flags & 0x10) != 0;
-//this.splitMove  = (flags & 1) != 0;
+//  this.specialMove = (flags & 8) != 0;
+//  this.autoMove   = (flags & 0x10) != 0;
+//  this.splitMove  = (flags & 1) != 0;
     int moveTypeFlags;
     StackGroup destinationGroup;
     StackGroup sourceGroup;
