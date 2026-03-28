@@ -77,7 +77,7 @@ final class FreeCellSolver extends BaseSolver {
         this.c = new int[4];
         this.tableArray = new int[this.stackSize][MAX_TABLEAU_HEIGHT];
         this.h = new int[this.stackSize];
-        this.i = new int[this.stackSize];
+
         if (!this.solverContext.bridge.solverInitialState()) {
             return false;
         }
@@ -99,7 +99,7 @@ final class FreeCellSolver extends BaseSolver {
     @Override
     final void dumpState(int n2, boolean bl) {
         if (this.solverContext.logLevel <= n2) {
-            this.equealData(n2);
+            this.logWorkMoveInfo(n2);
             this.analyzeSpiderBoard(n2, this.solverContext.searchState.stackGroups[2]);
             this.analyzeSpiderBoard(n2, this.solverContext.searchState.stackGroups[1]);
             this.analyzeSpiderBoard(n2, this.solverContext.searchState.stackGroups[0]);
@@ -110,13 +110,13 @@ final class FreeCellSolver extends BaseSolver {
     final void search(int n2, int n3) {
         this.getBucket();
         if (this.solverContext.searchStepCount++ % 100000L == 0L) {
-            this.equealData(4);
+            this.logWorkMoveInfo(4);
         }
         if (!this.isSolver) {
             FreeCellSolver solver = this;
             int n4 = n2;
             GameState nY2 = solver.solverContext.searchState;
-            n3 = solver.analyzeSpiderBoard(nY2, n4, false);
+            n3 = solver.currentState(nY2, n4, false);
             if (n3 == 2) {
                 if (this.solverContext.logLevel <= 4) {
                     this.solverContext.log("Solved state solved so backout 999");
@@ -640,7 +640,7 @@ final class FreeCellSolver extends BaseSolver {
                     long l2 = this.computeStateHash();
                     if (n2 == 7 || !this.equealData(os_02, os_03)) {
                         if (n2 != 7) {
-                            this.D = this.equealData(l2);
+                            this.D = this.checkCurrentStateHash(l2);
                         }
                         if (this.D < 0) {
                             this.analyzeSpiderBoard(l2);

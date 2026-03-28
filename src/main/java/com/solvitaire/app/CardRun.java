@@ -18,7 +18,7 @@ final class CardRun {
     // 最多13张（K→A）   最优的时候就是13张
     Card[] cards = new Card[13];
     // 所属牌栈   card所在牌栈    card Run所在牌栈
-    CardStack stack;
+    CardStack overStack;
 
     CardRun() {}
 
@@ -31,7 +31,6 @@ final class CardRun {
 
     CardRun(CardRun card) {
         this.cardCount = card.cardCount;
-        this.isFaceDown = card.isFaceDown;
         this.cards = Arrays.copyOf(card.cards, 13);
     }
 
@@ -57,7 +56,7 @@ final class CardRun {
     final int checkMoveDistance(Card card1, Card card2, int n2, boolean bl) {
         int diff;
         if (!bl) {
-            if (!this.stack.alternatingColors && card1.suit == card2.suit) {
+            if (!this.overStack.alternatingColors && card1.suit == card2.suit) {
                 return -1;
             }
             diff = card1.rank - card2.rank;

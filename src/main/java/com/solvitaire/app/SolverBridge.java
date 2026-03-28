@@ -1,7 +1,6 @@
 package com.solvitaire.app;
 
 abstract class SolverBridge {
-   long lastBridgeUpdateTimeMs = 0L;
    int specialSourceGroupIndex = -1;
    int specialDestinationGroupIndex = -1;
    protected final BaseSolver solver;

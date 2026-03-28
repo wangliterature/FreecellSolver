@@ -25,7 +25,7 @@ public final class GameState {
     int solutionLength;
 
     GameState() {
-        this.stackGroups = new StackGroup[10];
+        this.stackGroups = new StackGroup[3];
         this.moves = new int[350];
         this.moveAnnotations = new int[350];
         this.auxiliaryValues = new int[350];
@@ -34,10 +34,10 @@ public final class GameState {
     }
 
     GameState(GameState sourceState, boolean workingCopy) {
-        this.stackGroups = new StackGroup[10];
+        this.stackGroups = new StackGroup[3];
         int stackGroupIndex = 0;
         //复制StackGroup
-        while (stackGroupIndex < 10) {
+        while (stackGroupIndex < 3) {
             if (sourceState.stackGroups[stackGroupIndex] != null) {
                 this.stackGroups[stackGroupIndex] = new StackGroup(sourceState.stackGroups[stackGroupIndex], workingCopy);
             }

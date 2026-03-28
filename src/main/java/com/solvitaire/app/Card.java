@@ -2,6 +2,8 @@ package com.solvitaire.app;
 
 /**
  * card
+ *
+ * 包含了 花色 值  id 所属的stack
  */
 public final class Card {
    //花色

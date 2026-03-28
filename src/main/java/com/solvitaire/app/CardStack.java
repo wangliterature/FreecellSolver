@@ -11,6 +11,7 @@ final class CardStack {
     StackGroup ownerGroup;
     //栈的序号
     int stackIndex;
+    //栈里面是topRun
     CardRun topRun = null;
     /**
      * run0
@@ -23,7 +24,7 @@ final class CardStack {
     int foundationSuit; //foundation 的花色
     //是否交替     Freecell是交替的
     boolean alternatingColors; //是否红黑交替
-
+    //复制
     boolean workingCopy = false;
 
     CardStack(SolverContext context, StackGroup ownerGroup, int stackIndex, boolean alternatingColors) {
@@ -45,7 +46,7 @@ final class CardStack {
         this.ownerGroup = ownerGroup;
         for (CardRun sourceRun : sourceStack.runs) {
             CardRun copiedRun = new CardRun(sourceRun);
-            copiedRun.stack = this;
+            copiedRun.overStack = this;
             this.runs.add(copiedRun);
         }
         this.topRun = this.runs.isEmpty() ? null : this.runs.getLast();
@@ -83,7 +84,7 @@ final class CardStack {
         }
         //加上一个可以出的    他作为最上层的
         this.runs.add(run);
-        run.stack = this;
+        run.overStack = this;
         this.topRun = run;
         return this.topRun;
     }
@@ -270,37 +271,37 @@ final class CardStack {
         return cardCount;
     }
 
-    //将最顶上的移动出去
-    void undoMoveCardsFrom(CardStack sourceStack, int cardCount, StackGroup completedSuitGroup) {
-        if (cardCount > 0 && cardCount != 20) {
-            if (cardCount > 100) {
-                int removedSuit = cardCount / 100;
-                cardCount %= 100;
+    //将最顶上的移动出去         根据 传入的值，决定他的功能
+    void undoMoveCardsFrom(CardStack sourceStack, int cardId, StackGroup completedSuitGroup) {
+        if (cardId > 0 && cardId != 20) {
+            if (cardId > 100) {
+                int removedSuit = cardId / 100;
+                cardId %= 100;
                 CardRun completedSuitRun = completedSuitGroup.removeCompletedSuitRun();
                 if (completedSuitRun.cards[0].suit != removedSuit) {
                     this.context.fail("Logic error - move says remove suit " + removedSuit + " but suit stack is " + completedSuitRun.cards[0].suit);
                 }
                 this.appendRun(completedSuitRun);
             }
-            if (cardCount > 20) {
-                cardCount -= 20;
-                for (int cardIndex = 0; cardIndex < cardCount; ++cardIndex) {
-                    sourceStack.topRun.cards[sourceStack.topRun.cardCount + cardIndex] = this.topRun.cards[this.topRun.cardCount - cardCount + cardIndex];
+            if (cardId > 20) {
+                cardId -= 20;
+                for (int cardIndex = 0; cardIndex < cardId; ++cardIndex) {
+                    sourceStack.topRun.cards[sourceStack.topRun.cardCount + cardIndex] = this.topRun.cards[this.topRun.cardCount - cardId + cardIndex];
                 }
-                sourceStack.topRun.cardCount += cardCount;
+                sourceStack.topRun.cardCount += cardId;
             } else {
                 CardRun restoredRun = new CardRun();
-                for (int cardIndex = 0; cardIndex < cardCount; ++cardIndex) {
-                    restoredRun.cards[cardIndex] = this.topRun.cards[this.topRun.cardCount - cardCount + cardIndex];
+                for (int cardIndex = 0; cardIndex < cardId; ++cardIndex) {
+                    restoredRun.cards[cardIndex] = this.topRun.cards[this.topRun.cardCount - cardId + cardIndex];
                 }
-                restoredRun.cardCount = cardCount;
+                restoredRun.cardCount = cardId;
                 sourceStack.appendRun(restoredRun);
             }
-            this.topRun.cardCount -= cardCount;
+            this.topRun.cardCount -= cardId;
             if (this.topRun.cardCount != 0) {
                 return;
             }
-        } else if (cardCount == 20) {
+        } else if (cardId == 20) {
             for (int cardIndex = 0; cardIndex < this.topRun.cardCount; ++cardIndex) {
                 sourceStack.topRun.cards[sourceStack.topRun.cardCount++] = this.topRun.cards[cardIndex];
             }
@@ -318,8 +319,6 @@ final class CardStack {
         }
         return cardCount;
     }
-
-
 
     public String toString() {
         return this.workingCopy ? "Work" : "" + this.ownerGroup.name + ":" + this.stackIndex % 10;

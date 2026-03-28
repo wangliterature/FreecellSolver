@@ -23,13 +23,12 @@ public abstract class BaseSolver {
     int stackSize;
     int[][] tableCardArray;
     int[] h;
-    int[] i;
+
     int m;
     int decksOfCards;
     int cardPoolDefaultSize;
 
-    private long b;
-    private long lastBridgeUpdateTimeMs;
+    private long startTime;
     private int buetMaxSize;
     transient private boolean state;
     private int[] K = null;
@@ -38,7 +37,7 @@ public abstract class BaseSolver {
     private int M;
     private int N;
     private int O;
-    private int P;
+
     int[][] tableArray;
     int maxSearchDepth = 298;
     private int statusUpdateCounter = 0;
@@ -107,7 +106,7 @@ public abstract class BaseSolver {
         while (!sieveArray[n3]) {
             ++n3;
         }
-        this.P = n3;
+
     }
 
     /**
@@ -188,8 +187,7 @@ public abstract class BaseSolver {
     }
 
     final void solve() {
-        this.b = System.currentTimeMillis();
-
+        this.startTime = System.currentTimeMillis();
         BaseSolver baseSolver = this;
         //堆内存使用情况
         MemoryUsage memoryUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
@@ -283,7 +281,7 @@ public abstract class BaseSolver {
                 if (this.solverContext.logLevel <= 5) {
                     this.solverContext.log("Credit expired and solve not flagged, do final check");
                 }
-                this.isSolver = this.analyzeSpiderBoard(this.solverContext.searchState, 0, true) == 2;
+                this.isSolver = this.currentState(this.solverContext.searchState, 0, true) == 2;
             }
             countIndex = 0;
             while (countIndex < 10) {
@@ -356,7 +354,7 @@ public abstract class BaseSolver {
             }
             this.K[1] = this.solverContext.searchState.depth;
             this.solverContext.log("Found longer solution");
-            this.equealData(9);
+            this.logWorkMoveInfo(9);
             this.dumpState(9, false);
         } else if (this.K[0] == -1) {
             if (this.solverContext.searchState.depth < this.K.length - 1) {
@@ -368,7 +366,7 @@ public abstract class BaseSolver {
                 ++n2;
             }
             if (n2 == this.K.length) {
-                this.equealData(9);
+                this.logWorkMoveInfo(9);
                 this.solverContext.log("Found segment");
             }
         } else {
@@ -385,7 +383,7 @@ public abstract class BaseSolver {
                     if (this.solverContext.logLevel <= 5) {
                         this.solverContext.log("State hash " + this.computeStateHash());
                     }
-                    this.equealData(9);
+                    this.logWorkMoveInfo(9);
                     this.K[0] = n3;
                 }
                 if (n3 == this.K.length - 1 && n3 == this.solverContext.searchState.depth) {
@@ -393,7 +391,7 @@ public abstract class BaseSolver {
                     return true;
                 }
             } else if (n3 < this.K[0] && this.K[0] < 1000) {
-                this.equealData(9);
+                this.logWorkMoveInfo(9);
                 this.solverContext.log("@@@ Backing out of solution");
                 this.K[0] = this.K[0] + 1000;
             }
@@ -434,9 +432,6 @@ public abstract class BaseSolver {
             this.solverContext.fail("Logic error: trying to hash invalid card");
         }
         l2 = (long)this.L[n2] * (this.longRandom1[this.m] + (l2 & Integer.MAX_VALUE)) * (long)(n3 + 1);
-        if (bl) {
-            l2 <<= 1;
-        }
         ++this.m;
         return l2;
     }
@@ -446,25 +441,22 @@ public abstract class BaseSolver {
             this.solverContext.fail("Logic error: trying to hash invalid card");
         }
         l2 = (long)this.L[n2] * (this.longRandom2[this.m] + (l2 & Integer.MAX_VALUE));
-        if (bl) {
-            l2 <<= 1;
-        }
         ++this.m;
         return l2;
     }
 
-    final void equealData(int n2) {
-        this.analyzeSpiderBoard(n2, this.solverContext.searchState, "Work moves");
+    final void logWorkMoveInfo(int logLevel) {
+        this.printCurrentFinishLog(logLevel, this.solverContext.searchState, "Work moves");
     }
 
-    final void analyzeSpiderBoard(int n2, GameState nY2, String string) {
-        if (n2 >= this.solverContext.logLevel) {
-            StringBuffer stringBuffer = this.createStateHeader(string, nY2.depth);
-            int n3 = 0;
-            while (n3 < nY2.depth) {
-                stringBuffer.append(Move.undoOpt(nY2.moves[n3]));
+    final void printCurrentFinishLog(int logLevel, GameState bestState, String headInfo) {
+        if (logLevel >= this.solverContext.logLevel) {
+            StringBuffer stringBuffer = this.createStateHeader(headInfo, bestState.depth);
+            int moveIndex = 0;
+            while (moveIndex < bestState.depth) {
+                stringBuffer.append(Move.undoOpt(bestState.moves[moveIndex]));
                 stringBuffer.append(",");
-                ++n3;
+                ++moveIndex;
             }
             this.solverContext.log(stringBuffer.toString());
         }
@@ -787,50 +779,49 @@ public abstract class BaseSolver {
         return false;
     }
 
-    final void analyzeSpiderBoard(long l2) {
-        int n2 = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
-        if (n2 >= 10) {
-            n2 = 9;
+    final void analyzeSpiderBoard(long hash) {
+        int bucket = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
+        if (bucket >= 10) {
+            bucket = 9;
         }
-        Long l3 = l2;
-        if (this.R[n2].size() > this.bucket) {
+        //如果大于桶的大小就仍
+        if (this.R[bucket].size() > this.bucket) {
             if (this.solverContext.logLevel <= 4) {
-                this.solverContext.log(String.format("Discarding %d  hashes in bucket %d, counts %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d", this.bucket, n2, this.R[0].size(), this.S[0].size(), this.R[1].size(), this.S[1].size(), this.R[2].size(), this.S[2].size(), this.R[3].size(), this.S[3].size(), this.R[4].size(), this.S[4].size(), this.R[5].size(), this.S[5].size(), this.R[6].size(), this.S[6].size(), this.R[7].size(), this.S[7].size(), this.R[8].size(), this.S[8].size(), this.R[9].size(), this.S[9].size()));
+                this.solverContext.log(String.format("Discarding %d  hashes in bucket %d, counts %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d", this.bucket, bucket, this.R[0].size(), this.S[0].size(), this.R[1].size(), this.S[1].size(), this.R[2].size(), this.S[2].size(), this.R[3].size(), this.S[3].size(), this.R[4].size(), this.S[4].size(), this.R[5].size(), this.S[5].size(), this.R[6].size(), this.S[6].size(), this.R[7].size(), this.S[7].size(), this.R[8].size(), this.S[8].size(), this.R[9].size(), this.S[9].size()));
             }
-            this.S[n2] = this.R[n2];
-            this.R[n2] = new HashMap(this.getBucket(n2));
+            this.S[bucket] = this.R[bucket];
+            this.R[bucket] = new HashMap(this.getBucket(bucket));
         }
-        this.R[n2].put(l3, this.solverContext.complexity << 16 | this.solverContext.searchState.depth);
+        this.R[bucket].put(hash, this.solverContext.complexity << 16 | this.solverContext.searchState.depth);
     }
 
-    final int equealData(long l2) {
-        Long l3;
-        Integer n2;
-        int n3 = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
-        if (n3 >= 10) {
-            n3 = 9;
+    final int checkCurrentStateHash(long hashKey) {
+        Integer hashValue;
+        int bucket = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
+        if (bucket >= 10) {
+            bucket = 9;
         }
-        if ((n2 = (Integer)this.R[n3].get(l3 = Long.valueOf(l2))) != null) {
-            n3 = n2;
-            int n4 = n3 & 0xFFFF;
-            if (this.solverContext.complexity >= (n3 >>= 16) - 50 && (this.solverContext.files.maxMoves == 999 || this.solverContext.searchState.depth >= n4)) {
+        if ((hashValue = (Integer)this.R[bucket].get(hashKey)) != null) {
+            bucket = hashValue;
+            int n4 = bucket & 0xFFFF;
+            if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.files.maxMoves == 999 || this.solverContext.searchState.depth >= n4)) {
                 if (this.K != null && this.sieve()) {
-                    this.equealData(9);
-                    this.solverContext.log("About to reject trial solution as a duplicate, hash = " + l2 + " overriding");
+                    this.logWorkMoveInfo(9);
+                    this.solverContext.log("About to reject trial solution as a duplicate, hash = " + hashKey + " overriding");
                     return -1;
                 }
                 return 0;
             }
             return -1;
         }
-        n2 = (Integer)this.S[n3].get(l3);
-        if (n2 != null) {
-            n3 = n2;
-            int n5 = n3 & 0xFFFF;
-            if (this.solverContext.complexity >= (n3 >>= 16) - 50 && (this.solverContext.files.maxMoves == 999 || this.solverContext.searchState.depth >= n5)) {
+        hashValue = (Integer)this.S[bucket].get(hashKey);
+        if (hashValue != null) {
+            bucket = hashValue;
+            int n5 = bucket & 0xFFFF;
+            if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.files.maxMoves == 999 || this.solverContext.searchState.depth >= n5)) {
                 if (this.K != null && this.sieve()) {
-                    this.equealData(9);
-                    this.solverContext.log("About to reject trial solution as a duplicate, hash = " + l2 + " overriding");
+                    this.logWorkMoveInfo(9);
+                    this.solverContext.log("About to reject trial solution as a duplicate, hash = " + hashKey + " overriding");
                     return -1;
                 }
                 return 0;
@@ -842,7 +833,7 @@ public abstract class BaseSolver {
 
     final void getBucket() {
         if (this.solverContext.logLevel <= 3) {
-            this.equealData(3);
+            this.logWorkMoveInfo(3);
             this.dumpState(3, false);
         }
         if (this.statusUpdateCounter++ > 10000) {
@@ -891,11 +882,12 @@ public abstract class BaseSolver {
         return blArray;
     }
     
-    final int analyzeSpiderBoard(GameState gameState, int n2, boolean bl) {
+    final int currentState(GameState gameState, int n2, boolean bl) {
         if (this.isSolver) {
             return 2;
         }
         //深度     比较深度   如果找到解，   比较一下深度
+        //当前更优
         gameState.solutionLength = gameState.depth;
         if (this.solverContext.foundCompleteSolution &&
                 this.solverContext.bestSolutionState.solutionLength < gameState.solutionLength) {
@@ -913,10 +905,10 @@ public abstract class BaseSolver {
         if (bl2) {
             n2 = 1;
             if (gameState.solutionLength < this.solverContext.files.maxMoves && (this.solverContext.bestSolutionState.solutionLength == 0 || gameState.solutionLength < this.solverContext.bestSolutionState.solutionLength)) {
-                this.analyzeSpiderBoard(gameState, "Best solution currently " + gameState.solutionLength + " moves", true, true);
+                this.updateBestSate(gameState, "Best solution currently " + gameState.solutionLength + " moves", true, true);
             }
         }
-        if (this.analyzeSpiderBoard(bl)) {
+        if (this.accumLog(bl)) {
             n2 = 2;
             this.solverContext.files.accumNUm = ++this.solverContext.files.accumNUm;
             if (this.solverContext.logLevel <= 5) {
@@ -931,57 +923,53 @@ public abstract class BaseSolver {
         if (n2 == 2) {
             this.isSolver = true;
             if (this.solverContext.logLevel <= 9) {
-                this.solverContext.log("Mode " + this.solverContext.solverMode + " (challenge " + this.solverContext.files.challenge + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.b) / 1000L);
+                this.solverContext.log("Mode " + this.solverContext.solverMode + " (challenge " + this.solverContext.files.challenge + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.startTime) / 1000L);
             }
-            this.analyzeSpiderBoard(9, this.solverContext.bestSolutionState, "Solved best moves");
+            this.printCurrentFinishLog(9, this.solverContext.bestSolutionState, "Solved best moves");
             this.equealData(false);
         }
         return n2;
     }
 
-    private void analyzeSpiderBoard(GameState nY2, String string, boolean bl, boolean bl2) {
+    private void updateBestSate(GameState bestState, String bestInfoStr, boolean bl, boolean bl2) {
         if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log(string);
+            this.solverContext.log(bestInfoStr);
             this.dumpState(5, false);
         }
-        this.solverContext.bestSolutionState = new GameState(nY2, true);
+        this.solverContext.bestSolutionState = new GameState(bestState, true);
         if (bl) {
             this.E = true;
         }
-        this.lastBridgeUpdateTimeMs = System.currentTimeMillis();
+
         if (bl2) {
             this.solverContext.foundCompleteSolution = true;
         }
     }
 
-    private boolean analyzeSpiderBoard(boolean bl) {
+    private boolean accumLog(boolean isBest) {
         if (this.solverContext.bestSolutionState.solutionLength == 0) {
             return false;
         }
-        if (bl || this.solverContext.searchStepCount % 1000L == 0L) {
-            if (this.solverContext.bridge.lastBridgeUpdateTimeMs > this.lastBridgeUpdateTimeMs) {
-                this.lastBridgeUpdateTimeMs = this.solverContext.bridge.lastBridgeUpdateTimeMs;
-            }
+        //1000L   如果解决了，就会打印
+        if (isBest || this.solverContext.searchStepCount % 1000L == 0L) {
             if (this.solverContext.foundCompleteSolution || this.E) {
                 if (this.solverContext.logLevel <= 5) {
-                    String string = "Test final (forced " + bl + ") best moves";
+                    String string = "Test final (forced " + isBest + ") best moves";
                     this.solverContext.log("Best solution length " + this.solverContext.bestSolutionState.solutionLength);
-                    this.analyzeSpiderBoard(5, this.solverContext.bestSolutionState, string);
+                    this.printCurrentFinishLog(5, this.solverContext.bestSolutionState, string);
                 }
                 return true;
             }
-    }
+        }
         return false;
     }
-
-
 
     int analyzeSpiderBoard(GameState nY2, boolean bl) {
         return -1;
     }
 
-    int isOneStep(GameState nY2) {
-        return nY2.depth + 1;
+    int isOneStep(GameState gameState) {
+        return gameState.depth + 1;
     }
 
     final Card getCardFromPool(CardStack cardStack, int cardData) {
