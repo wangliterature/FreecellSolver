@@ -2,25 +2,28 @@ package com.solvitaire.app;
 
 import java.util.LinkedList;
 
+/**
+ * group  -->  10个栈   --->  栈里面是card 和run(多个)
+ */
 final class CardStack {
     final SolverContext context;
+    //所在栈Group
     StackGroup ownerGroup;
+    //栈的序号
     int stackIndex;
     CardRun topRun = null;
     /**
      * run0
-     *
      * run1
-     *
      * run2
-     *
      * topRun
      */
     LinkedList<CardRun> runs = new LinkedList<>();
+    //主要是用在成功牌堆中的
     int foundationSuit; //foundation 的花色
+    //是否交替
     boolean alternatingColors; //是否红黑交替
-    protected boolean knownStateLocked; //knownStateLocked
-    private boolean cardsKnown;
+
     boolean workingCopy = false;
 
     CardStack(SolverContext context, StackGroup ownerGroup, int stackIndex, boolean alternatingColors) {
@@ -37,7 +40,7 @@ final class CardStack {
         this.stackIndex = sourceStack.stackIndex;
         this.foundationSuit = sourceStack.foundationSuit;
         this.alternatingColors = sourceStack.alternatingColors;
-        this.knownStateLocked = sourceStack.knownStateLocked;
+
         this.clear();
         this.ownerGroup = ownerGroup;
         for (CardRun sourceRun : sourceStack.runs) {
@@ -46,7 +49,7 @@ final class CardStack {
             this.runs.add(copiedRun);
         }
         this.topRun = this.runs.isEmpty() ? null : this.runs.getLast();
-        this.cardsKnown = sourceStack.cardsKnown;
+
         this.workingCopy = sourceStack.workingCopy;
     }
 
@@ -127,15 +130,10 @@ final class CardStack {
         if (this.ownerGroup != null) {
             this.ownerGroup.emptyStackCount = this.ownerGroup.stacks.length;
         }
-        if (!this.knownStateLocked) {
-            this.cardsKnown = true;
-        }
+
         this.workingCopy = false;
     }
 
-    final boolean hasKnownCards() {
-        return this.cardsKnown;
-    }
 
     final int evaluateJoinFrom(CardStack sourceStack, int moveMode, boolean exactMatchOnly) {
         int joinCount = -1;
@@ -318,9 +316,6 @@ final class CardStack {
     }
 
     final int getCardCount() {
-        if (!this.cardsKnown) {
-            return 0;
-        }
         int cardCount = 0;
         for (CardRun run : this.runs) {
             cardCount += run.cardCount;

@@ -455,9 +455,6 @@ public abstract class BaseSolver {
                 int n2 = 0;
                 while (n2 < ok_02.cardCount) {
                     int n3 = ok_02.cards[n2].cardId;
-                    if (!os_02.hasKnownCards()) {
-                        n3 = this.P;
-                    }
                     if (n3 == 0) {
                         n3 = this.O;
                     }

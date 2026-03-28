@@ -35,6 +35,7 @@ final class CardRun {
         this.cards = Arrays.copyOf(card.cards, 13);
     }
 
+    //颜色交替
     static boolean isAlternatingColor(Card card2, Card card3) {
         return CardRun.isRed(card2) ^ CardRun.isRed(card3);
     }
