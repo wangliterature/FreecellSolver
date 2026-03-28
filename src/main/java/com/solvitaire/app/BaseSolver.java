@@ -3,7 +3,6 @@
  */
 package com.solvitaire.app;
 
-import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
 import java.util.Arrays;
@@ -22,22 +21,17 @@ public abstract class BaseSolver {
     //牌局的堆数
     int stackSize;
     int[][] tableCardArray;
-    int[] h;
-
     int randomUseIndex;
     int decksOfCards;
     int cardPoolDefaultSize;
-
     private long startTime;
     private int buetMaxSize;
     transient private boolean state;
     private int[] K = null;
-    boolean q = false;
     private int[] sieveArray = new int[414];
     private int num1;
     private int num2;
     private int O;
-
     int[][] tableArray;
     int maxSearchDepth = 298;
     private int statusUpdateCounter = 0;
@@ -47,7 +41,7 @@ public abstract class BaseSolver {
     private HashMap[] R = new HashMap[10];
     private HashMap[] S = new HashMap[10];
     boolean isSolver = false;
-    int D = -1;
+    int currenBackout = -1;
     private int deepestRecursionDepth;
     private int deepestRecursionComplexity;
     private long[] longRandom1;
@@ -66,8 +60,6 @@ public abstract class BaseSolver {
     abstract long computeStateHash();
 
     abstract boolean loadStateFromLines(String var1, String[] var2, int var3);
-
-    abstract void appendBoardState(StringBuffer var1);
 
     abstract void dumpState(int var1, boolean var2);
 
@@ -262,7 +254,7 @@ public abstract class BaseSolver {
                         ++countIndex;
                     }
                     this.solverContext.complexity = this.solverContext.searchCredit;
-                    this.D = -1;
+                    this.currenBackout = -1;
                     this.deepestRecursionDepth = 0;
                     this.deepestRecursionComplexity = 0;
                     if (this.K != null && this.K[0] > 0) {
@@ -271,13 +263,13 @@ public abstract class BaseSolver {
 
                     this.search(-1, 0);
 
-                    if (this.isSolver || this.D > 0) break;
+                    if (this.isSolver || this.currenBackout > 0) break;
                     if (this.solverContext.logLevel <= 4) {
                         this.solverContext.log("*** Deepest recursion for credit " + this.solverContext.searchCredit + " was " + this.deepestRecursionDepth + " with complexity " + this.deepestRecursionComplexity);
                     }
                     this.solverContext.searchCredit -= 30;
                 }
-                if (this.isSolver || this.D > 0) break block63;
+                if (this.isSolver || this.currenBackout > 0) break block63;
                 if (this.solverContext.logLevel <= 5) {
                     this.solverContext.log("Credit expired and solve not flagged, do final check");
                 }
@@ -317,9 +309,9 @@ public abstract class BaseSolver {
             if (this.solverContext.logLevel <= 5) {
                 this.solverContext.log("Exited solve loop without solution");
             }
-            if (this.D > 0) {
+            if (this.currenBackout > 0) {
                 this.solverContext.log("The user aborted the solve so go back to user moves");
-                this.D = -1;
+                this.currenBackout = -1;
                 this.solverContext.searchCredit = 0;
                 continue;
             }
@@ -531,30 +523,15 @@ public abstract class BaseSolver {
         }
     }
 
-    private void writeFile(String string) {
-        StringBuffer stringBuffer = new StringBuffer();
-        this.appendBoardState(stringBuffer);
-        SolverContext.ensureDirectory(string);
-        this.solverContext.writeTextFile(String.valueOf(string) + this.solverContext.files.getInputFileName(), stringBuffer.toString(), true);
-    }
-
-    final String saveResult(boolean bl) {
-        String string;
-        if (bl) {
-            string = String.valueOf(this.solverContext.files.outputDirectory) + "debug" + File.separator;
-            this.writeFile(string);
+    final void saveResult() {
+        if (this.solverContext.bestSolutionState.depth == 0) {
+            saveSolutionFile(solverContext.searchState);
         } else {
-            if (this.solverContext.bestSolutionState.depth == 0) {
-                saveSolutionFile(solverContext.searchState);
-            } else {
-                saveSolutionFile(solverContext.bestSolutionState);
-            }
-            string = this.solverContext.files.outputDirectory;
+            saveSolutionFile(solverContext.bestSolutionState);
         }
-        return string;
     }
 
-    static boolean c(int n2) {
+    static boolean suitColor(int n2) {
         return n2 == 1 || n2 == 4;
     }
 
@@ -924,7 +901,7 @@ public abstract class BaseSolver {
                 this.solverContext.log("Mode " + this.solverContext.solverMode + " (challenge " + this.solverContext.files.challenge + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.startTime) / 1000L);
             }
             this.printCurrentFinishLog(9, this.solverContext.bestSolutionState, "Solved best moves");
-            this.saveResult(false);
+            this.saveResult();
         }
         return n2;
     }

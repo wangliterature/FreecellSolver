@@ -24,16 +24,6 @@ final class FreeCellSolver extends BaseSolver {
     private int maxMoveTargetMoveToAcesPenalty = -3;
     private int maxMoveTargetAlternatingJoinPenalty = -2;
     private int maxMoveTargetExposeAcePenalty = -4;
-    private int removeAntagonistSuitPenalty = 43;
-    private int removeTargetSuitPenalty = -9;
-    private int removeOtherSuitPenalty = 6;
-    private int splitGivesSuitPenalty = -2;
-    private int splitDoesNotGiveSuitPenalty = 10;
-    private int joinOverTargetSuitPenalty = 3;
-    private int challengeExposeAcePenalty = -7;
-    private int challengeAlternatingJoinPenalty = -1;
-    private int challengeKingToSpacePenalty = 20;
-    private int challengeToSpacePenalty = 40;
     private int moveToAcesAttempts = 0;
     private int toSpaceAttempts = 0;
     private int fromSpaceAttempts = 0;
@@ -44,45 +34,35 @@ final class FreeCellSolver extends BaseSolver {
     private int splitMatchAttempts = 0;
     static private String[] moveModeNames = new String[]{"?", "toAces", "fromSpace", "toSpace", "fromWork", "toWork", "matching", "toAcesAuto", "expose", "matchWithSplit", "toSpaceKing"};
     final static int[] targetFoundationIndexBySuit;
-    static private int[] antagonistFoundationIndexBySuit;
-    int[] b;
-    int[] c;
 
     static {
 //        目标基础指数按花色分类
         targetFoundationIndexBySuit = new int[]{-1,3,2,1};
-        antagonistFoundationIndexBySuit = new int[]{-1,1,2,3};
     }
 
-    FreeCellSolver(SolverContext om_02) {
-        super(om_02, 2000);
+    FreeCellSolver(SolverContext solverContext) {
+        super(solverContext, 2000);
         this.decksOfCards = 1;
         this.cardPoolDefaultSize = 52; //52张
         this.stackSize = 8; //大小
-        this.q = true;
     }
 
     @Override
-    final String getSolverName() {
+    String getSolverName() {
         return "FreeCell";
     }
 
     @Override
-    final boolean initializeSolver() {
+    boolean initializeSolver() {
         this.initializeBaseState();
-        this.filePath = String.valueOf(this.solverContext.workspaceRoot) + "freecell" + File.separator;
+        this.filePath = this.solverContext.workspaceRoot + "freecell" + File.separator;
         this.tableCardArray = new int[50][this.stackSize];
-        this.b = new int[4];
-        this.c = new int[4];
         this.tableArray = new int[this.stackSize][MAX_TABLEAU_HEIGHT];
-        this.h = new int[this.stackSize];
-
         if (!this.solverContext.bridge.solverInitialState()) {
             return false;
         }
         //复制状态
         this.solverContext.searchState = new GameState(this.solverContext.initialState, true);
-
         if (this.solverContext.files.maxMoves < 999) {
             if (this.solverContext.logLevel <= 5) {
                 this.solverContext.log("Using modified search for max move target");
@@ -91,7 +71,6 @@ final class FreeCellSolver extends BaseSolver {
             this.exposeAcePenalty = this.maxMoveTargetExposeAcePenalty;
             this.alternatingJoinPenalty = this.maxMoveTargetAlternatingJoinPenalty;
         }
-
         return true;
     }
 
@@ -108,19 +87,18 @@ final class FreeCellSolver extends BaseSolver {
     @Override
     final void search(int n2, int n3) {
         this.getBucket();
+        //到达一定数量，打印日志
         if (this.solverContext.searchStepCount++ % 100000L == 0L) {
             this.logWorkMoveInfo(4);
         }
         if (!this.isSolver) {
             FreeCellSolver solver = this;
-            int n4 = n2;
-            GameState nY2 = solver.solverContext.searchState;
-            n3 = solver.currentState(nY2, n4, false);
+            n3 = solver.currentState(solver.solverContext.searchState, n2, false);
             if (n3 == 2) {
                 if (this.solverContext.logLevel <= 4) {
                     this.solverContext.log("Solved state solved so backout 999");
                 }
-                this.D = 999;
+                this.currenBackout = 999;
             } else if (n3 == 1) {
                 return;
             }
@@ -128,12 +106,12 @@ final class FreeCellSolver extends BaseSolver {
         if (this.solverContext.searchState.depth > this.maxSearchDepth) {
             return;
         }
-        if (this.D < 0 && this.solverContext.searchState.depth == 0 && this.c(1, n2) && this.D < 0) {
-            this.D = 0;
+        if (this.currenBackout < 0 && this.solverContext.searchState.depth == 0 && this.c(1, n2) && this.currenBackout < 0) {
+            this.currenBackout = 0;
         }
         n3 = this.solverContext.complexity;
-        if (this.D < 0 && !this.c(7, n2)) {
-            if (this.D < 0) {
+        if (this.currenBackout < 0 && !this.c(7, n2)) {
+            if (this.currenBackout < 0) {
                 this.solverContext.complexity += this.moveToAcesPenalty;
                 if (this.solverContext.complexity <= 0) {
                     ++this.moveToAcesAttempts;
@@ -145,7 +123,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.solverContext.complexity = n3;
             }
-            if (this.D < 0) {
+            if (this.currenBackout < 0) {
                 this.solverContext.complexity += this.fromWorkAreaPenalty;
                 if (this.solverContext.complexity < 0) {
                     ++this.fromWorkAreaAttempts;
@@ -157,7 +135,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.solverContext.complexity = n3;
             }
-            if (this.D < 0) {
+            if (this.currenBackout < 0) {
                 this.solverContext.complexity += this.fromSpacePenalty;
                 if (this.solverContext.complexity < 0) {
                     ++this.fromSpaceAttempts;
@@ -166,7 +144,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.solverContext.complexity = n3;
             }
-            if (this.D < 0) {
+            if (this.currenBackout < 0) {
                 this.solverContext.complexity += this.exposeAcePenalty;
                 if (this.solverContext.complexity < 0) {
                     ++this.alternatingJoinAttempts;
@@ -178,7 +156,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.solverContext.complexity = n3;
             }
-            if (this.D < 0) {
+            if (this.currenBackout < 0) {
                 this.solverContext.complexity += this.alternatingJoinPenalty;
                 if (this.solverContext.complexity < 0) {
                     ++this.exposeAceAttempts;
@@ -190,7 +168,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.solverContext.complexity = n3;
             }
-            if (this.D < 0) {
+            if (this.currenBackout < 0) {
                 this.solverContext.complexity += this.kingToSpacePenalty;
                 if (this.solverContext.complexity < 0) {
                     ++this.toSpaceAttempts;
@@ -202,7 +180,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.solverContext.complexity = n3;
             }
-            if (this.D < 0) {
+            if (this.currenBackout < 0) {
                 this.solverContext.complexity += this.moveToSpacePenalty;
                 if (this.solverContext.complexity < 0) {
                     ++this.toSpaceAttempts;
@@ -214,7 +192,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.solverContext.complexity = n3;
             }
-            if (this.D < 0) {
+            if (this.currenBackout < 0) {
                 this.solverContext.complexity += this.moveToWorkAreaPenalty;
                 if (this.solverContext.complexity < 0) {
                     ++this.moveToWorkAreaAttempts;
@@ -226,7 +204,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.solverContext.complexity = n3;
             }
-            if (this.D < 0) {
+            if (this.currenBackout < 0) {
                 this.solverContext.complexity += this.splitMatchPenalty;
                 if (this.solverContext.complexity < 0) {
                     ++this.splitMatchAttempts;
@@ -239,10 +217,10 @@ final class FreeCellSolver extends BaseSolver {
                 this.solverContext.complexity = n3;
             }
         }
-        if (this.D >= 0) {
-            --this.D;
+        if (this.currenBackout >= 0) {
+            --this.currenBackout;
             if (this.solverContext.logLevel <= 1) {
-                this.solverContext.log("Backout now " + this.D);
+                this.solverContext.log("Backout now " + this.currenBackout);
             }
         }
     }
@@ -284,15 +262,6 @@ final class FreeCellSolver extends BaseSolver {
         return bl;
     }
 
-    private boolean d(CardStack os_02) {
-        int n2 = this.solverContext.searchState.stackGroups[2].stacks[targetFoundationIndexBySuit[this.solverContext.files.suit]].getTopCardValue() + 1;
-        CardRun ok_02 = null;
-        CardRun ok_03;
-        for (java.util.Iterator iterator = os_02.runs.iterator(); iterator.hasNext() && (ok_03 = (CardRun)iterator.next()) != os_02.topRun; ok_02 = ok_03) {
-        }
-        return ok_02 != null && ok_02.cards[ok_02.cardCount - 1].cardId == n2;
-    }
-
     private boolean c(int n2, int n3) {
         boolean bl;
         block81: {
@@ -306,16 +275,16 @@ final class FreeCellSolver extends BaseSolver {
                 int n5 = 0;
                 while (n5 < n4) {
                     CardStack os_02 = os_0Array[n5];
-                    if (this.D <= 0) {
+                    if (this.currenBackout <= 0) {
                         if (os_02.topRun != null) {
                             CardStack[] os_0Array2 = this.solverContext.searchState.stackGroups[0].stacks;
                             int n6 = this.solverContext.searchState.stackGroups[0].stacks.length;
                             int n7 = 0;
                             while (n7 < n6) {
                                 CardStack os_03 = os_0Array2[n7];
-                                if (this.D > 0) break;
+                                if (this.currenBackout > 0) break;
                                 if (os_03.topRun != null || os_02.topRun.cards[0].rank == 13) {
-                                    this.analyzeSpiderBoard(os_03, os_02, n2, n3);
+                                    this.tryMoveStackAndRecurse(os_03, os_02, n2, n3);
                                 }
                                 ++n7;
                             }
@@ -337,12 +306,12 @@ final class FreeCellSolver extends BaseSolver {
                         int n11 = 0;
                         while (n11 < n10) {
                             CardStack os_05 = os_0Array3[n11];
-                            if (this.D <= 0) {
+                            if (this.currenBackout <= 0) {
                                 if (os_05.topRun != null) {
                                     boolean bl2;
                                     boolean bl3 = bl2 = os_05.topRun.cards[0].rank == 13;
                                     if (!(n2 != 10 ? bl2 : !bl2) && os_05.runs.size() != 1) {
-                                        this.analyzeSpiderBoard(os_04, os_05, n2, n3);
+                                        this.tryMoveStackAndRecurse(os_04, os_05, n2, n3);
                                     }
                                 }
                                 ++n11;
@@ -360,7 +329,7 @@ final class FreeCellSolver extends BaseSolver {
                 int n13 = 0;
                 while (n13 < n12) {
                     CardStack os_06 = os_0Array[n13];
-                    if (this.D > 0) break;
+                    if (this.currenBackout > 0) break;
                     if (os_06.topRun != null) {
                         boolean bl4 = true;
                         if (n2 == 8 && !FreeCellSolver.c(os_06)) {
@@ -372,9 +341,9 @@ final class FreeCellSolver extends BaseSolver {
                             int n15 = 0;
                             while (n15 < n14) {
                                 CardStack os_07 = os_0Array4[n15];
-                                if (this.D > 0) break;
+                                if (this.currenBackout > 0) break;
                                 if (!(n2 != 8 ? n2 == 6 && FreeCellSolver.c(os_06) && !FreeCellSolver.c(os_07) : FreeCellSolver.c(os_07))) {
-                                    this.analyzeSpiderBoard(os_07, os_06, n2, n3);
+                                    this.tryMoveStackAndRecurse(os_07, os_06, n2, n3);
                                 }
                                 ++n15;
                             }
@@ -406,8 +375,8 @@ final class FreeCellSolver extends BaseSolver {
                     if (os_09.runs.size() == 1 && os_09.topRun.cardCount == 1) {
                         this.solverContext.complexity += this.fromSpacePenalty;
                     }
-                    if (this.D <= 0) {
-                        this.analyzeSpiderBoard(os_08, os_09, n2, n3);
+                    if (this.currenBackout <= 0) {
+                        this.tryMoveStackAndRecurse(os_08, os_09, n2, n3);
                         ++n17;
                         continue;
                     }
@@ -425,7 +394,7 @@ final class FreeCellSolver extends BaseSolver {
                     os_010 = os_0Array[n22];
                     int n23 = os_010.foundationSuit;
                     n18 = os_010.getTopRank();
-                    if (FreeCellSolver.c(n23)) {
+                    if (FreeCellSolver.suitColor(n23)) {
                         if (n18 < n19) {
                             n19 = n18;
                         }
@@ -447,7 +416,7 @@ final class FreeCellSolver extends BaseSolver {
                     int n25 = 0;
                     if (n18 < 2) {
                         n25 = 1;
-                    } else if (FreeCellSolver.c(n24)) {
+                    } else if (FreeCellSolver.suitColor(n24)) {
                         if (n18 <= n20) {
                             n25 = 1;
                         }
@@ -463,7 +432,7 @@ final class FreeCellSolver extends BaseSolver {
                         n18 = 0;
                         while (n18 < n25) {
                             CardStack os_011 = os_0Array5[n18];
-                            bl = this.analyzeSpiderBoard(os_010, os_011, n2, n3);
+                            bl = this.tryMoveStackAndRecurse(os_010, os_011, n2, n3);
                             if (bl) {
                                 if (this.solverContext.logLevel > 3) break;
                                 this.solverContext.log("Automatic ace move from stack " + os_011.stackIndex + " was productive");
@@ -477,7 +446,7 @@ final class FreeCellSolver extends BaseSolver {
                         n18 = 0;
                         while (n18 < n25) {
                             CardStack os_012 = os_0Array5[n18];
-                            bl = this.analyzeSpiderBoard(os_010, os_012, n2, n3);
+                            bl = this.tryMoveStackAndRecurse(os_010, os_012, n2, n3);
                             if (bl) {
                                 if (this.solverContext.logLevel > 3) break;
                                 this.solverContext.log("Automatic ace move from work " + os_012.stackIndex + " was productive");
@@ -495,7 +464,7 @@ final class FreeCellSolver extends BaseSolver {
                 int n27 = 0;
                 while (n27 < n26) {
                     CardStack os_013 = os_0Array[n27];
-                    if (this.D > 0) break;
+                    if (this.currenBackout > 0) break;
                     if (this.solverContext.logLevel <= 2) {
                         this.solverContext.log("Try and move card run to ace of " + FreeCellSolver.matchSuitColor(os_013.foundationSuit * 100));
                     }
@@ -505,7 +474,7 @@ final class FreeCellSolver extends BaseSolver {
                     int n30 = 0;
                     while (n30 < n29) {
                         CardStack os_014 = os_0Array6[n30];
-                        if (this.D > 0 || (bl = this.analyzeSpiderBoard(os_013, os_014, n2, n3))) break;
+                        if (this.currenBackout > 0 || (bl = this.tryMoveStackAndRecurse(os_013, os_014, n2, n3))) break;
                         ++n30;
                     }
                     if (bl) break;
@@ -514,7 +483,7 @@ final class FreeCellSolver extends BaseSolver {
                     n30 = 0;
                     while (n30 < n29) {
                         CardStack os_015 = os_0Array6[n30];
-                        if (this.D > 0 || (bl = this.analyzeSpiderBoard(os_013, os_015, n2, n3))) break;
+                        if (this.currenBackout > 0 || (bl = this.tryMoveStackAndRecurse(os_013, os_015, n2, n3))) break;
                         ++n30;
                     }
                     if (!bl) {
@@ -528,7 +497,7 @@ final class FreeCellSolver extends BaseSolver {
         return bl;
     }
 
-    private boolean analyzeSpiderBoard(CardStack os_02, CardStack os_03, int n2, int n3) {
+    private boolean tryMoveStackAndRecurse(CardStack os_02, CardStack os_03, int n2, int n3) {
         if (os_02 == os_03) {
             return false;
         }
@@ -639,9 +608,9 @@ final class FreeCellSolver extends BaseSolver {
                     long l2 = this.computeStateHash();
                     if (n2 == 7 || !this.isReversalOfPreviousMove(os_02, os_03)) {
                         if (n2 != 7) {
-                            this.D = this.checkCurrentStateHash(l2);
+                            this.currenBackout = this.checkCurrentStateHash(l2);
                         }
-                        if (this.D < 0) {
+                        if (this.currenBackout < 0) {
                             this.updateHashState(l2);
                             bl = true;
                             n2 = 0;
@@ -664,8 +633,8 @@ final class FreeCellSolver extends BaseSolver {
                             }
                             this.search(n13, 0);
                         }
-                        if (this.D >= 0) {
-                            --this.D;
+                        if (this.currenBackout >= 0) {
+                            --this.currenBackout;
                         }
                     }
                     --this.solverContext.searchState.depth;
@@ -746,7 +715,6 @@ final class FreeCellSolver extends BaseSolver {
     final boolean loadStateFromLines(String string, String[] stringArray, int n2) {
         StackGroup fristStackGroup = this.solverContext.initialState.stackGroups[0];
         int n3 = 7;
-        boolean bl = false;
         int[] nArray = new int[]{7, 7, 7, 7, 6, 6, 6, 6};
 
         if (n2 != 8) {
@@ -786,99 +754,6 @@ final class FreeCellSolver extends BaseSolver {
             this.solverContext.invalidInput("ERROR - Did not read 52 cards from the file", false);
         }
         return true;
-    }
-
-    @Override
-    final void appendBoardState(StringBuffer stringBuffer) {
-        int n2 = 0;
-        boolean bl = false;
-        //名字
-        stringBuffer.append(SolverContext.VARIANT_NAMES[this.solverContext.variantId]);
-        int n3 = 0;
-        while (n3 < 4) {
-            if (this.h[n3] > n2) {
-                n2 = this.h[n3];
-            }
-            if (this.h[n3] != 7) {
-                bl = true;
-            }
-            ++n3;
-        }
-        n3 = 4;
-        while (n3 < 8) {
-            if (this.h[n3] > n2) {
-                n2 = this.h[n3];
-            }
-            if (this.h[n3] != 6) {
-                bl = true;
-            }
-            ++n3;
-        }
-        n3 = 0;
-        while (n3 < 4) {
-            if (this.b[n3] != 0) {
-                bl = true;
-            }
-            ++n3;
-        }
-        n3 = 0;
-        while (n3 < 4) {
-            if (this.c[n3] != 0) {
-                bl = true;
-            }
-            ++n3;
-        }
-        if (bl) {
-            stringBuffer.append(",");
-            n3 = 0;
-            while (n3 < 8) {
-                stringBuffer.append("" + this.h[n3]);
-                if (n3 != 7) {
-                    stringBuffer.append(":");
-                }
-                ++n3;
-            }
-        }
-        stringBuffer.append("\n# Stacks:\n");
-        n3 = 0;
-        while (n3 < n2) {
-            int n4;
-            int n5 = this.stackSize;
-            if (n3 == n2 - 1) {
-                n4 = this.stackSize - 1;
-                while (n4 >= 0) {
-                    if (this.tableCardArray[n3][n4] != 0) {
-                        n5 = n4 + 1;
-                        break;
-                    }
-                    --n4;
-                }
-            }
-            n4 = 0;
-            while (n4 < n5) {
-                stringBuffer.append(FreeCellSolver.convetValue(this.tableCardArray[n3][n4]));
-                stringBuffer.append(",");
-                ++n4;
-            }
-            stringBuffer.append("\n");
-            ++n3;
-        }
-        if (bl) {
-            stringBuffer.append("# Work:\n");
-            n3 = 0;
-            while (n3 < 4) {
-                stringBuffer.append(FreeCellSolver.convetValue(this.c[n3]));
-                stringBuffer.append(",");
-                ++n3;
-            }
-            stringBuffer.append("\n# Aces:\n");
-            n3 = 0;
-            while (n3 < 4) {
-                stringBuffer.append(FreeCellSolver.convetValue(this.b[n3]));
-                stringBuffer.append(",");
-                ++n3;
-            }
-        }
     }
 
     @Override
