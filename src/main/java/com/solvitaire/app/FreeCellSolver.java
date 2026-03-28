@@ -81,6 +81,7 @@ final class FreeCellSolver extends BaseSolver {
         if (!this.solverContext.bridge.solverInitialState()) {
             return false;
         }
+        //复制状态
         this.solverContext.searchState = new GameState(this.solverContext.initialState, true);
 
         if (this.solverContext.files.maxMoves < 999) {
@@ -91,12 +92,7 @@ final class FreeCellSolver extends BaseSolver {
             this.exposeAcePenalty = this.maxMoveTargetExposeAcePenalty;
             this.alternatingJoinPenalty = this.maxMoveTargetAlternatingJoinPenalty;
         }
-        if (this.solverContext.files.b == 4) {
-            this.exposeAcePenalty = this.challengeExposeAcePenalty;
-            this.alternatingJoinPenalty = this.challengeAlternatingJoinPenalty;
-            this.kingToSpacePenalty = this.challengeKingToSpacePenalty;
-            this.moveToSpacePenalty = this.challengeToSpacePenalty;
-        }
+
         return true;
     }
 
@@ -368,15 +364,7 @@ final class FreeCellSolver extends BaseSolver {
                     if (this.D > 0) break;
                     if (os_06.topRun != null) {
                         boolean bl4 = true;
-                        if (this.solverContext.files.b == 4) {
-                            if (n2 == 8) {
-                                if (!this.d(os_06)) {
-                                    bl4 = false;
-                                }
-                            } else if (n2 == 6 && this.d(os_06)) {
-                                bl4 = false;
-                            }
-                        } else if (n2 == 8 && !FreeCellSolver.c(os_06)) {
+                        if (n2 == 8 && !FreeCellSolver.c(os_06)) {
                             bl4 = false;
                         }
                         if (bl4) {
@@ -386,7 +374,7 @@ final class FreeCellSolver extends BaseSolver {
                             while (n15 < n14) {
                                 CardStack os_07 = os_0Array4[n15];
                                 if (this.D > 0) break;
-                                if (this.solverContext.files.b == 4 || !(n2 != 8 ? n2 == 6 && FreeCellSolver.c(os_06) && !FreeCellSolver.c(os_07) : FreeCellSolver.c(os_07))) {
+                                if (!(n2 != 8 ? n2 == 6 && FreeCellSolver.c(os_06) && !FreeCellSolver.c(os_07) : FreeCellSolver.c(os_07))) {
                                     this.analyzeSpiderBoard(os_07, os_06, n2, n3);
                                 }
                                 ++n15;
@@ -429,9 +417,6 @@ final class FreeCellSolver extends BaseSolver {
             } else if (n2 == 7) {
                 int n18;
                 CardStack os_010;
-                if (this.solverContext.files.maxMoves < 999 && (this.solverContext.files.b == 4 || this.solverContext.files.b == 3)) {
-                    return false;
-                }
                 int n19 = 13;
                 int n20 = 13;
                 CardStack[] os_0Array = this.solverContext.searchState.stackGroups[2].stacks;
@@ -515,25 +500,7 @@ final class FreeCellSolver extends BaseSolver {
                     if (this.solverContext.logLevel <= 2) {
                         this.solverContext.log("Try and move card run to ace of " + FreeCellSolver.d(os_013.foundationSuit * 100));
                     }
-                    if (this.solverContext.files.b == 4 && os_013.topRun != null && os_013.getTopRank() > 2) {
-                        int n28 = os_013.stackIndex % 10;
-                        if (n28 == antagonistFoundationIndexBySuit[this.solverContext.files.suit]) {
-                            this.solverContext.complexity += this.removeAntagonistSuitPenalty;
-                            if (this.solverContext.logLevel <= 3) {
-                                this.solverContext.log("Adjusted complexity by removeAntag to " + this.solverContext.complexity);
-                            }
-                        } else if (n28 == targetFoundationIndexBySuit[this.solverContext.files.suit]) {
-                            this.solverContext.complexity += this.removeTargetSuitPenalty;
-                            if (this.solverContext.logLevel <= 3) {
-                                this.solverContext.log("Adjusted complexity by removeTargetSuit to " + this.solverContext.complexity);
-                            }
-                        } else {
-                            this.solverContext.complexity += this.removeOtherSuitPenalty;
-                            if (this.solverContext.logLevel <= 3) {
-                                this.solverContext.log("Adjusted complexity by removeOtherSuit to " + this.solverContext.complexity);
-                            }
-                        }
-                    }
+
                     CardStack[] os_0Array6 = this.solverContext.searchState.stackGroups[0].stacks;
                     int n29 = this.solverContext.searchState.stackGroups[0].stacks.length;
                     int n30 = 0;
@@ -628,31 +595,14 @@ final class FreeCellSolver extends BaseSolver {
         int n7 = os_02.evaluateJoinFrom(os_03, n6, false);
         if (n2 == 9 && n7 > 0 && n7 < os_03.topRun.cardCount) {
             Card nT2 = os_03.topRun.cards[os_03.topRun.cardCount - n7 - 1];
-            if (this.solverContext.files.b == 4) {
-        if (nT2.suit == this.solverContext.files.suit) {
-                    this.solverContext.complexity += this.splitGivesSuitPenalty;
-                    if (this.solverContext.logLevel <= 3) {
-                        this.solverContext.log("Adjusted complexity by splitGivesSuit to " + this.solverContext.complexity);
-                    }
-                } else {
-                    this.solverContext.complexity += this.splitDoesNotGiveSuitPenalty;
-                    if (this.solverContext.logLevel <= 3) {
-                        this.solverContext.log("Adjusted complexity by splitDoesNotGiveSuit to " + this.solverContext.complexity);
-                    }
-                }
-            } else if (this.solverContext.searchState.stackGroups[2].stacks[0].getTopCardValue() + 1 == nT2.cardId || this.solverContext.searchState.stackGroups[2].stacks[1].getTopCardValue() + 1 == nT2.cardId || this.solverContext.searchState.stackGroups[2].stacks[2].getTopCardValue() + 1 == nT2.cardId || this.solverContext.searchState.stackGroups[2].stacks[3].getTopCardValue() + 1 == nT2.cardId) {
+            if (this.solverContext.searchState.stackGroups[2].stacks[0].getTopCardValue() + 1 == nT2.cardId || this.solverContext.searchState.stackGroups[2].stacks[1].getTopCardValue() + 1 == nT2.cardId || this.solverContext.searchState.stackGroups[2].stacks[2].getTopCardValue() + 1 == nT2.cardId || this.solverContext.searchState.stackGroups[2].stacks[3].getTopCardValue() + 1 == nT2.cardId) {
                 this.solverContext.complexity += this.splitMatchesAcePenalty;
                 if (this.solverContext.logLevel <= 3) {
                     this.solverContext.log("Adjusted complexity by splitMatchesAce to " + this.solverContext.complexity);
                 }
             }
         }
-        if (this.solverContext.files.b == 4 && (n2 == 6 || n2 == 9 || n2 == 4 || n2 == 2) && os_02.ownerGroup.groupIndex == 0 && os_02.topRun != null && os_02.topRun.cards[os_02.topRun.cardCount - 1].suit == this.solverContext.files.suit) {
-            this.solverContext.complexity += this.joinOverTargetSuitPenalty;
-            if (this.solverContext.logLevel <= 3) {
-                this.solverContext.log("Adjusted complexity by joinOverSuit to " + this.solverContext.complexity);
-            }
-        }
+
         if (n7 >= 0) {
             int n8;
             if ((n8 = n7 == 0 ? n4 : n7) > 1 && (n2 == 6 || n2 == 9 || n2 == 8 || n2 == 3 || n2 == 10 || n2 == 2)) {
@@ -783,39 +733,7 @@ final class FreeCellSolver extends BaseSolver {
                 return gameState.depth;
             }
         }
-        if (this.solverContext.files.b != 4) {
-            if (this.solverContext.files.b == 3) {
-                int n3 = FreeCellSolver.sumLargestRuns(gameState.stackGroups[2], this.solverContext.files.h);
-                int n4 = this.solverContext.files.c * this.solverContext.files.h - n3;
-                return gameState.depth + n4;
-            }
-            return gameState.depth + 52 - gameState.stackGroups[2].countCards();
-        }
-        int n5 = FreeCellSolver.analyzeSpiderBoard(gameState.stackGroups[2], this.solverContext.files.suit);
-        int n6 = 0;
-        int n7 = this.solverContext.files.suit * 100 + n5 + 1;
-        int n8 = this.solverContext.files.suit * 100 + this.solverContext.files.c;
-        CardStack[] os_0Array2 = gameState.stackGroups[0].stacks;
-        int n9 = os_0Array2.length;
-        for (int i = 0; i < n9; ++i) {
-            for (Object object : os_0Array2[i].runs) {
-                CardRun ok_02 = (CardRun)object;
-                for (int j = 0; j < ok_02.cardCount; ++j) {
-                    if (ok_02.cards[j].cardId < n7 || ok_02.cards[j].cardId > n8) continue;
-                    ++n6;
-                    if (j >= ok_02.cardCount - 1) continue;
-                    ++n6;
-                }
-            }
-        }
-        CardStack[] os_0Array3 = gameState.stackGroups[1].stacks;
-        int n10 = os_0Array3.length;
-        for (int i = 0; i < n10; ++i) {
-            int n11 = os_0Array3[i].getTopCardValue();
-            if (n11 < n7 || n11 > n8) continue;
-            ++n6;
-        }
-        return gameState.depth + n6;
+        return gameState.depth + 52 - gameState.stackGroups[2].countCards();
     }
 
     static int analyzeSpiderBoard(StackGroup stackGroup, int n2) {

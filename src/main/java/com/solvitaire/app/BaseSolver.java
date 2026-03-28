@@ -180,34 +180,6 @@ public abstract class BaseSolver {
         if (this.solverContext.files.maxMoves < 200) {
             this.buetMaxSize = this.solverContext.files.maxMoves + 2;
         }
-        switch (this.solverContext.files.b) {
-            case 2: {
-                if (this.solverContext.files.e <= 1) break;
-                this.solverContext.fail("Multiple board challenges are not supported<br>for " + this.getSolverName());
-                return;
-            }
-            case 3: {
-                BaseSolver op_02 = this;
-                if (op_02.analyzeSpiderBoard(op_02.solverContext.initialState, true, 0, 0) >= 0) break;
-                this.solverContext.fail("Clearing a specific number of cards<br> is not supported for " + this.getSolverName());
-                return;
-            }
-            case 4: {
-                BaseSolver op_03 = this;
-                if (op_03.analyzeSpiderBoard(op_03.solverContext.initialState, true, 0, 0) >= 0) break;
-                this.solverContext.fail("Clearing a specific card<br>is not supported for " + this.getSolverName());
-                return;
-            }
-            case 5: {
-                this.solverContext.fail("Clearing a specific number of stacks<br>is not supported for " + this.getSolverName());
-                return;
-            }
-            case 6: {
-                BaseSolver op_05 = this;
-                if (op_05.analyzeSpiderBoard(op_05.solverContext.initialState, true) >= 0) break;
-                this.solverContext.fail("Scoring challenges are not supported for " + this.getSolverName());
-            }
-        }
     }
 
     private void initCardPool() {
@@ -929,10 +901,6 @@ public abstract class BaseSolver {
     }
     
     final int analyzeSpiderBoard(GameState nY2, int n2, boolean bl) {
-        if (this.solverContext.files.b == 0) {
-            this.solverContext.fail("Need to have gameChallenge set");
-        }
-
         if (this.isSolver) {
             return 2;
         }
