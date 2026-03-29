@@ -87,14 +87,15 @@ public abstract class BaseSolver {
      * @return
      */
     private int getBucket(int n2) {
-        if (n2 > 2) {
-            return this.bucketSize;
+        if (n2 == 1) {
+            return this.bucketSize / 8;
         }
         if (n2 == 2) {
             return this.bucketSize / 2;
         }
-        if (n2 == 1) {
-            return this.bucketSize / 8;
+
+        if (n2 > 2) {
+            return this.bucketSize;
         }
         return this.bucketSize / 64;
     }
@@ -1001,7 +1002,6 @@ public abstract class BaseSolver {
                 blArray = new boolean[n2+1];
                 Arrays.fill(blArray, true);
                 n4 = 2;
-                if (!true) break block4;
                 n3 = ++n4;
                 if (n3 * n3 > 500) break block5;
             }

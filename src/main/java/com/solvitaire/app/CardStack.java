@@ -3,30 +3,28 @@ package com.solvitaire.app;
 import java.util.LinkedList;
 
 /**
- * group  -->  10个栈   --->  栈里面是card 和run(多个)
+ * One logical stack inside a {@link StackGroup}.
+ *
+ * A stack owns an ordered list of {@link CardRun} objects. The last run in that list is the
+ * currently exposed run (`topRun`). Search code mutates stacks very aggressively, so this class
+ * centralizes three kinds of bookkeeping:
+ * 1. Keeping `runs` and `topRun` in sync.
+ * 2. Maintaining `StackGroup.emptyStackCount`.
+ * 3. Encoding and undoing run transfers without allocating unnecessary objects.
  */
 final class CardStack {
     final SolverContext context;
-    //所在栈Group
     StackGroup ownerGroup;
-    //栈的序号
     int stackIndex;
-    //栈里面是topRun
     CardRun topRun = null;
-    /**
-     * run0
-     * run1
-     * run2
-     * topRun
-     */
     LinkedList<CardRun> runs = new LinkedList<>();
-    //主要是用在成功牌堆中的
-    int foundationSuit; //foundation 的花色
-    //是否交替     Freecell是交替的
-    boolean alternatingColors; //是否红黑交替
-    //复制
+    int foundationSuit;
+    boolean alternatingColors;
     boolean workingCopy = false;
 
+    /**
+     * Create a fresh empty stack for a newly built game state.
+     */
     CardStack(SolverContext context, StackGroup ownerGroup, int stackIndex, boolean alternatingColors) {
         this.context = context;
         this.ownerGroup = ownerGroup;
@@ -36,6 +34,12 @@ final class CardStack {
         this.clear();
     }
 
+    /**
+     * Copy an existing stack into another {@link StackGroup}.
+     *
+     * Search states rely on deep copies of runs so later mutations do not leak back into the source
+     * state.
+     */
     CardStack(StackGroup ownerGroup, CardStack sourceStack) {
         this.context = sourceStack.context;
         this.stackIndex = sourceStack.stackIndex;
@@ -50,30 +54,41 @@ final class CardStack {
             this.runs.add(copiedRun);
         }
         this.topRun = this.runs.isEmpty() ? null : this.runs.getLast();
-
         this.workingCopy = sourceStack.workingCopy;
     }
 
     /**
-     * 获取最顶上的
-     * @return
+     * Return the currently exposed top card, or `null` when the stack is empty.
      */
     final Card getTopCard() {
-        return this.topRun != null && this.topRun.cardCount != 0 ? this.topRun.cards[this.topRun.cardCount - 1] : null;
-    }
-
-    final int getTopCardValue() {
-        return this.topRun != null && this.topRun.cardCount != 0 ? this.topRun.cards[this.topRun.cardCount - 1].cardId : -1;
-    }
-
-    final int getTopRank() {
-        return this.topRun != null && this.topRun.cardCount != 0 ? this.topRun.cards[this.topRun.cardCount - 1].rank : 0;
+        return this.topRun != null && this.topRun.cardCount != 0
+                ? this.topRun.cards[this.topRun.cardCount - 1]
+                : null;
     }
 
     /**
-     * 设置为Run
-     * @param run
-     * @return
+     * Return the encoded card id of the exposed top card, or `-1` when empty.
+     */
+    final int getTopCardValue() {
+        return this.topRun != null && this.topRun.cardCount != 0
+                ? this.topRun.cards[this.topRun.cardCount - 1].cardId
+                : -1;
+    }
+
+    /**
+     * Return the rank of the exposed top card, or `0` when empty.
+     */
+    final int getTopRank() {
+        return this.topRun != null && this.topRun.cardCount != 0
+                ? this.topRun.cards[this.topRun.cardCount - 1].rank
+                : 0;
+    }
+
+    /**
+     * Attach a run to the top of this stack.
+     *
+     * This is the single place that turns an empty stack into a non-empty stack, so the enclosing
+     * group's empty-stack count is adjusted here.
      */
     final CardRun appendRun(CardRun run) {
         if (run.cardCount == 0) {
@@ -82,16 +97,17 @@ final class CardStack {
         if (this.topRun == null && this.ownerGroup != null) {
             --this.ownerGroup.emptyStackCount;
         }
-        //加上一个可以出的    他作为最上层的
         this.runs.add(run);
         run.overStack = this;
         this.topRun = run;
-        return this.topRun;
+        return run;
     }
 
     /**
-     * 删除最上层的   最上层的变为次二层的
-     * @param run
+     * Remove a specific run and refresh `topRun` / empty-stack bookkeeping.
+     *
+     * Most callers remove the top run, but completed-suit handling also removes a run that was just
+     * popped out for transfer to another group, so this method works for either case.
      */
     void removeRun(CardRun run) {
         this.runs.remove(run);
@@ -106,25 +122,31 @@ final class CardStack {
     }
 
     /**
-     * 弹出最上层的
-     * @return
+     * Remove and return the currently exposed top run.
      */
     CardRun popTopRun() {
-        CardRun removedRun = null;
-        if (!this.runs.isEmpty()) {
-            removedRun = this.runs.removeLast();
-            if (this.runs.isEmpty()) {
-                this.topRun = null;
-                if (this.ownerGroup != null) {
-                    ++this.ownerGroup.emptyStackCount;
-                }
-            } else {
-                this.topRun = this.runs.getLast();
+        if (this.runs.isEmpty()) {
+            return null;
+        }
+
+        CardRun removedRun = this.runs.removeLast();
+        if (this.runs.isEmpty()) {
+            this.topRun = null;
+            if (this.ownerGroup != null) {
+                ++this.ownerGroup.emptyStackCount;
             }
+        } else {
+            this.topRun = this.runs.getLast();
         }
         return removedRun;
     }
 
+    /**
+     * Reset this stack to an empty state.
+     *
+     * During initialization the owning group's empty count is reset to the full stack count so the
+     * group starts from a known baseline.
+     */
     final void clear() {
         this.runs = new LinkedList<>();
         this.topRun = null;
@@ -134,197 +156,110 @@ final class CardStack {
         this.workingCopy = false;
     }
 
+    /**
+     * Evaluate how many cards could be joined from `sourceStack` onto this stack.
+     *
+     * The returned value follows the original solver protocol:
+     * `-1` means "cannot join",
+     * `0` means "move the whole top run object as-is",
+     * positive values mean "move that many cards".
+     */
     final int evaluateJoinFrom(CardStack sourceStack, int moveMode, boolean exactMatchOnly) {
-        int joinCount = -1;
         if (sourceStack.topRun == null) {
             return -1;
         }
-
         if (moveMode == 2 || moveMode == 6) {
-            if (this.topRun != null) {
-                return joinCount;
-            }
-            if (moveMode != 6) {
-                return sourceStack.topRun.cardCount;
-            }
-            if (sourceStack.topRun.cardCount != 1) {
-                return 1;
-            }
-            return 0;
+            return this.evaluateJoinIntoEmptyStack(sourceStack, moveMode);
         }
-
         if (moveMode == 1) {
-            int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false, exactMatchOnly);
-            if (directJoinCount > 0) {
-                joinCount = directJoinCount;
-            }
-            return joinCount;
+            return this.evaluateDirectJoinFrom(sourceStack, exactMatchOnly);
         }
         if (moveMode == 3) {
-            if (sourceStack.runs.size() != 1) {
-                return joinCount;
-            }
-            int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false, exactMatchOnly);
-            if (directJoinCount > 0) {
-                return directJoinCount;
-            }
-            if (this.evaluateJoin(this.topRun, sourceStack.topRun, true, exactMatchOnly) != 0) {
-                return joinCount;
-            }
-        } else {
-            int splitJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, true, exactMatchOnly);
-            if (exactMatchOnly) {
-                return splitJoinCount;
-            }
-            if (splitJoinCount < 0) {
-                return joinCount;
-            }
-            if (splitJoinCount > 0) {
-                this.context.failFast("Mismatched join caused split");
-                return joinCount;
-            }
-            int sourceRunCount = sourceStack.runs.size();
-            if (sourceRunCount < 2) {
-                return -1;
-            }
-            joinCount = 0;
-            CardRun previousRun = sourceStack.runs.get(sourceRunCount - 2);
-            Card previousTopCard = previousRun.cards[previousRun.cardCount - 1];
-            Card firstSourceCard = sourceStack.topRun.cards[0];
-            if (previousTopCard.rank == firstSourceCard.rank + 1) {
-                joinCount = 1;
-            }
-            if (joinCount != 0 && moveMode == 4 || joinCount == 0 && moveMode == 5) {
-                return -1;
-            }
+            return this.evaluateSingleRunJoinFrom(sourceStack, exactMatchOnly);
         }
-        return 0;
+        return this.evaluateSplitAwareJoinFrom(sourceStack, moveMode, exactMatchOnly);
     }
 
     /**
-     * 是都可以解，    可以接多少张
-     * @param destinationRun
-     * @param sourceRun
-     * @param allowSplit
-     * @param allowPartialJoin
-     * @return
+     * Evaluate how a destination run and source run relate to each other.
+     *
+     * The same numeric return contract is used here as in `evaluateJoinFrom(...)`.
+     * Foundation stacks and tableau-style stacks follow different rules, so the logic is split into
+     * two branches and kept deliberately explicit.
      */
     int evaluateJoin(CardRun destinationRun, CardRun sourceRun, boolean allowSplit, boolean allowPartialJoin) {
-        int joinCount = -1;
-        Card sourceTopCard = sourceRun.cards[sourceRun.cardCount - 1];  //取出最后一个
+        Card sourceTopCard = sourceRun.cards[sourceRun.cardCount - 1];
         if (sourceTopCard == null) {
             return -1;
         }
-//        Foundation（收集堆）
         if (this.foundationSuit != 0) {
-            //目标 run
-            if (destinationRun == null) {
-                if (this.foundationSuit > 0) {
-                    //查看牌  是不是和顶部的相同   比较的是值
-                    if (sourceTopCard.cardId == this.foundationSuit * 100 + 1) {
-                        joinCount = 1;
-                    }
-                } else if (sourceTopCard.rank == 1) {
-                    //基本是走不到
-                    joinCount = 1;
-                }
-            } else if (sourceTopCard.cardId == destinationRun.cards[destinationRun.cardCount - 1].cardId + 1) {
-                joinCount = 1;
-            }
-        } else if (destinationRun != null) {
-            Card destinationTopCard = destinationRun.cards[destinationRun.cardCount - 1];
-            if (sourceRun.cardCount > 0) {
-                if (!this.alternatingColors) {
-                    if (!allowSplit) {
-                        joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount, true);
-                        if (!allowPartialJoin && joinCount + destinationRun.cardCount <= sourceRun.cardCount) {
-                            joinCount = -1;
-                        }
-                    } else if ((joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount, false)) != sourceRun.cardCount) {
-                        if (!allowPartialJoin) {
-                            joinCount = -1;
-                        }
-                    } else {
-                        joinCount = 0;
-                    }
-                } else if ((joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount, false)) > 0
-                        && !(joinCount % 2 == 0 ^ CardRun.isAlternatingColor(destinationTopCard, sourceTopCard))) {
-                    joinCount = -1;
-                }
-            }
+            return this.evaluateFoundationJoin(destinationRun, sourceTopCard);
         }
-        return joinCount;
+        if (destinationRun == null || sourceRun.cardCount == 0) {
+            return -1;
+        }
+
+        Card destinationTopCard = destinationRun.cards[destinationRun.cardCount - 1];
+        if (!this.alternatingColors) {
+            return this.evaluateNonAlternatingJoin(
+                    destinationRun,
+                    sourceRun,
+                    destinationTopCard,
+                    sourceTopCard,
+                    allowSplit,
+                    allowPartialJoin
+            );
+        }
+        return this.evaluateAlternatingColorJoin(destinationRun, sourceRun, destinationTopCard, sourceTopCard);
     }
 
+    /**
+     * Transfer cards from `sourceStack` onto this stack and return the undo token expected by
+     * `undoMoveCardsFrom(...)`.
+     */
     int moveCardsFrom(CardStack sourceStack, int cardCount, StackGroup completedSuitGroup) {
-        if (cardCount > 0) {
-            if (this.topRun == null) {
-                CardRun movedRun = new CardRun();
-                cardCount = movedRun.appendFromRun(sourceStack.topRun, cardCount);
-                this.appendRun(movedRun);
-            } else {
-                if (this.context.logLevel <= 2) {
-                    this.context.log("Joining card " + this.topRun.cards[this.topRun.cardCount - 1] + " with card " + sourceStack.topRun.cards[0]);
-                }
-                cardCount = this.topRun.appendFromRun(sourceStack.topRun, cardCount);
-            }
-            if (this.topRun.cardCount == 13 && completedSuitGroup != null) {
-                cardCount += 100 * this.topRun.cards[0].suit;
-                CardRun completedSuitRun = this.popTopRun();
-                completedSuitGroup.addCompletedSuitRun(completedSuitRun);
-            }
+        int undoToken = cardCount;
+        if (undoToken > 0) {
+            undoToken = this.appendSelectedCardsFromSource(sourceStack, undoToken);
+            undoToken = this.moveCompletedSuitOutIfNeeded(undoToken, completedSuitGroup);
         } else {
             this.appendRun(sourceStack.topRun);
         }
-        if (cardCount > 0 && cardCount % 20 < sourceStack.topRun.cardCount) {
-            sourceStack.topRun.cardCount -= cardCount % 20;
-        } else {
-            sourceStack.removeRun(sourceStack.topRun);
-        }
-        return cardCount;
+        this.removeTransferredCardsFromSource(sourceStack, undoToken);
+        return undoToken;
     }
 
-    //将最顶上的移动出去         根据 传入的值，决定他的功能
-    void undoMoveCardsFrom(CardStack sourceStack, int cardId, StackGroup completedSuitGroup) {
-        if (cardId > 0 && cardId != 20) {
-            if (cardId > 100) {
-                int removedSuit = cardId / 100;
-                cardId %= 100;
-                CardRun completedSuitRun = completedSuitGroup.removeCompletedSuitRun();
-                if (completedSuitRun.cards[0].suit != removedSuit) {
-                    this.context.failFast("Logic error - move says remove suit " + removedSuit + " but suit stack is " + completedSuitRun.cards[0].suit);
-                }
-                this.appendRun(completedSuitRun);
-            }
-            if (cardId > 20) {
-                cardId -= 20;
-                for (int cardIndex = 0; cardIndex < cardId; ++cardIndex) {
-                    sourceStack.topRun.cards[sourceStack.topRun.cardCount + cardIndex] = this.topRun.cards[this.topRun.cardCount - cardId + cardIndex];
-                }
-                sourceStack.topRun.cardCount += cardId;
+    /**
+     * Undo a transfer previously described by `moveCardsFrom(...)`.
+     *
+     * The `undoToken` encodes whether cards were split out of a run, whether the whole destination
+     * run was merged back, and whether a completed suit was temporarily moved out to a side group.
+     */
+    void undoMoveCardsFrom(CardStack sourceStack, int undoToken, StackGroup completedSuitGroup) {
+        if (undoToken > 0 && undoToken != 20) {
+            undoToken = this.restoreCompletedSuitIfNeeded(undoToken, completedSuitGroup);
+            int restoredCardCount = undoToken;
+            if (undoToken > 20) {
+                restoredCardCount = undoToken - 20;
+                this.restoreCardsIntoExistingSourceRun(sourceStack, restoredCardCount);
             } else {
-                CardRun restoredRun = new CardRun();
-                for (int cardIndex = 0; cardIndex < cardId; ++cardIndex) {
-                    restoredRun.cards[cardIndex] = this.topRun.cards[this.topRun.cardCount - cardId + cardIndex];
-                }
-                restoredRun.cardCount = cardId;
-                sourceStack.appendRun(restoredRun);
+                this.restoreCardsAsSeparateRun(sourceStack, restoredCardCount);
             }
-            this.topRun.cardCount -= cardId;
+            this.topRun.cardCount -= restoredCardCount;
             if (this.topRun.cardCount != 0) {
                 return;
             }
-        } else if (cardId == 20) {
-            for (int cardIndex = 0; cardIndex < this.topRun.cardCount; ++cardIndex) {
-                sourceStack.topRun.cards[sourceStack.topRun.cardCount++] = this.topRun.cards[cardIndex];
-            }
+        } else if (undoToken == 20) {
+            this.mergeEntireTopRunBackIntoSource(sourceStack);
         } else {
             sourceStack.appendRun(this.topRun);
         }
         this.removeRun(this.topRun);
     }
 
-    //牌的张树
+    /**
+     * Count every card currently held by this stack.
+     */
     int getCardCount() {
         int cardCount = 0;
         for (CardRun run : this.runs) {
@@ -333,10 +268,230 @@ final class CardStack {
         return cardCount;
     }
 
+    /**
+     * Helper for move mode 2 / 6, where only empty destinations are legal.
+     */
+    private int evaluateJoinIntoEmptyStack(CardStack sourceStack, int moveMode) {
+        if (this.topRun != null) {
+            return -1;
+        }
+        if (moveMode != 6) {
+            return sourceStack.topRun.cardCount;
+        }
+        return sourceStack.topRun.cardCount != 1 ? 1 : 0;
+    }
+
+    /**
+     * Helper for a straight run-to-run join without source-run restrictions.
+     */
+    private int evaluateDirectJoinFrom(CardStack sourceStack, boolean exactMatchOnly) {
+        int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false, exactMatchOnly);
+        return directJoinCount > 0 ? directJoinCount : -1;
+    }
+
+    /**
+     * Helper for joins that only allow sources already compressed into a single run.
+     */
+    private int evaluateSingleRunJoinFrom(CardStack sourceStack, boolean exactMatchOnly) {
+        if (sourceStack.runs.size() != 1) {
+            return -1;
+        }
+
+        int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false, exactMatchOnly);
+        if (directJoinCount > 0) {
+            return directJoinCount;
+        }
+        return this.evaluateJoin(this.topRun, sourceStack.topRun, true, exactMatchOnly) == 0 ? 0 : -1;
+    }
+
+    /**
+     * Helper for modes that allow reasoning about splits between multiple source runs.
+     *
+     * The slightly odd `moveMode == 4/5` checks are preserved from the original code because other
+     * solver variants may still rely on those protocol values even though FreeCell currently does not.
+     */
+    private int evaluateSplitAwareJoinFrom(CardStack sourceStack, int moveMode, boolean exactMatchOnly) {
+        int splitJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, true, exactMatchOnly);
+        if (exactMatchOnly) {
+            return splitJoinCount;
+        }
+        if (splitJoinCount < 0) {
+            return -1;
+        }
+        if (splitJoinCount > 0) {
+            this.context.failFast("Mismatched join caused split");
+            return -1;
+        }
+
+        int sourceRunCount = sourceStack.runs.size();
+        if (sourceRunCount < 2) {
+            return -1;
+        }
+
+        CardRun previousRun = sourceStack.runs.get(sourceRunCount - 2);
+        Card previousTopCard = previousRun.cards[previousRun.cardCount - 1];
+        Card firstSourceCard = sourceStack.topRun.cards[0];
+        int joinCount = previousTopCard.rank == firstSourceCard.rank + 1 ? 1 : 0;
+        if ((joinCount != 0 && moveMode == 4) || (joinCount == 0 && moveMode == 5)) {
+            return -1;
+        }
+        return 0;
+    }
+
+    /**
+     * Foundation stacks only care about suit and strict rank progression.
+     */
+    private int evaluateFoundationJoin(CardRun destinationRun, Card sourceTopCard) {
+        if (destinationRun == null) {
+            if (this.foundationSuit > 0) {
+                return sourceTopCard.cardId == this.foundationSuit * 100 + 1 ? 1 : -1;
+            }
+            return sourceTopCard.rank == 1 ? 1 : -1;
+        }
+        return sourceTopCard.cardId == destinationRun.cards[destinationRun.cardCount - 1].cardId + 1 ? 1 : -1;
+    }
+
+    /**
+     * Evaluate joins for stacks that do not enforce alternating colors.
+     */
+    private int evaluateNonAlternatingJoin(
+            CardRun destinationRun,
+            CardRun sourceRun,
+            Card destinationTopCard,
+            Card sourceTopCard,
+            boolean allowSplit,
+            boolean allowPartialJoin
+    ) {
+        int joinCount;
+        if (!allowSplit) {
+            joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount, true);
+            if (!allowPartialJoin && joinCount + destinationRun.cardCount <= sourceRun.cardCount) {
+                return -1;
+            }
+            return joinCount;
+        }
+
+        joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount, false);
+        if (joinCount == sourceRun.cardCount) {
+            return 0;
+        }
+        if (!allowPartialJoin) {
+            return -1;
+        }
+        return joinCount;
+    }
+
+    /**
+     * Evaluate joins for stacks that require alternating colors.
+     */
+    private int evaluateAlternatingColorJoin(
+            CardRun destinationRun,
+            CardRun sourceRun,
+            Card destinationTopCard,
+            Card sourceTopCard
+    ) {
+        int joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount, false);
+        if (joinCount > 0 && !(joinCount % 2 == 0 ^ CardRun.isAlternatingColor(destinationTopCard, sourceTopCard))) {
+            return -1;
+        }
+        return joinCount;
+    }
+
+    /**
+     * Move the selected cards out of `sourceStack` and onto this stack.
+     */
+    private int appendSelectedCardsFromSource(CardStack sourceStack, int cardCount) {
+        if (this.topRun == null) {
+            CardRun movedRun = new CardRun();
+            int undoToken = movedRun.appendFromRun(sourceStack.topRun, cardCount);
+            this.appendRun(movedRun);
+            return undoToken;
+        }
+
+        if (this.context.logLevel <= 2) {
+            this.context.log("Joining card " + this.topRun.cards[this.topRun.cardCount - 1] + " with card " + sourceStack.topRun.cards[0]);
+        }
+        return this.topRun.appendFromRun(sourceStack.topRun, cardCount);
+    }
+
+    /**
+     * When a full suit has just been completed, move it to the supplied completed-suit group and
+     * encode that fact into the undo token.
+     */
+    private int moveCompletedSuitOutIfNeeded(int undoToken, StackGroup completedSuitGroup) {
+        if (this.topRun.cardCount == 13 && completedSuitGroup != null) {
+            int encodedUndoToken = undoToken + 100 * this.topRun.cards[0].suit;
+            CardRun completedSuitRun = this.popTopRun();
+            completedSuitGroup.addCompletedSuitRun(completedSuitRun);
+            return encodedUndoToken;
+        }
+        return undoToken;
+    }
+
+    /**
+     * Shrink or remove the source run after cards have been transferred away.
+     */
+    private void removeTransferredCardsFromSource(CardStack sourceStack, int undoToken) {
+        if (undoToken > 0 && undoToken % 20 < sourceStack.topRun.cardCount) {
+            sourceStack.topRun.cardCount -= undoToken % 20;
+            return;
+        }
+        sourceStack.removeRun(sourceStack.topRun);
+    }
+
+    /**
+     * Undo the temporary move of a completed suit into another group.
+     */
+    private int restoreCompletedSuitIfNeeded(int undoToken, StackGroup completedSuitGroup) {
+        if (undoToken <= 100) {
+            return undoToken;
+        }
+
+        int removedSuit = undoToken / 100;
+        int normalizedUndoToken = undoToken % 100;
+        CardRun completedSuitRun = completedSuitGroup.removeCompletedSuitRun();
+        if (completedSuitRun.cards[0].suit != removedSuit) {
+            this.context.failFast("Logic error - move says remove suit " + removedSuit + " but suit stack is " + completedSuitRun.cards[0].suit);
+        }
+        this.appendRun(completedSuitRun);
+        return normalizedUndoToken;
+    }
+
+    /**
+     * Restore cards into an already existing source top run.
+     */
+    private void restoreCardsIntoExistingSourceRun(CardStack sourceStack, int restoredCardCount) {
+        for (int cardIndex = 0; cardIndex < restoredCardCount; ++cardIndex) {
+            sourceStack.topRun.cards[sourceStack.topRun.cardCount + cardIndex] =
+                    this.topRun.cards[this.topRun.cardCount - restoredCardCount + cardIndex];
+        }
+        sourceStack.topRun.cardCount += restoredCardCount;
+    }
+
+    /**
+     * Restore cards as a fresh run above the source stack's current top run.
+     */
+    private void restoreCardsAsSeparateRun(CardStack sourceStack, int restoredCardCount) {
+        CardRun restoredRun = new CardRun();
+        for (int cardIndex = 0; cardIndex < restoredCardCount; ++cardIndex) {
+            restoredRun.cards[cardIndex] = this.topRun.cards[this.topRun.cardCount - restoredCardCount + cardIndex];
+        }
+        restoredRun.cardCount = restoredCardCount;
+        sourceStack.appendRun(restoredRun);
+    }
+
+    /**
+     * Undo the special token `20`, which means "merge the whole destination top run back".
+     *
+     *
+     */
+    private void mergeEntireTopRunBackIntoSource(CardStack sourceStack) {
+        for (int cardIndex = 0; cardIndex < this.topRun.cardCount; ++cardIndex) {
+            sourceStack.topRun.cards[sourceStack.topRun.cardCount++] = this.topRun.cards[cardIndex];
+        }
+    }
+
     public String toString() {
-        return this.workingCopy ? "Work" : "" + this.ownerGroup.name + ":" + this.stackIndex % 10;
+        return this.workingCopy ? "Work" : this.ownerGroup.name + ":" + this.stackIndex % 10;
     }
 }
-
-
-

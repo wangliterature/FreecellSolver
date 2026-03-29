@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -228,6 +229,7 @@ public final class FreeCellStandaloneMain {
       String normalizedLine = removeUtf8Bom(firstLine).trim().toLowerCase();
       int commaIndex = normalizedLine.indexOf(',');
       String variantKey = commaIndex >= 0 ? normalizedLine.substring(0, commaIndex) : normalizedLine;
+      System.out.println(variantKey);
    }
 
    /**
