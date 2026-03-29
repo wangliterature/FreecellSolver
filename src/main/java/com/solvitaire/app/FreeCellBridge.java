@@ -1,7 +1,7 @@
 package com.solvitaire.app;
 
 final class FreeCellBridge extends SolverBridge {
-   FreeCellBridge(FreeCellSolver solver) {
+   FreeCellBridge(BaseSolver solver) {
       super(solver);
    }
 }

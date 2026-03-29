@@ -749,6 +749,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
             }
         } catch (Exception exception) {
+            exception.printStackTrace();
             this.solverContext.invalidInput("Error interpreting the card data.  Probably unexpected number of cards somewhere in the file.", false);
         }
         if (this.countCardNum() != 52) {
