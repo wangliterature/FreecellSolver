@@ -11,29 +11,25 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.stream.LongStream;
 
-/*
- * Renamed from com.solvitaire.app.op
- */
 public abstract class BaseSolver {
     SolverContext solverContext;
-    //桶的大小
+    //桶的大小  每一个桶放多少个值
     private int bucketSize = 0x100000;
-    String filePath;
-    //牌局的堆数
+    //牌局的堆大小     比如table是10
     int stackSize;
+    //table
     int[][] tableCardArray;
+
     int randomUseIndex;
-    int decksOfCards;
+    //pool的大小
     int cardPoolDefaultSize;
     private long startTime;
     private int buetMaxSize;
-    transient private boolean state;
-    private int[] K = null;
+    private int[] depthArray = null;
     private int[] sieveArray = new int[414];
     private int num1;
     private int num2;
     private int O;
-    int[][] tableArray;
     int maxSearchDepth = 298;
     private int statusUpdateCounter = 0;
     int searchCreditLimit;
@@ -179,158 +175,210 @@ public abstract class BaseSolver {
         }
     }
 
+    /**
+     * Run the solver from setup to shutdown.
+     */
     final void solve() {
         this.startTime = System.currentTimeMillis();
-        BaseSolver baseSolver = this;
-        //堆内存使用情况
-        MemoryUsage memoryUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
-        //最大值
-        long heapMax = memoryUsage.getMax();
-        //使用值
-        long heapUse = memoryUsage.getUsed();
-        // 最大值 > 8x
-        if (heapMax > 8000000000L) {
-            baseSolver.bucketSize = 0x200000;
-            if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
-            }
-        } else if (heapMax > 4000000000L) {
-            baseSolver.bucketSize = 0x180000;
-            if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
-            }
-        } else if (heapMax > 2000000000L) {
-            baseSolver.bucketSize = 786432;
-            if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
-            }
-        } else if (heapMax > 1000000000L) {
-            baseSolver.bucketSize = 393216;
-            if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
-            }
-        } else if (heapMax > 500000000L) {
-            baseSolver.bucketSize = 196608;
-            if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
-            }
-        } else if (heapMax > 250000000L) {
-            baseSolver.bucketSize = 98304;
-            if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
-            }
-        } else {
-            baseSolver.solverContext.failFast("ERROR<br>System has insufficient available RAM (" + heapMax / 1024000L + " megabytes)<br>Solitaire Solver would run too slowly");
-        }
-
-        //初始化部分
-        if (this.initializeSolver()) {
-            String string = "solver";
-            if (this.solverContext.logLevel <= 9) {
-                this.solverContext.log("*** " + this.getSolverName() + " initialisation complete, font " + string +
-                        ", mode " +   "," + " (Solvitaire version " + "5.1.2" + " on " + new Date() + ")");
-            }
-
-        } else {
-            this.solverContext.log("*** " + this.getSolverName() + " initialisation failed for game mode " + this.solverContext.runMode);
-
+        this.configureBucketSizeForAvailableHeap();
+        if (!this.initializeSolverAndLogStart()) {
             return;
         }
-        int countIndex = 5;
         this.solverContext.sleepBriefly(100L, "Prevent tight loop");
 
         this.maxSearchDepth = 298;
-        while (this.solverContext.searchBudget > -this.searchCreditLimit) {
-            block63: {
-
-                if (this.solverContext.logLevel <= 4) {
-                    this.solverContext.log("In process, entering solve loop");
-                }
-                this.solverContext.searchInitialized = true;
-                while (this.solverContext.searchBudget > -this.searchCreditLimit) {
-                    countIndex = 0;
-                    while (countIndex < 10) {
-                        this.R[countIndex] = new HashMap(this.getBucket(countIndex));
-                        this.S[countIndex] = new HashMap(this.getBucket(countIndex));
-                        ++countIndex;
-                    }
-                    this.solverContext.complexity = this.solverContext.searchBudget;
-                    this.currenBackout = -1;
-                    this.deepestRecursionDepth = 0;
-                    this.deepestRecursionComplexity = 0;
-                    if (this.K != null && this.K[0] > 0) {
-                        this.K[0] = 0;
-                    }
-
-                    this.search(-1, 0);
-
-                    if (this.isSolver || this.currenBackout > 0) break;
-                    if (this.solverContext.logLevel <= 4) {
-                        this.solverContext.log("*** Deepest recursion for credit " + this.solverContext.searchBudget + " was " + this.deepestRecursionDepth + " with complexity " + this.deepestRecursionComplexity);
-                    }
-                    this.solverContext.searchBudget -= 30;
-                }
-                if (this.isSolver || this.currenBackout > 0) break block63;
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Credit expired and solve not flagged, do final check");
-                }
-                this.isSolver = this.currentState(this.solverContext.searchState, 0, true) == 2;
-            }
-            countIndex = 0;
-            while (countIndex < 10) {
-                this.R[countIndex] = null;
-                this.S[countIndex] = null;
-                ++countIndex;
-            }
-            System.gc();
-            if (this.isSolver) {
-                countIndex = 1;
-                if (countIndex == 0) {
-
-                    this.solverContext.searchBudget = 0;
-                    this.isSolver = false;
-                    continue;
-                }
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Play solution");
-                }
-                this.solverContext.initialState.moveAnnotations = Arrays.copyOf(this.solverContext.bestSolutionState.moveAnnotations, this.solverContext.bestSolutionState.moveAnnotations.length);
-                if (!this.solverContext.replayRequested) {
-                    if (this.solverContext.logLevel > 5) break;
-                    this.solverContext.log("Solved so exit process loop");
-                    break;
-                }
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Playback aborted, stay in play loop");
-                }
-                this.solverContext.replayRequested = false;
-                this.solverContext.searchBudget = 0;
-                continue;
-            }
-            if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Exited solve loop without solution");
-            }
-            if (this.currenBackout > 0) {
-                this.solverContext.log("The user aborted the solve so go back to user moves");
-                this.currenBackout = -1;
-                this.solverContext.searchBudget = 0;
-                continue;
-            }
-            if (this.solverContext.searchState.depth > 0) {
-                this.solverContext.searchBudget = 0;
-            }
-        }
+        this.runSearchProcessLoop();
         this.solverContext.bestSolutionState.reset();
         if (this.solverContext.logLevel <= 6) {
             this.solverContext.log("*** Exit from process ***");
         }
     }
 
+    /**
+     * Size the duplicate-state buckets from the currently available heap.
+     *
+     * Larger heaps allow larger hash buckets, which reduces collision pressure during the search.
+     * The numeric thresholds are intentionally kept identical to the original implementation.
+     */
+    private void configureBucketSizeForAvailableHeap() {
+        MemoryUsage heapUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        long maxHeapBytes = heapUsage.getMax();
+        long usedHeapBytes = heapUsage.getUsed();
+
+        if (maxHeapBytes > 8000000000L) {
+            this.bucketSize = 0x200000;
+        } else if (maxHeapBytes > 4000000000L) {
+            this.bucketSize = 0x180000;
+        } else if (maxHeapBytes > 2000000000L) {
+            this.bucketSize = 786432;
+        } else if (maxHeapBytes > 1000000000L) {
+            this.bucketSize = 393216;
+        } else if (maxHeapBytes > 500000000L) {
+            this.bucketSize = 196608;
+        } else if (maxHeapBytes > 250000000L) {
+            this.bucketSize = 98304;
+        } else {
+            this.solverContext.failFast("ERROR<br>System has insufficient available RAM (" + maxHeapBytes / 1024000L + " megabytes)<br>Solitaire Solver would run too slowly");
+        }
+
+        if (this.solverContext.logLevel <= 5) {
+            this.solverContext.log("Max heap memory: " + maxHeapBytes + " used: " + usedHeapBytes + " bucket size: " + this.bucketSize);
+        }
+    }
+
+    /**
+     * Let the concrete solver load its initial state and emit the matching start/fail log line.
+     */
+    private boolean initializeSolverAndLogStart() {
+        if (!this.initializeSolver()) {
+            this.solverContext.log("*** " + this.getSolverName() + " initialisation failed for game mode " + this.solverContext.runMode);
+            return false;
+        }
+
+        if (this.solverContext.logLevel <= 9) {
+            this.solverContext.log("*** " + this.getSolverName() + " initialisation complete (Solvitaire version 5.1.2 on " + new Date() + ")");
+        }
+        return true;
+    }
+
+    /**
+     * Repeatedly run search passes until one pass asks the outer loop to stop.
+     */
+    private void runSearchProcessLoop() {
+        while (this.solverContext.searchBudget > -this.searchCreditLimit) {
+            this.runBudgetLimitedSearch();
+            this.clearDuplicateStateBuckets();
+            System.gc();
+            if (this.handleCompletedSearchPass()) {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Run one pass for the current search budget.
+     *
+     * Within a pass the solver keeps lowering the budget in fixed steps until it either finds a
+     * solution/backout signal or has to perform one last final-state check.
+     */
+    private void runBudgetLimitedSearch() {
+        if (this.solverContext.logLevel <= 4) {
+            this.solverContext.log("In process, entering solve loop");
+        }
+        this.solverContext.searchInitialized = true;
+
+        while (this.solverContext.searchBudget > -this.searchCreditLimit) {
+            this.initializeDuplicateStateBuckets();
+            this.prepareSearchIteration();
+            this.search(-1, 0);
+
+            if (this.isSolver || this.currenBackout > 0) {
+                return;
+            }
+
+            if (this.solverContext.logLevel <= 4) {
+                this.solverContext.log("*** Deepest recursion for credit " + this.solverContext.searchBudget + " was " + this.deepestRecursionDepth + " with complexity " + this.deepestRecursionComplexity);
+            }
+            this.solverContext.searchBudget -= 30;
+        }
+
+        if (!this.isSolver && this.currenBackout <= 0) {
+            if (this.solverContext.logLevel <= 5) {
+                this.solverContext.log("Credit expired and solve not flagged, do final check");
+            }
+            this.isSolver = this.currentState(this.solverContext.searchState, 0, true) == 2;
+        }
+    }
+
+    /**
+     * Create the per-pass visited-state buckets.
+     */
+    private void initializeDuplicateStateBuckets() {
+        for (int bucketIndex = 0; bucketIndex < 10; ++bucketIndex) {
+            this.R[bucketIndex] = new HashMap(this.getBucket(bucketIndex));
+            this.S[bucketIndex] = new HashMap(this.getBucket(bucketIndex));
+        }
+    }
+
+    /**
+     * Reset the per-pass bookkeeping immediately before the recursive search starts.
+     */
+    private void prepareSearchIteration() {
+        this.solverContext.complexity = this.solverContext.searchBudget;
+        this.currenBackout = -1;
+        this.deepestRecursionDepth = 0;
+        this.deepestRecursionComplexity = 0;
+        if (this.depthArray != null && this.depthArray[0] > 0) {
+            this.depthArray[0] = 0;
+        }
+    }
+
+    /**
+     * Release the visited-state buckets after a pass finishes.
+     */
+    private void clearDuplicateStateBuckets() {
+        for (int bucketIndex = 0; bucketIndex < 10; ++bucketIndex) {
+            this.R[bucketIndex] = null;
+            this.S[bucketIndex] = null;
+        }
+    }
+
+    /**
+     * Handle the result of the pass that just completed.
+     *
+     * Returns `true` when the outer process loop should stop.
+     */
+    private boolean handleCompletedSearchPass() {
+        if (this.isSolver) {
+            return this.handleSolvedSearchPass();
+        }
+
+        if (this.solverContext.logLevel <= 5) {
+            this.solverContext.log("Exited solve loop without solution");
+        }
+        if (this.currenBackout > 0) {
+            this.solverContext.log("The user aborted the solve so go back to user moves");
+            this.currenBackout = -1;
+            this.solverContext.searchBudget = 0;
+            return false;
+        }
+        if (this.solverContext.searchState.depth > 0) {
+            this.solverContext.searchBudget = 0;
+        }
+        return false;
+    }
+
+    /**
+     * Handle the "solution found" branch after a pass.
+     *
+     * The best move annotations are copied back to the initial state so playback can reuse them.
+     * If playback is not requested, the outer loop stops immediately.
+     */
+    private boolean handleSolvedSearchPass() {
+        if (this.solverContext.logLevel <= 5) {
+            this.solverContext.log("Play solution");
+        }
+        this.solverContext.initialState.moveAnnotations = Arrays.copyOf(this.solverContext.bestSolutionState.moveAnnotations, this.solverContext.bestSolutionState.moveAnnotations.length);
+        if (!this.solverContext.replayRequested) {
+            if (this.solverContext.logLevel <= 5) {
+                this.solverContext.log("Solved so exit process loop");
+            }
+            return true;
+        }
+
+        if (this.solverContext.logLevel <= 5) {
+            this.solverContext.log("Playback aborted, stay in play loop");
+        }
+        this.solverContext.replayRequested = false;
+        this.solverContext.searchBudget = 0;
+        return false;
+    }
+
     private boolean sieve() {
-        if (this.solverContext.searchState.depth > 3 && this.solverContext.searchState.depth == this.K[0] + 1) {
+        if (this.solverContext.searchState.depth > 3 && this.solverContext.searchState.depth == this.depthArray[0] + 1) {
             int n2 = this.solverContext.searchState.depth - 4;
-            while (n2 < this.solverContext.searchState.depth && n2 < this.K.length - 1) {
-                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.K[n2 + 1]), this.solverContext.searchState.moves[n2])) {
+            while (n2 < this.solverContext.searchState.depth && n2 < this.depthArray.length - 1) {
+                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.depthArray[n2 + 1]), this.solverContext.searchState.moves[n2])) {
                     return false;
                 }
                 ++n2;
@@ -341,52 +389,52 @@ public abstract class BaseSolver {
     }
 
     private boolean trackSolutionProgress() {
-        if (this.K[0] == -2) {
-            if (this.solverContext.searchState.depth <= this.K[1]) {
+        if (this.depthArray[0] == -2) {
+            if (this.solverContext.searchState.depth <= this.depthArray[1]) {
                 return false;
             }
-            this.K[1] = this.solverContext.searchState.depth;
+            this.depthArray[1] = this.solverContext.searchState.depth;
             this.solverContext.log("Found longer solution");
             this.logWorkMoveInfo(9);
             this.dumpState(9, false);
-        } else if (this.K[0] == -1) {
-            if (this.solverContext.searchState.depth < this.K.length - 1) {
+        } else if (this.depthArray[0] == -1) {
+            if (this.solverContext.searchState.depth < this.depthArray.length - 1) {
                 return false;
             }
             int n2 = 1;
-            while (n2 < this.K.length) {
-                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.K[n2]), this.solverContext.searchState.moves[this.solverContext.searchState.depth - this.K.length + n2])) break;
+            while (n2 < this.depthArray.length) {
+                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.depthArray[n2]), this.solverContext.searchState.moves[this.solverContext.searchState.depth - this.depthArray.length + n2])) break;
                 ++n2;
             }
-            if (n2 == this.K.length) {
+            if (n2 == this.depthArray.length) {
                 this.logWorkMoveInfo(9);
                 this.solverContext.log("Found segment");
             }
         } else {
             int n3 = 0;
-            while (n3 < this.solverContext.searchState.depth && n3 < this.K.length - 1) {
-                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.K[n3 + 1]), this.solverContext.searchState.moves[n3])) break;
+            while (n3 < this.solverContext.searchState.depth && n3 < this.depthArray.length - 1) {
+                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.depthArray[n3 + 1]), this.solverContext.searchState.moves[n3])) break;
                 ++n3;
             }
-            if (n3 >= this.K[0]) {
-                if (n3 > this.K[0]) {
+            if (n3 >= this.depthArray[0]) {
+                if (n3 > this.depthArray[0]) {
                     BaseSolver op_02 = this;
-                    this.solverContext.log("Approaching solution to " + n3 + " of " + (this.K.length - 1) + " dealindex " + this.solverContext.searchState.currentDealIndex + " score " + op_02.analyzeSpiderBoard(op_02.solverContext.searchState, false));
+                    this.solverContext.log("Approaching solution to " + n3 + " of " + (this.depthArray.length - 1) + " dealindex " + this.solverContext.searchState.currentDealIndex + " score " + op_02.analyzeSpiderBoard(op_02.solverContext.searchState, false));
                     this.dumpState(5, false);
                     if (this.solverContext.logLevel <= 5) {
                         this.solverContext.log("State hash " + this.computeStateHash());
                     }
                     this.logWorkMoveInfo(9);
-                    this.K[0] = n3;
+                    this.depthArray[0] = n3;
                 }
-                if (n3 == this.K.length - 1 && n3 == this.solverContext.searchState.depth) {
+                if (n3 == this.depthArray.length - 1 && n3 == this.solverContext.searchState.depth) {
                     this.solverContext.log("Hit end of known solution");
                     return true;
                 }
-            } else if (n3 < this.K[0] && this.K[0] < 1000) {
+            } else if (n3 < this.depthArray[0] && this.depthArray[0] < 1000) {
                 this.logWorkMoveInfo(9);
                 this.solverContext.log("@@@ Backing out of solution");
-                this.K[0] = this.K[0] + 1000;
+                this.depthArray[0] = this.depthArray[0] + 1000;
             }
         }
         return false;
@@ -781,7 +829,7 @@ public abstract class BaseSolver {
             bucket = hashValue;
             int n4 = bucket & 0xFFFF;
             if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.fileSet.maxSolutionMoves == 999 || this.solverContext.searchState.depth >= n4)) {
-                if (this.K != null && this.sieve()) {
+                if (this.depthArray != null && this.sieve()) {
                     this.logWorkMoveInfo(9);
                     this.solverContext.log("About to reject trial solution as a duplicate, hash = " + hashKey + " overriding");
                     return -1;
@@ -795,7 +843,7 @@ public abstract class BaseSolver {
             bucket = hashValue;
             int n5 = bucket & 0xFFFF;
             if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.fileSet.maxSolutionMoves == 999 || this.solverContext.searchState.depth >= n5)) {
-                if (this.K != null && this.sieve()) {
+                if (this.depthArray != null && this.sieve()) {
                     this.logWorkMoveInfo(9);
                     this.solverContext.log("About to reject trial solution as a duplicate, hash = " + hashKey + " overriding");
                     return -1;
@@ -807,7 +855,14 @@ public abstract class BaseSolver {
         return -1;
     }
 
-    final void getBucket() {
+    /**
+     * Update periodic search bookkeeping for the current recursion point.
+     *
+     * Despite the old method name, this is not about selecting a hash bucket. It performs the
+     * recurring "search heartbeat": optional state dumps, known-solution tracking and deepest-depth
+     * bookkeeping.
+     */
+    final void updateSearchProgressCheckpoint() {
         if (this.solverContext.logLevel <= 3) {
             this.logWorkMoveInfo(3);
             this.dumpState(3, false);
@@ -815,7 +870,7 @@ public abstract class BaseSolver {
         if (this.statusUpdateCounter++ > 10000) {
             this.statusUpdateCounter = 0;
         }
-        if (this.K != null) {
+        if (this.depthArray != null) {
             this.trackSolutionProgress();
         }
         if (this.solverContext.searchState.depth < this.solverContext.depth) {

@@ -42,7 +42,6 @@ final class FreeCellSolver extends BaseSolver {
 
     FreeCellSolver(SolverContext solverContext) {
         super(solverContext, 2000);
-        this.decksOfCards = 1;
         this.cardPoolDefaultSize = 52; //52张
         this.stackSize = 8; //大小
     }
@@ -55,9 +54,7 @@ final class FreeCellSolver extends BaseSolver {
     @Override
     boolean initializeSolver() {
         this.initializeBaseState();
-        this.filePath = this.solverContext.workspaceRootPath + "freecell" + File.separator;
         this.tableCardArray = new int[50][this.stackSize];
-        this.tableArray = new int[this.stackSize][MAX_TABLEAU_HEIGHT];
         if (!this.solverContext.bridge.loadInitialStateFromInputFile()) {
             return false;
         }
@@ -84,139 +81,153 @@ final class FreeCellSolver extends BaseSolver {
         }
     }
 
+    /**
+     * Explore one recursive search node.
+     */
     @Override
-    final void search(int n2, int n3) {
-        this.getBucket();
+    final void search(int previousEncodedMove, int currentStateResult) {
+        this.updateSearchProgressCheckpoint();
         //到达一定数量，打印日志
         if (this.solverContext.searchStepCount++ % 100000L == 0L) {
             this.logWorkMoveInfo(4);
         }
+        currentStateResult = this.evaluateCurrentStateForSearch(previousEncodedMove);
+        if (currentStateResult != 0) {
+            return;
+        }
+        this.tryImmediateRootMove(previousEncodedMove);
+        int baseComplexity = this.solverContext.complexity;
+        if (this.currenBackout < 0 && !this.generateAndTryMoves(7, previousEncodedMove)) {
+            this.tryDeferredMoveModes(previousEncodedMove, baseComplexity);
+        }
+        this.consumeBackoutStep();
+    }
+
+    /**
+     * Evaluate the current node before trying any outgoing moves.
+     *
+     * Returns `0` when search should continue and `1` when the current branch should stop.
+     */
+    private int evaluateCurrentStateForSearch(int previousEncodedMove) {
         if (!this.isSolver) {
-            FreeCellSolver solver = this;
-            n3 = solver.currentState(solver.solverContext.searchState, n2, false);
-            if (n3 == 2) {
+            int currentStateResult = this.currentState(this.solverContext.searchState, previousEncodedMove, false);
+            if (currentStateResult == 2) {
                 if (this.solverContext.logLevel <= 4) {
                     this.solverContext.log("Solved state solved so backout 999");
                 }
                 this.currenBackout = 999;
-            } else if (n3 == 1) {
-                return;
+            } else if (currentStateResult == 1) {
+                return 1;
             }
         }
         if (this.solverContext.searchState.depth > this.maxSearchDepth) {
-            return;
+            return 1;
         }
-        if (this.currenBackout < 0 && this.solverContext.searchState.depth == 0 && this.generateAndTryMoves(1, n2) && this.currenBackout < 0) {
+        return 0;
+    }
+
+    /**
+     * At depth 0 the solver gives one immediate chance to a direct move-to-foundation step.
+     */
+    private void tryImmediateRootMove(int previousEncodedMove) {
+        if (this.currenBackout < 0
+                && this.solverContext.searchState.depth == 0
+                && this.generateAndTryMoves(1, previousEncodedMove)
+                && this.currenBackout < 0) {
             this.currenBackout = 0;
         }
-        n3 = this.solverContext.complexity;
-        if (this.currenBackout < 0 && !this.generateAndTryMoves(7, n2)) {
-            if (this.currenBackout < 0) {
-                this.solverContext.complexity += this.moveToAcesPenalty;
-                if (this.solverContext.complexity <= 0) {
-                    ++this.moveToAcesAttempts;
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Depth " + this.solverContext.searchState.depth + " try moving aces");
-                    }
-                    this.generateAndTryMoves(1, n2);
-                    --this.moveToAcesAttempts;
+    }
+
+    /**
+     * Try the lower-priority move groups in the same order as the original implementation.
+     */
+    private void tryDeferredMoveModes(int previousEncodedMove, int baseComplexity) {
+        this.tryMoveModeWithAdjustedComplexity(1, previousEncodedMove, baseComplexity, this.moveToAcesPenalty, true, "try moving aces");
+        this.tryMoveModeWithAdjustedComplexity(4, previousEncodedMove, baseComplexity, this.fromWorkAreaPenalty, false, "try moving from work area");
+        this.tryMoveModeWithAdjustedComplexity(2, previousEncodedMove, baseComplexity, this.fromSpacePenalty, false, null);
+        this.tryMoveModeWithAdjustedComplexity(8, previousEncodedMove, baseComplexity, this.exposeAcePenalty, false, "try exposing board ace");
+        this.tryMoveModeWithAdjustedComplexity(6, previousEncodedMove, baseComplexity, this.alternatingJoinPenalty, false, "try alternating joins");
+        this.tryMoveModeWithAdjustedComplexity(10, previousEncodedMove, baseComplexity, this.kingToSpacePenalty, false, "try moving to a space");
+        this.tryMoveModeWithAdjustedComplexity(3, previousEncodedMove, baseComplexity, this.moveToSpacePenalty, false, "try moving to a space");
+        this.tryMoveModeWithAdjustedComplexity(5, previousEncodedMove, baseComplexity, this.moveToWorkAreaPenalty, false, "try moving to work area");
+        this.tryMoveModeWithAdjustedComplexity(9, previousEncodedMove, baseComplexity, this.splitMatchPenalty, false, "try a match with a split");
+    }
+
+    /**
+     * Apply one temporary complexity adjustment, optionally try a move group, then restore the
+     * original complexity.
+     */
+    private void tryMoveModeWithAdjustedComplexity(
+            int moveMode,
+            int previousEncodedMove,
+            int baseComplexity,
+            int complexityDelta,
+            boolean allowZeroComplexity,
+            String logMessage
+    ) {
+        if (this.currenBackout >= 0) {
+            return;
+        }
+
+        this.solverContext.complexity += complexityDelta;
+        boolean complexityAllowsSearch = allowZeroComplexity
+                ? this.solverContext.complexity <= 0
+                : this.solverContext.complexity < 0;
+
+        if (complexityAllowsSearch) {
+            this.adjustAttemptCounter(moveMode, 1);
+            try {
+                if (logMessage != null && this.solverContext.logLevel <= 2) {
+                    this.solverContext.log("Depth " + this.solverContext.searchState.depth + " " + logMessage);
                 }
-                this.solverContext.complexity = n3;
-            }
-            if (this.currenBackout < 0) {
-                this.solverContext.complexity += this.fromWorkAreaPenalty;
-                if (this.solverContext.complexity < 0) {
-                    ++this.fromWorkAreaAttempts;
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Depth " + this.solverContext.searchState.depth + " try moving from work area");
-                    }
-                    this.generateAndTryMoves(4, n2);
-                    --this.fromWorkAreaAttempts;
-                }
-                this.solverContext.complexity = n3;
-            }
-            if (this.currenBackout < 0) {
-                this.solverContext.complexity += this.fromSpacePenalty;
-                if (this.solverContext.complexity < 0) {
-                    ++this.fromSpaceAttempts;
-                    this.generateAndTryMoves(2, n2);
-                    --this.fromSpaceAttempts;
-                }
-                this.solverContext.complexity = n3;
-            }
-            if (this.currenBackout < 0) {
-                this.solverContext.complexity += this.exposeAcePenalty;
-                if (this.solverContext.complexity < 0) {
-                    ++this.alternatingJoinAttempts;
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Depth " + this.solverContext.searchState.depth + " try exposing board ace");
-                    }
-                    this.generateAndTryMoves(8, n2);
-                    --this.alternatingJoinAttempts;
-                }
-                this.solverContext.complexity = n3;
-            }
-            if (this.currenBackout < 0) {
-                this.solverContext.complexity += this.alternatingJoinPenalty;
-                if (this.solverContext.complexity < 0) {
-                    ++this.exposeAceAttempts;
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Depth " + this.solverContext.searchState.depth + " try alternating joins");
-                    }
-                    this.generateAndTryMoves(6, n2);
-                    --this.exposeAceAttempts;
-                }
-                this.solverContext.complexity = n3;
-            }
-            if (this.currenBackout < 0) {
-                this.solverContext.complexity += this.kingToSpacePenalty;
-                if (this.solverContext.complexity < 0) {
-                    ++this.toSpaceAttempts;
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Depth " + this.solverContext.searchState.depth + " try moving to a space");
-                    }
-                    this.generateAndTryMoves(10, n2);
-                    --this.toSpaceAttempts;
-                }
-                this.solverContext.complexity = n3;
-            }
-            if (this.currenBackout < 0) {
-                this.solverContext.complexity += this.moveToSpacePenalty;
-                if (this.solverContext.complexity < 0) {
-                    ++this.toSpaceAttempts;
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Depth " + this.solverContext.searchState.depth + " try moving to a space");
-                    }
-                    this.generateAndTryMoves(3, n2);
-                    --this.toSpaceAttempts;
-                }
-                this.solverContext.complexity = n3;
-            }
-            if (this.currenBackout < 0) {
-                this.solverContext.complexity += this.moveToWorkAreaPenalty;
-                if (this.solverContext.complexity < 0) {
-                    ++this.moveToWorkAreaAttempts;
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Depth " + this.solverContext.searchState.depth + " try moving to work area");
-                    }
-                    this.generateAndTryMoves(5, n2);
-                    --this.moveToWorkAreaAttempts;
-                }
-                this.solverContext.complexity = n3;
-            }
-            if (this.currenBackout < 0) {
-                this.solverContext.complexity += this.splitMatchPenalty;
-                if (this.solverContext.complexity < 0) {
-                    ++this.splitMatchAttempts;
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Depth " + this.solverContext.searchState.depth + " try a match with a split");
-                    }
-                    this.generateAndTryMoves(9, n2);
-                    --this.splitMatchAttempts;
-                }
-                this.solverContext.complexity = n3;
+                this.generateAndTryMoves(moveMode, previousEncodedMove);
+            } finally {
+                this.adjustAttemptCounter(moveMode, -1);
             }
         }
+
+        this.solverContext.complexity = baseComplexity;
+    }
+
+    /**
+     * Update the per-move-mode attempt counters used by debug logging.
+     */
+    private void adjustAttemptCounter(int moveMode, int delta) {
+        switch (moveMode) {
+            case 1:
+                this.moveToAcesAttempts += delta;
+                break;
+            case 2:
+                this.fromSpaceAttempts += delta;
+                break;
+            case 3:
+            case 10:
+                this.toSpaceAttempts += delta;
+                break;
+            case 4:
+                this.fromWorkAreaAttempts += delta;
+                break;
+            case 5:
+                this.moveToWorkAreaAttempts += delta;
+                break;
+            case 6:
+                this.alternatingJoinAttempts += delta;
+                break;
+            case 8:
+                this.exposeAceAttempts += delta;
+                break;
+            case 9:
+                this.splitMatchAttempts += delta;
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Consume one backout step after the current node has finished exploring.
+     */
+    private void consumeBackoutStep() {
         if (this.currenBackout >= 0) {
             --this.currenBackout;
             if (this.solverContext.logLevel <= 1) {
@@ -691,6 +702,8 @@ final class FreeCellSolver extends BaseSolver {
      * cardRun是否有效
      *
      * 当前那些是只有一个有效的  或者压根就是null
+     *
+     * 是不是空列或者只有一个可以出的列
      * @param gamState
      * @return
      */
@@ -702,6 +715,7 @@ final class FreeCellSolver extends BaseSolver {
         if (gamState.stackGroups[2] == null) {
             return false;
         }
+        //是不是只有一个或者0个有效
         int flag = 1;
         CardStack[] cardStackArray = gamState.stackGroups[0].stacks;
         for (int i = 0; i < cardStackArray.length; ++i) {
