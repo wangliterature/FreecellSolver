@@ -59,6 +59,7 @@ final class FreeCellSolver extends BaseSolver {
         }
         //复制状态
         this.solverContext.searchState = new GameState(this.solverContext.initialState, true);
+        // 999的时候压根执行不到
         if (this.solverContext.fileSet.maxSolutionMoves < 999) {
             if (this.solverContext.logLevel <= 5) {
                 this.solverContext.log("Using modified search for max move target");

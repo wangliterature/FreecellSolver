@@ -26,7 +26,3 @@ public final class Card {
       return Integer.toString(this.cardId);
    }
 }
-
-
-
-

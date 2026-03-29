@@ -31,7 +31,7 @@ public abstract class BaseSolver {
     private int num2;
     private int O;
     int maxSearchDepth = 298;
-    private int statusUpdateCounter = 0;
+
     int searchCreditLimit;
     Card[] cardPoolArray;
     int poolCardIndex;
@@ -46,6 +46,7 @@ public abstract class BaseSolver {
     boolean bestSolutionUpdatedSinceLastConfirmation;
 
     BaseSolver(SolverContext solverContext, int searchCreditLimit) {
+        depthArray = new int[500];
         this.solverContext = solverContext;
         this.searchCreditLimit = searchCreditLimit;
         Random random = new Random(314159265358979323L);
@@ -169,7 +170,6 @@ public abstract class BaseSolver {
             return;
         }
         this.solverContext.sleepBriefly(100L, "Prevent tight loop");
-
         this.maxSearchDepth = 298;
         this.runSearchProcessLoop();
         this.solverContext.bestSolutionState.reset();
@@ -926,12 +926,12 @@ public abstract class BaseSolver {
      */
     final void updateSearchProgressCheckpoint() {
         if (this.solverContext.logLevel <= 3) {
-            this.logWorkMoveInfo(3);
-            this.dumpState(3, false);
+            this.logWorkMoveInfo(3); //打印work
+            this.dumpState(3, false); //打印牌局
         }
-        if (this.statusUpdateCounter++ > 10000) {
-            this.statusUpdateCounter = 0;
-        }
+//        if (this.statusUpdateCounter++ > 10000) {
+//            this.statusUpdateCounter = 0;
+//        }
         if (this.depthArray != null) {
             this.trackSolutionProgress();
         }

@@ -34,7 +34,7 @@ public class SolverContext {
     * 当前独立版先默认静默，后面要接文件或控制台都只改这一处。
     */
    void log(String message) {
-//      System.out.println(message);
+      System.out.println(message);
    }
 
    /**

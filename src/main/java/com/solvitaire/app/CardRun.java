@@ -69,6 +69,8 @@ final class CardRun {
 
     /**
      * 从cardRun中复制n2的长度
+     *
+     * 如果是续上了  返回20，应该是一个标识
      * @param cardRun
      * @param n2
      * @return
