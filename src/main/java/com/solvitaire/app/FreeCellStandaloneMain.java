@@ -23,7 +23,7 @@ public final class FreeCellStandaloneMain {
 //         System.exit(1);
 //      }
 
-      Path inputFile = Path.of("sample/cards3.txt").toAbsolutePath();
+      Path inputFile = Path.of("sample/cards6.txt").toAbsolutePath();
       SanitizedInput sanitizedInput = sanitizeInput(inputFile);
       Path actualInputFile = sanitizedInput.inputFile;
       Path originalSolutionFile = solutionFileFor(inputFile);

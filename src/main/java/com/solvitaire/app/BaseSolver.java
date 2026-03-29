@@ -16,7 +16,8 @@ import java.util.stream.LongStream;
  */
 public abstract class BaseSolver {
     SolverContext solverContext;
-    private int bucket = 0x100000;
+    //桶的大小
+    private int bucketSize = 0x100000;
     String filePath;
     //牌局的堆数
     int stackSize;
@@ -102,21 +103,21 @@ public abstract class BaseSolver {
     }
 
     /**
-     * 分桶
+     * 分桶   越底的分的越小    可能太大的意义不大
      * @param n2
      * @return
      */
     private int getBucket(int n2) {
-        if (n2 > 2) {
-            return this.bucket;
+        if (n2 == 1) {
+            return this.bucketSize / 8;
         }
         if (n2 == 2) {
-            return this.bucket / 2;
+            return this.bucketSize / 2;
         }
-        if (n2 == 1) {
-            return this.bucket / 8;
+        if (n2 > 2) {
+            return this.bucketSize;
         }
-        return this.bucket / 64;
+        return this.bucketSize / 64;
     }
 
     /**
@@ -189,34 +190,34 @@ public abstract class BaseSolver {
         long heapUse = memoryUsage.getUsed();
         // 最大值 > 8x
         if (heapMax > 8000000000L) {
-            baseSolver.bucket = 0x200000;
+            baseSolver.bucketSize = 0x200000;
             if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
             }
         } else if (heapMax > 4000000000L) {
-            baseSolver.bucket = 0x180000;
+            baseSolver.bucketSize = 0x180000;
             if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
             }
         } else if (heapMax > 2000000000L) {
-            baseSolver.bucket = 786432;
+            baseSolver.bucketSize = 786432;
             if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
             }
         } else if (heapMax > 1000000000L) {
-            baseSolver.bucket = 393216;
+            baseSolver.bucketSize = 393216;
             if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
             }
         } else if (heapMax > 500000000L) {
-            baseSolver.bucket = 196608;
+            baseSolver.bucketSize = 196608;
             if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
             }
         } else if (heapMax > 250000000L) {
-            baseSolver.bucket = 98304;
+            baseSolver.bucketSize = 98304;
             if (baseSolver.solverContext.logLevel <= 5) {
-                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucket);
+                baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
             }
         } else {
             baseSolver.solverContext.fail("ERROR<br>System has insufficient available RAM (" + heapMax / 1024000L + " megabytes)<br>Solitaire Solver would run too slowly");
@@ -755,19 +756,19 @@ public abstract class BaseSolver {
     }
 
     final void updateHashState(long hash) {
-        int bucket = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
-        if (bucket >= 10) {
-            bucket = 9;
+        int bucketIndex = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
+        if (bucketIndex >= 10) {
+            bucketIndex = 9;
         }
         //如果大于桶的大小就仍
-        if (this.R[bucket].size() > this.bucket) {
+        if (this.R[bucketIndex].size() > this.bucketSize) {
             if (this.solverContext.logLevel <= 4) {
-                this.solverContext.log(String.format("Discarding %d  hashes in bucket %d, counts %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d", this.bucket, bucket, this.R[0].size(), this.S[0].size(), this.R[1].size(), this.S[1].size(), this.R[2].size(), this.S[2].size(), this.R[3].size(), this.S[3].size(), this.R[4].size(), this.S[4].size(), this.R[5].size(), this.S[5].size(), this.R[6].size(), this.S[6].size(), this.R[7].size(), this.S[7].size(), this.R[8].size(), this.S[8].size(), this.R[9].size(), this.S[9].size()));
+                this.solverContext.log(String.format("Discarding %d  hashes in bucket %d, counts %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d", this.bucketSize, bucketIndex, this.R[0].size(), this.S[0].size(), this.R[1].size(), this.S[1].size(), this.R[2].size(), this.S[2].size(), this.R[3].size(), this.S[3].size(), this.R[4].size(), this.S[4].size(), this.R[5].size(), this.S[5].size(), this.R[6].size(), this.S[6].size(), this.R[7].size(), this.S[7].size(), this.R[8].size(), this.S[8].size(), this.R[9].size(), this.S[9].size()));
             }
-            this.S[bucket] = this.R[bucket];
-            this.R[bucket] = new HashMap(this.getBucket(bucket));
+            this.S[bucketIndex] = this.R[bucketIndex];
+            this.R[bucketIndex] = new HashMap(this.getBucket(bucketIndex));
         }
-        this.R[bucket].put(hash, this.solverContext.complexity << 16 | this.solverContext.searchState.depth);
+        this.R[bucketIndex].put(hash, this.solverContext.complexity << 16 | this.solverContext.searchState.depth);
     }
 
     final int checkCurrentStateHash(long hashKey) {
@@ -869,7 +870,7 @@ public abstract class BaseSolver {
             return 1;
         }
         n2 = 0;
-        int n3 = this.isOneStep(gameState);
+        int n3 = this.computeHeuristicCost(gameState);
         boolean bl2 = this.isCardRunValid(gameState);
         if (bl2) {
             n2 = 1;
@@ -943,7 +944,7 @@ public abstract class BaseSolver {
         return -1;
     }
 
-    int isOneStep(GameState gameState) {
+    int computeHeuristicCost(GameState gameState) {
         return gameState.depth + 1;
     }
 

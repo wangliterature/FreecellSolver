@@ -139,6 +139,7 @@ final class CardStack {
         if (sourceStack.topRun == null) {
             return -1;
         }
+
         if (moveMode == 2 || moveMode == 6) {
             if (this.topRun != null) {
                 return joinCount;
@@ -151,6 +152,7 @@ final class CardStack {
             }
             return 0;
         }
+
         if (moveMode == 1) {
             int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false, exactMatchOnly);
             if (directJoinCount > 0) {
@@ -199,6 +201,14 @@ final class CardStack {
         return 0;
     }
 
+    /**
+     * 是都可以解，    可以接多少张
+     * @param destinationRun
+     * @param sourceRun
+     * @param allowSplit
+     * @param allowPartialJoin
+     * @return
+     */
     int evaluateJoin(CardRun destinationRun, CardRun sourceRun, boolean allowSplit, boolean allowPartialJoin) {
         int joinCount = -1;
         Card sourceTopCard = sourceRun.cards[sourceRun.cardCount - 1];  //取出最后一个
@@ -207,12 +217,15 @@ final class CardStack {
         }
 //        Foundation（收集堆）
         if (this.foundationSuit != 0) {
-                if (destinationRun == null) {
-                    if (this.foundationSuit > 0) {
+            //目标 run
+            if (destinationRun == null) {
+                if (this.foundationSuit > 0) {
+                    //查看牌  是不是和顶部的相同   比较的是值
                     if (sourceTopCard.cardId == this.foundationSuit * 100 + 1) {
                         joinCount = 1;
                     }
                 } else if (sourceTopCard.rank == 1) {
+                    //基本是走不到
                     joinCount = 1;
                 }
             } else if (sourceTopCard.cardId == destinationRun.cards[destinationRun.cardCount - 1].cardId + 1) {

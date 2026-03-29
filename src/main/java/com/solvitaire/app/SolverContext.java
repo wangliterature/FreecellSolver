@@ -35,7 +35,7 @@ public class SolverContext {
 
 
    void log(String message) {
-      System.out.println(message);
+//      System.out.println(message);
 //      try (PrintWriter out = new PrintWriter(new FileWriter("log.txt", true))) {
 //         out.println(message);
 //      } catch (IOException e) {
