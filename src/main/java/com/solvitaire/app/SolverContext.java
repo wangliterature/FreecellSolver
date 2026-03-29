@@ -1,46 +1,36 @@
 package com.solvitaire.app;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class SolverContext {
-   static final String[] VARIANT_NAMES = new String[]{"", "Klondike", "Spider", "FreeCell", "Pyramid", "TriPeaks"};
+   static final String[] VARIANT_DISPLAY_NAMES = new String[]{"", "Klondike", "Spider", "FreeCell", "Pyramid", "TriPeaks"};
+
    int logLevel = 0;
-   //游戏名字
-   int variantId = 3;
-   //解题的模式
-   int solverMode = 3;
-//   每轮搜索会从这个复杂度预算开始，然后逐渐减小
-   int searchCredit = 0;
+   int variantTypeId = 3;
+   int runMode = 3;
+   int searchBudget = 0;
    int complexity = 0;
    int depth = 0;
    long searchStepCount = 0L;
    boolean foundCompleteSolution = false;
 
-   boolean initAI = false;
-   boolean Y = false;
-   String workspaceRoot = "";
+   boolean searchInitialized = false;
+   boolean replayRequested = false;
+   String workspaceRootPath = "";
 
    SolverBridge bridge;
    GameState initialState;
    GameState searchState;
    GameState bestSolutionState = new GameState();
    GameState playbackState = new GameState();
-   SolverFileSet files;
-
+   SolverFileSet fileSet;
 
    void log(String message) {
 //      System.out.println(message);
-//      try (PrintWriter out = new PrintWriter(new FileWriter("log.txt", true))) {
-//         out.println(message);
-//      } catch (IOException e) {
-//         e.printStackTrace();
-//      }
    }
 
    void fail(String message) {
@@ -71,80 +61,80 @@ public class SolverContext {
          } else {
             Files.writeString(target, contents, StandardCharsets.UTF_8);
          }
-      } catch (IOException iOException) {
-         throw new IllegalStateException("Failed to write " + path, iOException);
+      } catch (IOException exception) {
+         throw new IllegalStateException("Failed to write " + path, exception);
       }
    }
 
    String[] readAllLines(String path) {
       try {
          return Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8).toArray(new String[0]);
-      } catch (IOException iOException) {
-         throw new IllegalStateException("Failed to read " + path, iOException);
+      } catch (IOException exception) {
+         throw new IllegalStateException("Failed to read " + path, exception);
       }
    }
 
    static void ensureDirectory(String path) {
       try {
          Files.createDirectories(Paths.get(path));
-      } catch (IOException iOException) {
-         throw new IllegalStateException("Failed to create directory " + path, iOException);
+      } catch (IOException exception) {
+         throw new IllegalStateException("Failed to create directory " + path, exception);
       }
    }
 
-   final int parseCardCode(String string) {
-      string = string.trim().toLowerCase();
-      if (string.isEmpty()) {
+   final int parseCardCode(String value) {
+      value = value.trim().toLowerCase();
+      if (value.isEmpty()) {
          return 0;
       }
 
-      int n2 = string.length();
-      if (n2 != 2 && (n2 != 3 || string.charAt(0) != '1' || string.charAt(1) != '0')) {
-         this.invalidInput("Invalid card " + string + " in input file", false);
+      int length = value.length();
+      if (length != 2 && (length != 3 || value.charAt(0) != '1' || value.charAt(1) != '0')) {
+         this.invalidInput("Invalid card " + value + " in input file", false);
       }
 
-      int suit = 0;
-      char rankChar = string.charAt(0);
-      char suitChar = string.charAt(1);
+      int suitBase = 0;
+      char rankChar = value.charAt(0);
+      char suitChar = value.charAt(1);
       if (rankChar == '1') {
          if (suitChar != '0') {
-            this.invalidInput("Invalid card " + string + " in input file", false);
+            this.invalidInput("Invalid card " + value + " in input file", false);
             return 0;
          }
-         suitChar = string.charAt(2);
+         suitChar = value.charAt(2);
       }
 
       switch (suitChar) {
          case 's':
-            suit = 100;
+            suitBase = 100;
             break;
          case 'h':
-            suit = 200;
+            suitBase = 200;
             break;
          case 'd':
-            suit = 300;
+            suitBase = 300;
             break;
          case 'c':
-            suit = 400;
+            suitBase = 400;
             break;
          case '?':
-            suit = 0;
+            suitBase = 0;
             break;
          default:
-            this.invalidInput("Invalid card " + string + " in input file", false);
+            this.invalidInput("Invalid card " + value + " in input file", false);
       }
 
       switch (rankChar) {
          case 'a':
-            return suit + 1;
+            return suitBase + 1;
          case 'j':
-            return suit + 11;
+            return suitBase + 11;
          case 'q':
-            return suit + 12;
+            return suitBase + 12;
          case 'k':
-            return suit + 13;
+            return suitBase + 13;
          case '1':
-            return suit + 10;
+            return suitBase + 10;
          case '2':
          case '3':
          case '4':
@@ -153,16 +143,12 @@ public class SolverContext {
          case '7':
          case '8':
          case '9':
-            return suit + rankChar - '0';
+            return suitBase + rankChar - '0';
          case '?':
-            return suit;
+            return suitBase;
          default:
-            this.invalidInput("Invalid card " + string + " in input file", false);
+            this.invalidInput("Invalid card " + value + " in input file", false);
             return 0;
       }
    }
 }
-
-
-
-

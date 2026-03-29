@@ -3,19 +3,20 @@ package com.solvitaire.app;
 import java.nio.file.Path;
 
 public final class SolverFileSet {
-   int challenge = 0;
-   int suit = 0;
-   int maxMoves = 999;
-   int accumNUm = 0;
-   String outputDirectory;
-   String variantSlug = "freecell";
+   int challengeId = 0;
+   int targetSuit = 0;
+   int maxSolutionMoves = 999;
+   int clearedBoardCount = 0;
+   String outputDirectoryPath;
+   String variantKey = "freecell";
+
    private final String inputFileName;
 
    SolverFileSet(Path inputFile) {
-      Path absolute = inputFile.toAbsolutePath();
-      Path parent = absolute.getParent();
-      this.outputDirectory = parent == null ? "" : parent + java.io.File.separator;
-      this.inputFileName = absolute.getFileName().toString();
+      Path absoluteInputFile = inputFile.toAbsolutePath();
+      Path parentDirectory = absoluteInputFile.getParent();
+      this.outputDirectoryPath = parentDirectory == null ? "" : parentDirectory + java.io.File.separator;
+      this.inputFileName = absoluteInputFile.getFileName().toString();
    }
 
    String getInputFileName() {
@@ -25,9 +26,4 @@ public final class SolverFileSet {
    String getSolutionFileName() {
       return "solution_" + this.inputFileName;
    }
-
 }
-
-
-
-

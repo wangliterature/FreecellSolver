@@ -40,7 +40,7 @@ abstract class SolverBridge {
 
    private String describeSpecialMove(Move decodedMove, String rawMove) {
       StringBuilder description = new StringBuilder();
-      switch (this.context.variantId) {
+      switch (this.context.variantTypeId) {
          case 1:
             if (decodedMove.movedCardCount == 1) {
                description.append("recycle Pile back to Feed, then deal ")

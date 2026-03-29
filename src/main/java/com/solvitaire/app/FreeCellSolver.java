@@ -55,7 +55,7 @@ final class FreeCellSolver extends BaseSolver {
     @Override
     boolean initializeSolver() {
         this.initializeBaseState();
-        this.filePath = this.solverContext.workspaceRoot + "freecell" + File.separator;
+        this.filePath = this.solverContext.workspaceRootPath + "freecell" + File.separator;
         this.tableCardArray = new int[50][this.stackSize];
         this.tableArray = new int[this.stackSize][MAX_TABLEAU_HEIGHT];
         if (!this.solverContext.bridge.solverInitialState()) {
@@ -63,7 +63,7 @@ final class FreeCellSolver extends BaseSolver {
         }
         //复制状态
         this.solverContext.searchState = new GameState(this.solverContext.initialState, true);
-        if (this.solverContext.files.maxMoves < 999) {
+        if (this.solverContext.fileSet.maxSolutionMoves < 999) {
             if (this.solverContext.logLevel <= 5) {
                 this.solverContext.log("Using modified search for max move target");
             }
@@ -669,7 +669,7 @@ final class FreeCellSolver extends BaseSolver {
             return 999;
         }
         //牌堆中  是不是有多个可以run的，是不是都有续
-        if (this.solverContext.files.maxMoves == 999) {
+        if (this.solverContext.fileSet.maxSolutionMoves == 999) {
             boolean bl = true;
             CardStack[] cardStackArray = gameState.stackGroups[0].stacks;
             for (int i = 0; i < cardStackArray.length; ++i) {
@@ -749,7 +749,6 @@ final class FreeCellSolver extends BaseSolver {
                 }
             }
         } catch (Exception exception) {
-            exception.printStackTrace();
             this.solverContext.invalidInput("Error interpreting the card data.  Probably unexpected number of cards somewhere in the file.", false);
         }
         if (this.countCardNum() != 52) {

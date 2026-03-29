@@ -9,34 +9,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Minimal entrypoint that only wires up the FreeCell solver.
+ * Minimal entrypoint that wires up only the FreeCell solver.
  */
 public final class FreeCellStandaloneMain {
-   private static final int FREECELL_VARIANT = 3;
+   private static final int FREECELL_VARIANT_TYPE_ID = 3;
+   private static final int DEFAULT_CHALLENGE_ID = 1;
+   private static final String FREECELL_VARIANT_KEY = "freecell";
 
    private FreeCellStandaloneMain() {
    }
 
    public static void main(String[] args) {
-//      if (args.length != 1) {
-//         System.err.println("Usage: java com.solvitaire.app.FreeCellStandaloneMain <cards-file>");
-//         System.exit(1);
-//      }
-
-      Path inputFile = Path.of("sample/cards6.txt").toAbsolutePath();
-      SanitizedInput sanitizedInput = sanitizeInput(inputFile);
-      Path actualInputFile = sanitizedInput.inputFile;
-      Path originalSolutionFile = solutionFileFor(inputFile);
-      Path actualSolutionFile = solutionFileFor(actualInputFile);
+      Path sourceInputFile = resolveInputFile(args);
+      SanitizedInput sanitizedInput = sanitizeInput(sourceInputFile);
+      Path preparedInputFile = sanitizedInput.inputFile;
+      Path sourceSolutionFile = solutionFileFor(sourceInputFile);
+      Path preparedSolutionFile = solutionFileFor(preparedInputFile);
 
       try {
          SolverContext context = new SolverContext();
          context.logLevel = 1;
-         context.variantId = FREECELL_VARIANT;
-         context.files = new SolverFileSet(actualInputFile);
-         context.files.challenge = 1;
-         context.files.variantSlug = "freecell";
-         //创建牌的几个区域
+         context.variantTypeId = FREECELL_VARIANT_TYPE_ID;
+         context.fileSet = new SolverFileSet(preparedInputFile);
+         context.fileSet.challengeId = DEFAULT_CHALLENGE_ID;
+         context.fileSet.variantKey = FREECELL_VARIANT_KEY;
          context.initialState = allocateFreeCellState(context);
          context.bestSolutionState = new GameState();
          context.playbackState = new GameState();
@@ -44,19 +40,19 @@ public final class FreeCellStandaloneMain {
          BaseSolver solver = new FreeCellSolver(context);
          context.bridge = new FreeCellBridge((FreeCellSolver) solver);
 
-         deleteIfExists(actualSolutionFile);
-         if (!actualSolutionFile.equals(originalSolutionFile)) {
-            deleteIfExists(originalSolutionFile);
+         deleteIfExists(preparedSolutionFile);
+         if (!preparedSolutionFile.equals(sourceSolutionFile)) {
+            deleteIfExists(sourceSolutionFile);
          }
 
          solver.solve();
 
-         if (!actualSolutionFile.equals(originalSolutionFile) && Files.exists(actualSolutionFile)) {
-            Files.move(actualSolutionFile, originalSolutionFile, StandardCopyOption.REPLACE_EXISTING);
+         if (!preparedSolutionFile.equals(sourceSolutionFile) && Files.exists(preparedSolutionFile)) {
+            Files.move(preparedSolutionFile, sourceSolutionFile, StandardCopyOption.REPLACE_EXISTING);
          }
 
-         Path solutionFile = Files.exists(originalSolutionFile) ? originalSolutionFile : actualSolutionFile;
-         int[] moves = readMoves(solutionFile);
+         Path resolvedSolutionFile = Files.exists(sourceSolutionFile) ? sourceSolutionFile : preparedSolutionFile;
+         int[] moves = readMoves(resolvedSolutionFile);
          if (moves.length == 0) {
             System.out.println("No solution found.");
             return;
@@ -67,10 +63,17 @@ public final class FreeCellStandaloneMain {
             System.out.println(step);
          }
       } catch (IOException exception) {
-         throw new IllegalStateException("Failed to prepare solver files for " + inputFile, exception);
+         throw new IllegalStateException("Failed to prepare solver files for " + sourceInputFile, exception);
       } finally {
-         cleanupTemporaryFiles(sanitizedInput, actualSolutionFile);
+         cleanupTemporaryFiles(sanitizedInput, preparedSolutionFile);
       }
+   }
+
+   private static Path resolveInputFile(String[] args) {
+      if (args.length == 1) {
+         return Path.of(args[0]).toAbsolutePath();
+      }
+      return Path.of("sample/cards6.txt").toAbsolutePath();
    }
 
    private static SanitizedInput sanitizeInput(Path inputFile) {
@@ -106,13 +109,13 @@ public final class FreeCellStandaloneMain {
       }
    }
 
-   private static void cleanupTemporaryFiles(SanitizedInput sanitizedInput, Path actualSolutionFile) {
+   private static void cleanupTemporaryFiles(SanitizedInput sanitizedInput, Path preparedSolutionFile) {
       if (sanitizedInput.cleanupDir == null) {
          return;
       }
 
       try {
-         deleteIfExists(actualSolutionFile);
+         deleteIfExists(preparedSolutionFile);
          deleteIfExists(sanitizedInput.inputFile);
          deleteIfExists(sanitizedInput.cleanupDir);
       } catch (IOException ignored) {
@@ -123,7 +126,7 @@ public final class FreeCellStandaloneMain {
       String normalized = normalizeLine(line).trim().toLowerCase();
       int commaIndex = normalized.indexOf(',');
       String variant = commaIndex >= 0 ? normalized.substring(0, commaIndex) : normalized;
-      if (!"freecell".equals(variant)) {
+      if (!FREECELL_VARIANT_KEY.equals(variant)) {
          throw new IllegalArgumentException("Input must start with 'freecell' header, but was: " + line);
       }
    }
@@ -137,10 +140,10 @@ public final class FreeCellStandaloneMain {
 
    private static GameState allocateFreeCellState(SolverContext context) {
       GameState state = new GameState();
-      state.stackGroups[0] = new StackGroup(context, "Stack", 0, 8, 9);
-      state.stackGroups[1] = new StackGroup(context, "WorkArea", 1, 4, 2);
-      state.stackGroups[2] = new StackGroup(context, "Aces", 2, 4, 2);
-      state.stackGroups[2].stacks[0].foundationSuit = 2;  //区域放什么花色
+      state.stackGroups[0] = new StackGroup(context, "Tableau", 0, 8, 9);
+      state.stackGroups[1] = new StackGroup(context, "FreeCell", 1, 4, 2);
+      state.stackGroups[2] = new StackGroup(context, "Foundation", 2, 4, 2);
+      state.stackGroups[2].stacks[0].foundationSuit = 2;
       state.stackGroups[2].stacks[1].foundationSuit = 4;
       state.stackGroups[2].stacks[2].foundationSuit = 3;
       state.stackGroups[2].stacks[3].foundationSuit = 1;

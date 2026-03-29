@@ -103,19 +103,19 @@ public abstract class BaseSolver {
     }
 
     /**
-     * 分桶   越底的分的越小    可能太大的意义不大
+     * 分桶
      * @param n2
      * @return
      */
     private int getBucket(int n2) {
-        if (n2 == 1) {
-            return this.bucketSize / 8;
+        if (n2 > 2) {
+            return this.bucketSize;
         }
         if (n2 == 2) {
             return this.bucketSize / 2;
         }
-        if (n2 > 2) {
-            return this.bucketSize;
+        if (n2 == 1) {
+            return this.bucketSize / 8;
         }
         return this.bucketSize / 64;
     }
@@ -142,7 +142,7 @@ public abstract class BaseSolver {
         initCardPool();
         this.poolCardIndex = 0;
 //        第一轮搜索先从“最严格/最保守”的预算开始
-        this.solverContext.searchCredit = 0;
+        this.solverContext.searchBudget = 0;
 //        在base init中，将递归深度和播放位置设置为0
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("In baseinit, set recursiondepth and playlocation to 0");
@@ -165,8 +165,8 @@ public abstract class BaseSolver {
 //        这就是为什么这里要先给一个默认值。
         this.buetMaxSize = 200;
         //如果用户指定了，就分配基础上+2
-        if (this.solverContext.files.maxMoves < 200) {
-            this.buetMaxSize = this.solverContext.files.maxMoves + 2;
+        if (this.solverContext.fileSet.maxSolutionMoves < 200) {
+            this.buetMaxSize = this.solverContext.fileSet.maxSolutionMoves + 2;
         }
     }
 
@@ -232,7 +232,7 @@ public abstract class BaseSolver {
             }
 
         } else {
-            this.solverContext.log("*** " + this.getSolverName() + " initialisation failed for game mode " + this.solverContext.solverMode);
+            this.solverContext.log("*** " + this.getSolverName() + " initialisation failed for game mode " + this.solverContext.runMode);
 
             return;
         }
@@ -240,21 +240,21 @@ public abstract class BaseSolver {
         this.solverContext.sleepBriefly(100L, "Prevent tight loop");
 
         this.maxSearchDepth = 298;
-        while (this.solverContext.searchCredit > -this.searchCreditLimit) {
+        while (this.solverContext.searchBudget > -this.searchCreditLimit) {
             block63: {
 
                 if (this.solverContext.logLevel <= 4) {
                     this.solverContext.log("In process, entering solve loop");
                 }
-                this.solverContext.initAI = true;
-                while (this.solverContext.searchCredit > -this.searchCreditLimit) {
+                this.solverContext.searchInitialized = true;
+                while (this.solverContext.searchBudget > -this.searchCreditLimit) {
                     countIndex = 0;
                     while (countIndex < 10) {
                         this.R[countIndex] = new HashMap(this.getBucket(countIndex));
                         this.S[countIndex] = new HashMap(this.getBucket(countIndex));
                         ++countIndex;
                     }
-                    this.solverContext.complexity = this.solverContext.searchCredit;
+                    this.solverContext.complexity = this.solverContext.searchBudget;
                     this.currenBackout = -1;
                     this.deepestRecursionDepth = 0;
                     this.deepestRecursionComplexity = 0;
@@ -266,9 +266,9 @@ public abstract class BaseSolver {
 
                     if (this.isSolver || this.currenBackout > 0) break;
                     if (this.solverContext.logLevel <= 4) {
-                        this.solverContext.log("*** Deepest recursion for credit " + this.solverContext.searchCredit + " was " + this.deepestRecursionDepth + " with complexity " + this.deepestRecursionComplexity);
+                        this.solverContext.log("*** Deepest recursion for credit " + this.solverContext.searchBudget + " was " + this.deepestRecursionDepth + " with complexity " + this.deepestRecursionComplexity);
                     }
-                    this.solverContext.searchCredit -= 30;
+                    this.solverContext.searchBudget -= 30;
                 }
                 if (this.isSolver || this.currenBackout > 0) break block63;
                 if (this.solverContext.logLevel <= 5) {
@@ -287,7 +287,7 @@ public abstract class BaseSolver {
                 countIndex = 1;
                 if (countIndex == 0) {
 
-                    this.solverContext.searchCredit = 0;
+                    this.solverContext.searchBudget = 0;
                     this.isSolver = false;
                     continue;
                 }
@@ -295,7 +295,7 @@ public abstract class BaseSolver {
                     this.solverContext.log("Play solution");
                 }
                 this.solverContext.initialState.moveAnnotations = Arrays.copyOf(this.solverContext.bestSolutionState.moveAnnotations, this.solverContext.bestSolutionState.moveAnnotations.length);
-                if (!this.solverContext.Y) {
+                if (!this.solverContext.replayRequested) {
                     if (this.solverContext.logLevel > 5) break;
                     this.solverContext.log("Solved so exit process loop");
                     break;
@@ -303,8 +303,8 @@ public abstract class BaseSolver {
                 if (this.solverContext.logLevel <= 5) {
                     this.solverContext.log("Playback aborted, stay in play loop");
                 }
-                this.solverContext.Y = false;
-                this.solverContext.searchCredit = 0;
+                this.solverContext.replayRequested = false;
+                this.solverContext.searchBudget = 0;
                 continue;
             }
             if (this.solverContext.logLevel <= 5) {
@@ -313,11 +313,11 @@ public abstract class BaseSolver {
             if (this.currenBackout > 0) {
                 this.solverContext.log("The user aborted the solve so go back to user moves");
                 this.currenBackout = -1;
-                this.solverContext.searchCredit = 0;
+                this.solverContext.searchBudget = 0;
                 continue;
             }
             if (this.solverContext.searchState.depth > 0) {
-                this.solverContext.searchCredit = 0;
+                this.solverContext.searchBudget = 0;
             }
         }
         this.solverContext.bestSolutionState.reset();
@@ -487,12 +487,12 @@ public abstract class BaseSolver {
      */
     final boolean loadCheckpointState() {
         if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log("Into loadCheckpoint for game mode " + this.solverContext.solverMode);
+            this.solverContext.log("Into loadCheckpoint for game mode " + this.solverContext.runMode);
         }
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("Capture request in standalone mode so set readcards to true");
         }
-        String[] contentArray = this.solverContext.readAllLines(String.valueOf(this.solverContext.files.outputDirectory) + this.solverContext.files.getInputFileName());
+        String[] contentArray = this.solverContext.readAllLines(String.valueOf(this.solverContext.fileSet.outputDirectoryPath) + this.solverContext.fileSet.getInputFileName());
         if (contentArray == null) {
             return false;
         }
@@ -519,8 +519,8 @@ public abstract class BaseSolver {
             stringBuffer.append(",");
             ++n2;
         }
-        if (this.solverContext.files != null) {
-            this.solverContext.writeTextFile(String.valueOf(this.solverContext.files.outputDirectory) + this.solverContext.files.getSolutionFileName(), stringBuffer.toString(), true);
+        if (this.solverContext.fileSet != null) {
+            this.solverContext.writeTextFile(String.valueOf(this.solverContext.fileSet.outputDirectoryPath) + this.solverContext.fileSet.getSolutionFileName(), stringBuffer.toString(), true);
         }
     }
 
@@ -780,7 +780,7 @@ public abstract class BaseSolver {
         if ((hashValue = (Integer)this.R[bucket].get(hashKey)) != null) {
             bucket = hashValue;
             int n4 = bucket & 0xFFFF;
-            if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.files.maxMoves == 999 || this.solverContext.searchState.depth >= n4)) {
+            if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.fileSet.maxSolutionMoves == 999 || this.solverContext.searchState.depth >= n4)) {
                 if (this.K != null && this.sieve()) {
                     this.logWorkMoveInfo(9);
                     this.solverContext.log("About to reject trial solution as a duplicate, hash = " + hashKey + " overriding");
@@ -794,7 +794,7 @@ public abstract class BaseSolver {
         if (hashValue != null) {
             bucket = hashValue;
             int n5 = bucket & 0xFFFF;
-            if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.files.maxMoves == 999 || this.solverContext.searchState.depth >= n5)) {
+            if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.fileSet.maxSolutionMoves == 999 || this.solverContext.searchState.depth >= n5)) {
                 if (this.K != null && this.sieve()) {
                     this.logWorkMoveInfo(9);
                     this.solverContext.log("About to reject trial solution as a duplicate, hash = " + hashKey + " overriding");
@@ -875,23 +875,23 @@ public abstract class BaseSolver {
         if (bl2) {
             n2 = 1;
         }
-        if (this.solverContext.files.maxMoves < 999 && n3 > this.solverContext.files.maxMoves) {
+        if (this.solverContext.fileSet.maxSolutionMoves < 999 && n3 > this.solverContext.fileSet.maxSolutionMoves) {
             return 1;
         }
         if (bl2) {
             n2 = 1;
-            if (gameState.solutionLength < this.solverContext.files.maxMoves && (this.solverContext.bestSolutionState.solutionLength == 0 || gameState.solutionLength < this.solverContext.bestSolutionState.solutionLength)) {
+            if (gameState.solutionLength < this.solverContext.fileSet.maxSolutionMoves && (this.solverContext.bestSolutionState.solutionLength == 0 || gameState.solutionLength < this.solverContext.bestSolutionState.solutionLength)) {
                 this.updateBestSate(gameState, "Best solution currently " + gameState.solutionLength + " moves", true, true);
             }
         }
         if (this.accumLog(bl)) {
             n2 = 2;
-            this.solverContext.files.accumNUm = ++this.solverContext.files.accumNUm;
+            this.solverContext.fileSet.clearedBoardCount = ++this.solverContext.fileSet.clearedBoardCount;
             if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Board cleared, accum now " + this.solverContext.files.accumNUm);
+                this.solverContext.log("Board cleared, accum now " + this.solverContext.fileSet.clearedBoardCount);
             }
 
-        } else if (!(!bl || this.solverContext.solverMode != 3 && this.solverContext.solverMode != 1 || this.solverContext.variantId != 4 && this.solverContext.variantId != 5)) {
+        } else if (!(!bl || this.solverContext.runMode != 3 && this.solverContext.runMode != 1 || this.solverContext.variantTypeId != 4 && this.solverContext.variantTypeId != 5)) {
             n2 = 2;
             this.solverContext.bestSolutionState.reset();
         }
@@ -899,7 +899,7 @@ public abstract class BaseSolver {
         if (n2 == 2) {
             this.isSolver = true;
             if (this.solverContext.logLevel <= 9) {
-                this.solverContext.log("Mode " + this.solverContext.solverMode + " (challenge " + this.solverContext.files.challenge + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.startTime) / 1000L);
+                this.solverContext.log("Mode " + this.solverContext.runMode + " (challenge " + this.solverContext.fileSet.challengeId + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.startTime) / 1000L);
             }
             this.printCurrentFinishLog(9, this.solverContext.bestSolutionState, "Solved best moves");
             this.saveResult();
