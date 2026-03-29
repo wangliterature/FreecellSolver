@@ -10,7 +10,6 @@ import java.util.HashMap;
  * Renamed from com.solvitaire.app.nz
  */
 final class FreeCellSolver extends BaseSolver {
-    static private int MAX_TABLEAU_HEIGHT = 10;
     private int moveToAcesPenalty = 0;
     private int fromSpacePenalty = -5;
     private int moveToSpacePenalty = 40;
@@ -261,398 +260,646 @@ final class FreeCellSolver extends BaseSolver {
         return l2;
     }
 
+    /**
+     * 判断一个列里是否存在“单独露出的 A”。
+     *
+     * `expose` / `matching` 这几种搜索模式会用这个特征来限制候选来源和目标，
+     * 所以单独提成一个小工具，避免在循环里反复展开样板代码。
+     */
     private static boolean hasSingleAce(CardStack cardStack) {
-        boolean bl = false;
-        java.util.Iterator iterator = cardStack.runs.iterator();
-        while (iterator.hasNext()) {
-            CardRun ok_02 = (CardRun) iterator.next();
-            if (ok_02.cardCount != 1 || ok_02.cards[0].rank != 1) continue;
-            bl = true;
-            break;
+        for (CardRun cardRun : cardStack.runs) {
+            if (cardRun.cardCount == 1 && cardRun.cards[0].rank == 1) {
+                return true;
+            }
         }
-        return bl;
+        return false;
     }
 
-    private boolean generateAndTryMoves(int n2, int n3) {
-        boolean bl;
-        block81: {
-            bl = false;
+    /**
+     * 按 move mode 枚举当前节点的所有候选移动。
+     *
+     * 这一层只负责“去哪里找候选”，真正的合法性判断、执行移动、递归、回退，
+     * 都交给 `tryMoveStackAndRecurse(...)` 处理。
+     */
+    private boolean generateAndTryMoves(int moveMode, int previousEncodedMove) {
+        if (this.solverContext.logLevel <= 3) {
+            this.solverContext.log("Entered dojoins for mode " + moveModeNames[moveMode] + " complexity " + this.solverContext.complexity);
+        }
+
+        switch (moveMode) {
+            case 4:
+                this.tryMovesFromWorkAreaToTableau(moveMode, previousEncodedMove);
+                return false;
+            case 3:
+            case 10:
+                this.tryMovesToEmptyTableau(moveMode, previousEncodedMove);
+                return false;
+            case 2:
+            case 6:
+            case 8:
+            case 9:
+                this.tryTableauToTableauMoves(moveMode, previousEncodedMove);
+                return false;
+            case 5:
+                this.tryMovesToWorkArea(moveMode, previousEncodedMove);
+                return false;
+            case 7:
+                return this.tryAutomaticFoundationMoves(moveMode, previousEncodedMove);
+            default:
+                return this.tryDirectFoundationMoves(moveMode, previousEncodedMove);
+        }
+    }
+
+    /**
+     * 枚举“空闲单元 -> tableau”的候选。
+     *
+     * 这里保留原逻辑：只有目标列非空，或者待移动序列以 K 开头时，才允许尝试。
+     */
+    private void tryMovesFromWorkAreaToTableau(int moveMode, int previousEncodedMove) {
+        CardStack[] workAreaStacks = this.solverContext.searchState.stackGroups[1].stacks;
+        CardStack[] tableauStacks = this.solverContext.searchState.stackGroups[0].stacks;
+
+        for (CardStack workAreaStack : workAreaStacks) {
+            if (this.currenBackout > 0) {
+                return;
+            }
+            if (workAreaStack.topRun == null) {
+                continue;
+            }
+
+            boolean canMoveToEmptyTableau = workAreaStack.topRun.cards[0].rank == 13;
+            for (CardStack tableauStack : tableauStacks) {
+                if (this.currenBackout > 0) {
+                    return;
+                }
+                if (tableauStack.topRun != null || canMoveToEmptyTableau) {
+                    this.tryMoveStackAndRecurse(tableauStack, workAreaStack, moveMode, previousEncodedMove);
+                }
+            }
+        }
+    }
+
+    /**
+     * 枚举“某个 tableau 序列 -> 第一个空 tableau”的候选。
+     *
+     * 只挑第一个空列，是为了和原实现保持一致，避免在多个等价空列之间重复搜索。
+     */
+    private void tryMovesToEmptyTableau(int moveMode, int previousEncodedMove) {
+        CardStack emptyTableauStack = this.findFirstEmptyStack(this.solverContext.searchState.stackGroups[0].stacks);
+        if (emptyTableauStack == null) {
+            return;
+        }
+
+        for (CardStack sourceTableauStack : this.solverContext.searchState.stackGroups[0].stacks) {
+            if (this.currenBackout > 0) {
+                return;
+            }
+            if (!this.isEligibleEmptyTableauSource(moveMode, sourceTableauStack)) {
+                continue;
+            }
+            this.tryMoveStackAndRecurse(emptyTableauStack, sourceTableauStack, moveMode, previousEncodedMove);
+        }
+    }
+
+    /**
+     * 枚举 tableau 之间的移动。
+     *
+     * `fromSpace`、`matching`、`expose`、`matchWithSplit` 共用同一组来源/目标，
+     * 区别只体现在过滤条件和后续 join 规则上。
+     */
+    private void tryTableauToTableauMoves(int moveMode, int previousEncodedMove) {
+        CardStack[] tableauStacks = this.solverContext.searchState.stackGroups[0].stacks;
+
+        for (CardStack sourceTableauStack : tableauStacks) {
+            if (this.currenBackout > 0) {
+                return;
+            }
+            if (!this.isEligibleTableauSource(moveMode, sourceTableauStack)) {
+                continue;
+            }
+
+            for (CardStack destinationTableauStack : tableauStacks) {
+                if (this.currenBackout > 0) {
+                    return;
+                }
+                if (this.shouldSkipTableauTarget(moveMode, sourceTableauStack, destinationTableauStack)) {
+                    continue;
+                }
+                this.tryMoveStackAndRecurse(destinationTableauStack, sourceTableauStack, moveMode, previousEncodedMove);
+            }
+        }
+    }
+
+    /**
+     * 枚举“tableau -> 第一个空闲单元”的候选。
+     *
+     * 原实现会在遍历来源时动态调整 complexity，这里保留同样的时机和累加方式，
+     * 这样不会改变搜索顺序。
+     */
+    private void tryMovesToWorkArea(int moveMode, int previousEncodedMove) {
+        CardStack emptyWorkAreaStack = this.findFirstEmptyStack(this.solverContext.searchState.stackGroups[1].stacks);
+        if (emptyWorkAreaStack == null) {
+            return;
+        }
+
+        if (this.solverContext.logLevel <= 2) {
+            this.solverContext.log("Selected workArea " + emptyWorkAreaStack.stackIndex);
+        }
+
+        for (CardStack sourceTableauStack : this.solverContext.searchState.stackGroups[0].stacks) {
+            if (sourceTableauStack.runs.size() == 1 && sourceTableauStack.topRun.cardCount == 1) {
+                this.solverContext.complexity += this.fromSpacePenalty;
+            }
+            if (this.currenBackout > 0) {
+                return;
+            }
+            this.tryMoveStackAndRecurse(emptyWorkAreaStack, sourceTableauStack, moveMode, previousEncodedMove);
+        }
+    }
+
+    /**
+     * 自动把“安全可推”的牌送进 foundation。
+     *
+     * 这个模式不是把所有能上的牌都立刻上掉，而是按红黑两色的最低 foundation 高度
+     * 做一个保守判断，尽量避免把后面还要周转的牌过早锁死。
+     */
+    private boolean tryAutomaticFoundationMoves(int moveMode, int previousEncodedMove) {
+        int[] lowestFoundationRanks = this.findLowestFoundationRanksByColor();
+        int lowestBlackFoundationRank = lowestFoundationRanks[0];
+        int lowestRedFoundationRank = lowestFoundationRanks[1];
+
+        if (this.solverContext.logLevel <= 3) {
+            this.solverContext.log("Lowest black on aces is " + lowestBlackFoundationRank + " lowest red is " + lowestRedFoundationRank);
+        }
+
+        for (CardStack foundationStack : this.solverContext.searchState.stackGroups[2].stacks) {
+            if (!this.shouldAutoAdvanceFoundation(foundationStack, lowestBlackFoundationRank, lowestRedFoundationRank)) {
+                continue;
+            }
             if (this.solverContext.logLevel <= 3) {
-                this.solverContext.log("Entered dojoins for mode " + moveModeNames[n2] + " complexity " + this.solverContext.complexity);
+                this.solverContext.log("Try and move card up to " + FreeCellSolver.bigZm(foundationStack.getTopRank()) + " of " + FreeCellSolver.matchSuitColor(foundationStack.foundationSuit * 100));
             }
-            if (n2 == 4) {
-                CardStack[] os_0Array = this.solverContext.searchState.stackGroups[1].stacks;
-                int n4 = this.solverContext.searchState.stackGroups[1].stacks.length;
-                int n5 = 0;
-                while (n5 < n4) {
-                    CardStack os_02 = os_0Array[n5];
-                    if (this.currenBackout <= 0) {
-                        if (os_02.topRun != null) {
-                            CardStack[] os_0Array2 = this.solverContext.searchState.stackGroups[0].stacks;
-                            int n6 = this.solverContext.searchState.stackGroups[0].stacks.length;
-                            int n7 = 0;
-                            while (n7 < n6) {
-                                CardStack os_03 = os_0Array2[n7];
-                                if (this.currenBackout > 0) break;
-                                if (os_03.topRun != null || os_02.topRun.cards[0].rank == 13) {
-                                    this.tryMoveStackAndRecurse(os_03, os_02, n2, n3);
-                                }
-                                ++n7;
-                            }
-                        }
-                        ++n5;
-                        continue;
-                    }
-                    break;
-                }
-            } else if (n2 == 3 || n2 == 10) {
-                CardStack[] os_0Array = this.solverContext.searchState.stackGroups[0].stacks;
-                int n8 = this.solverContext.searchState.stackGroups[0].stacks.length;
-                int n9 = 0;
-                while (n9 < n8) {
-                    CardStack os_04 = os_0Array[n9];
-                    if (os_04.topRun == null) {
-                        CardStack[] os_0Array3 = this.solverContext.searchState.stackGroups[0].stacks;
-                        int n10 = this.solverContext.searchState.stackGroups[0].stacks.length;
-                        int n11 = 0;
-                        while (n11 < n10) {
-                            CardStack os_05 = os_0Array3[n11];
-                            if (this.currenBackout <= 0) {
-                                if (os_05.topRun != null) {
-                                    boolean bl2;
-                                    boolean bl3 = bl2 = os_05.topRun.cards[0].rank == 13;
-                                    if (!(n2 != 10 ? bl2 : !bl2) && os_05.runs.size() != 1) {
-                                        this.tryMoveStackAndRecurse(os_04, os_05, n2, n3);
-                                    }
-                                }
-                                ++n11;
-                                continue;
-                            }
-                            break block81;
-                        }
-                        break;
-                    }
-                    ++n9;
-                }
-            } else if (n2 == 2 || n2 == 8 || n2 == 6 || n2 == 9) {
-                CardStack[] os_0Array = this.solverContext.searchState.stackGroups[0].stacks;
-                int n12 = this.solverContext.searchState.stackGroups[0].stacks.length;
-                int n13 = 0;
-                while (n13 < n12) {
-                    CardStack os_06 = os_0Array[n13];
-                    if (this.currenBackout > 0) break;
-                    if (os_06.topRun != null) {
-                        boolean bl4 = true;
-                        if (n2 == 8 && !FreeCellSolver.hasSingleAce(os_06)) {
-                            bl4 = false;
-                        }
-                        if (bl4) {
-                            CardStack[] os_0Array4 = this.solverContext.searchState.stackGroups[0].stacks;
-                            int n14 = this.solverContext.searchState.stackGroups[0].stacks.length;
-                            int n15 = 0;
-                            while (n15 < n14) {
-                                CardStack os_07 = os_0Array4[n15];
-                                if (this.currenBackout > 0) break;
-                                if (!(n2 != 8 ? n2 == 6 && FreeCellSolver.hasSingleAce(os_06) && !FreeCellSolver.hasSingleAce(os_07) : FreeCellSolver.hasSingleAce(os_07))) {
-                                    this.tryMoveStackAndRecurse(os_07, os_06, n2, n3);
-                                }
-                                ++n15;
-                            }
-                        }
-                    }
-                    ++n13;
-                }
-            } else if (n2 == 5) {
-                CardStack os_08;
-                if (this.solverContext.searchState.stackGroups[1].stacks[0].topRun == null) {
-                    os_08 = this.solverContext.searchState.stackGroups[1].stacks[0];
-                } else if (this.solverContext.searchState.stackGroups[1].stacks[1].topRun == null) {
-                    os_08 = this.solverContext.searchState.stackGroups[1].stacks[1];
-                } else if (this.solverContext.searchState.stackGroups[1].stacks[2].topRun == null) {
-                    os_08 = this.solverContext.searchState.stackGroups[1].stacks[2];
-                } else if (this.solverContext.searchState.stackGroups[1].stacks[3].topRun == null) {
-                    os_08 = this.solverContext.searchState.stackGroups[1].stacks[3];
-                } else {
-                    return false;
-                }
-                if (this.solverContext.logLevel <= 2) {
-                    this.solverContext.log("Selected workArea " + os_08.stackIndex);
-                }
-                CardStack[] os_0Array = this.solverContext.searchState.stackGroups[0].stacks;
-                int n16 = this.solverContext.searchState.stackGroups[0].stacks.length;
-                int n17 = 0;
-                while (n17 < n16) {
-                    CardStack os_09 = os_0Array[n17];
-                    if (os_09.runs.size() == 1 && os_09.topRun.cardCount == 1) {
-                        this.solverContext.complexity += this.fromSpacePenalty;
-                    }
-                    if (this.currenBackout <= 0) {
-                        this.tryMoveStackAndRecurse(os_08, os_09, n2, n3);
-                        ++n17;
-                        continue;
-                    }
-                    break;
-                }
-            } else if (n2 == 7) {
-                int n18;
-                CardStack os_010;
-                int n19 = 13;
-                int n20 = 13;
-                CardStack[] os_0Array = this.solverContext.searchState.stackGroups[2].stacks;
-                int n21 = this.solverContext.searchState.stackGroups[2].stacks.length;
-                int n22 = 0;
-                while (n22 < n21) {
-                    os_010 = os_0Array[n22];
-                    int n23 = os_010.foundationSuit;
-                    n18 = os_010.getTopRank();
-                    if (FreeCellSolver.suitColor(n23)) {
-                        if (n18 < n19) {
-                            n19 = n18;
-                        }
-                    } else if (n18 < n20) {
-                        n20 = n18;
-                    }
-                    ++n22;
-                }
-                if (this.solverContext.logLevel <= 3) {
-                    this.solverContext.log("Lowest black on aces is " + n19 + " lowest red is " + n20);
-                }
-                os_0Array = this.solverContext.searchState.stackGroups[2].stacks;
-                n21 = this.solverContext.searchState.stackGroups[2].stacks.length;
-                n22 = 0;
-                while (n22 < n21) {
-                    os_010 = os_0Array[n22];
-                    int n24 = os_010.foundationSuit;
-                    n18 = os_010.getTopRank();
-                    int n25 = 0;
-                    if (n18 < 2) {
-                        n25 = 1;
-                    } else if (FreeCellSolver.suitColor(n24)) {
-                        if (n18 <= n20) {
-                            n25 = 1;
-                        }
-                    } else if (n18 <= n19) {
-                        n25 = 1;
-                    }
-                    if (n25 != 0) {
-                        if (this.solverContext.logLevel <= 3) {
-                            this.solverContext.log("Try and move card up to " + FreeCellSolver.bigZm(n18) + " of " + FreeCellSolver.matchSuitColor(n24 * 100));
-                        }
-                        CardStack[] os_0Array5 = this.solverContext.searchState.stackGroups[0].stacks;
-                        n25 = this.solverContext.searchState.stackGroups[0].stacks.length;
-                        n18 = 0;
-                        while (n18 < n25) {
-                            CardStack os_011 = os_0Array5[n18];
-                            bl = this.tryMoveStackAndRecurse(os_010, os_011, n2, n3);
-                            if (bl) {
-                                if (this.solverContext.logLevel > 3) break;
-                                this.solverContext.log("Automatic ace move from stack " + os_011.stackIndex + " was productive");
-                                break;
-                            }
-                            ++n18;
-                        }
-                        if (bl) break;
-                        os_0Array5 = this.solverContext.searchState.stackGroups[1].stacks;
-                        n25 = this.solverContext.searchState.stackGroups[1].stacks.length;
-                        n18 = 0;
-                        while (n18 < n25) {
-                            CardStack os_012 = os_0Array5[n18];
-                            bl = this.tryMoveStackAndRecurse(os_010, os_012, n2, n3);
-                            if (bl) {
-                                if (this.solverContext.logLevel > 3) break;
-                                this.solverContext.log("Automatic ace move from work " + os_012.stackIndex + " was productive");
-                                break;
-                            }
-                            ++n18;
-                        }
-                        if (bl) break;
-                    }
-                    ++n22;
-                }
-            } else {
-                CardStack[] os_0Array = this.solverContext.searchState.stackGroups[2].stacks;
-                int n26 = os_0Array.length;
-                int n27 = 0;
-                while (n27 < n26) {
-                    CardStack os_013 = os_0Array[n27];
-                    if (this.currenBackout > 0) break;
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Try and move card run to ace of " + FreeCellSolver.matchSuitColor(os_013.foundationSuit * 100));
-                    }
-
-                    CardStack[] os_0Array6 = this.solverContext.searchState.stackGroups[0].stacks;
-                    int n29 = this.solverContext.searchState.stackGroups[0].stacks.length;
-                    int n30 = 0;
-                    while (n30 < n29) {
-                        CardStack os_014 = os_0Array6[n30];
-                        if (this.currenBackout > 0 || (bl = this.tryMoveStackAndRecurse(os_013, os_014, n2, n3))) break;
-                        ++n30;
-                    }
-                    if (bl) break;
-                    os_0Array6 = this.solverContext.searchState.stackGroups[1].stacks;
-                    n29 = this.solverContext.searchState.stackGroups[1].stacks.length;
-                    n30 = 0;
-                    while (n30 < n29) {
-                        CardStack os_015 = os_0Array6[n30];
-                        if (this.currenBackout > 0 || (bl = this.tryMoveStackAndRecurse(os_013, os_015, n2, n3))) break;
-                        ++n30;
-                    }
-                    if (!bl) {
-                        ++n27;
-                        continue;
-                    }
-                    break;
-                }
+            if (this.tryAutomaticFoundationMoveFromSources(
+                    foundationStack,
+                    this.solverContext.searchState.stackGroups[0].stacks,
+                    moveMode,
+                    previousEncodedMove,
+                    "Automatic ace move from stack "
+            )) {
+                return true;
+            }
+            if (this.tryAutomaticFoundationMoveFromSources(
+                    foundationStack,
+                    this.solverContext.searchState.stackGroups[1].stacks,
+                    moveMode,
+                    previousEncodedMove,
+                    "Automatic ace move from work "
+            )) {
+                return true;
             }
         }
-        return bl;
+        return false;
     }
 
-    private boolean tryMoveStackAndRecurse(CardStack cardStackOne, CardStack cardStackTwo, int n2, int cardId) {
-        if (cardStackOne == cardStackTwo) {
-            return false;
-        }
-        if (cardStackTwo.topRun == null) {
-            return false;
-        }
-        int cardCount = cardStackTwo.topRun.cardCount;
-        if (cardId > 0) {
-            int n5 = cardId % 100;
-            cardId = cardId / 100 % 100;
-            if (cardStackOne.stackIndex == cardId && cardStackTwo.stackIndex == n5) {
+    /**
+     * 枚举“tableau / 空闲单元 -> foundation”的常规候选。
+     *
+     * 这里只负责按 foundation 目标逐个尝试；一旦某个目标产生了有效搜索分支，
+     * 就和原实现一样立刻结束当前 mode。
+     */
+    private boolean tryDirectFoundationMoves(int moveMode, int previousEncodedMove) {
+        for (CardStack foundationStack : this.solverContext.searchState.stackGroups[2].stacks) {
+            if (this.currenBackout > 0) {
                 return false;
             }
-        }
-        boolean bl = false;
-        int complexity = this.solverContext.complexity;
-        int modeValue;
-        switch (n2) {
-            case 1:
-            case 7: {
-                modeValue = 1;
-                break;
+            if (this.solverContext.logLevel <= 2) {
+                this.solverContext.log("Try and move card run to ace of " + FreeCellSolver.matchSuitColor(foundationStack.foundationSuit * 100));
             }
-            case 2: {
-                modeValue = 3;
-                break;
+            if (this.tryFoundationMovesFromSources(
+                    foundationStack,
+                    this.solverContext.searchState.stackGroups[0].stacks,
+                    moveMode,
+                    previousEncodedMove
+            )) {
+                return true;
             }
-            case 3: {
-                modeValue = 2;
-                break;
-            }
-            case 4: {
-                modeValue = 1;
-                if (cardStackOne.topRun == null) {
-                    modeValue = 2;
-                }
-                break;
-            }
-            case 5: {
-                modeValue = 6;
-                break;
-            }
-            case 6:
-            case 9: {
-                modeValue = 1;
-                break;
-            }
-            case 8: {
-                modeValue = 1;
-                if (cardStackOne.topRun == null) {
-                    modeValue = 2;
-                }
-                break;
-            }
-            case 10: {
-                modeValue = 2;
-                break;
-            }
-            default: {
-                modeValue = -1;
+            if (this.tryFoundationMovesFromSources(
+                    foundationStack,
+                    this.solverContext.searchState.stackGroups[1].stacks,
+                    moveMode,
+                    previousEncodedMove
+            )) {
+                return true;
             }
         }
-        int n7 = cardStackOne.evaluateJoinFrom(cardStackTwo, modeValue, false);
-        if (n2 == 9 && n7 > 0 && n7 < cardStackTwo.topRun.cardCount) {
-            Card nT2 = cardStackTwo.topRun.cards[cardStackTwo.topRun.cardCount - n7 - 1];
-            if (this.solverContext.searchState.stackGroups[2].stacks[0].getTopCardValue() + 1 == nT2.cardId || this.solverContext.searchState.stackGroups[2].stacks[1].getTopCardValue() + 1 == nT2.cardId || this.solverContext.searchState.stackGroups[2].stacks[2].getTopCardValue() + 1 == nT2.cardId || this.solverContext.searchState.stackGroups[2].stacks[3].getTopCardValue() + 1 == nT2.cardId) {
-                this.solverContext.complexity += this.splitMatchesAcePenalty;
-                if (this.solverContext.logLevel <= 3) {
-                    this.solverContext.log("Adjusted complexity by splitMatchesAce to " + this.solverContext.complexity);
-                }
+        return false;
+    }
+
+    /**
+     * 找到当前组里的第一个空栈。
+     *
+     * solver 里很多“移到空位”的逻辑只取第一个空位，目的是去掉等价分支。
+     */
+    private CardStack findFirstEmptyStack(CardStack[] stackArray) {
+        for (CardStack cardStack : stackArray) {
+            if (cardStack.topRun == null) {
+                return cardStack;
             }
+        }
+        return null;
+    }
+
+    /**
+     * 判断一个 tableau 来源是否可以尝试移到空列。
+     *
+     * `toSpace` 只接受非 K 开头的序列，`toSpaceKing` 只接受 K 开头的序列；
+     * 同时原实现会跳过已经只有一个 run 的列，这里保留这个过滤条件。
+     */
+    private boolean isEligibleEmptyTableauSource(int moveMode, CardStack sourceTableauStack) {
+        if (sourceTableauStack.topRun == null) {
+            return false;
         }
 
-        if (n7 >= 0) {
-            int n8;
-            if ((n8 = n7 == 0 ? cardCount : n7) > 1 && (n2 == 6 || n2 == 9 || n2 == 8 || n2 == 3 || n2 == 10 || n2 == 2)) {
-                int n9 = this.solverContext.searchState.stackGroups[1].emptyStackCount;
-                int n10 = this.solverContext.searchState.stackGroups[0].emptyStackCount;
-                if (modeValue == 2) {
-                    --n10;
+        boolean startsWithKing = sourceTableauStack.topRun.cards[0].rank == 13;
+        if ((moveMode == 10) != startsWithKing) {
+            return false;
+        }
+        return sourceTableauStack.runs.size() != 1;
+    }
+
+    /**
+     * 判断一个 tableau 是否能作为当前 mode 的来源。
+     */
+    private boolean isEligibleTableauSource(int moveMode, CardStack sourceTableauStack) {
+        if (sourceTableauStack.topRun == null) {
+            return false;
+        }
+        return moveMode != 8 || FreeCellSolver.hasSingleAce(sourceTableauStack);
+    }
+
+    /**
+     * 判断当前 tableau 目标是否应该跳过。
+     *
+     * 这里保留原实现里几个不太直观的启发式：
+     * `expose` 不会把牌接到同样带“单独 A”的列上；
+     * `matching` 在来源已经露出 A 时，不会接到一个没有露出 A 的列上。
+     */
+    private boolean shouldSkipTableauTarget(int moveMode, CardStack sourceTableauStack, CardStack destinationTableauStack) {
+        if (moveMode == 8) {
+            return FreeCellSolver.hasSingleAce(destinationTableauStack);
+        }
+        return moveMode == 6
+                && FreeCellSolver.hasSingleAce(sourceTableauStack)
+                && !FreeCellSolver.hasSingleAce(destinationTableauStack);
+    }
+
+    /**
+     * 统计当前红黑两色 foundation 的最低高度。
+     */
+    private int[] findLowestFoundationRanksByColor() {
+        int lowestBlackFoundationRank = 13;
+        int lowestRedFoundationRank = 13;
+
+        for (CardStack foundationStack : this.solverContext.searchState.stackGroups[2].stacks) {
+            int topRank = foundationStack.getTopRank();
+            if (FreeCellSolver.suitColor(foundationStack.foundationSuit)) {
+                if (topRank < lowestBlackFoundationRank) {
+                    lowestBlackFoundationRank = topRank;
                 }
-                int n11 = (1 << n10) * (n9 + 1);
-                if (this.solverContext.logLevel <= 2) {
-                    this.solverContext.log("Workarea spaces " + n9 + " stack spaces " + n10 + " allow length " + n11);
-                }
-                if (n8 > n11) {
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Move of " + n7 + " denied because workarea spaces " + n9 + " and stack spaces " + n10);
-                    }
-                    n7 = -1;
-                }
-            }
-            if (n7 >= 0 && (n8 == cardCount || n2 != 6 && n2 != 8 && n2 != 2)) {
-                int n12 = cardStackOne.topRun != null ? 2 : 0;
-                if ((n7 = cardStackOne.moveCardsFrom(cardStackTwo, n7, null)) >= 0) {
-                    if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Completed join with split of " + n7);
-                    }
-                    if (n8 != cardCount) {
-                        n12 |= 1;
-                    }
-                    if (n2 == 7) {
-                        n12 |= 16;
-                    }
-                    int n13 = Move.buildEncodedMove(n12, n8, cardStackTwo, cardStackOne);
-                    this.solverContext.searchState.moves[this.solverContext.searchState.depth] = n13;
-                    ++this.solverContext.searchState.depth;
-                    long l2 = this.computeStateHash();
-                    if (n2 == 7 || !this.isReversalOfPreviousMove(cardStackOne, cardStackTwo)) {
-                        if (n2 != 7) {
-                            this.currenBackout = this.checkCurrentStateHash(l2);
-                        }
-                        if (this.currenBackout < 0) {
-                            this.updateHashState(l2);
-                            bl = true;
-                            n2 = 0;
-                            Card topCard = cardStackTwo.getTopCard();
-                            if (topCard != null && topCard.cardId == 0) {
-                                n2 = 1;
-                            } else {
-                                CardRun ok_02 = cardStackTwo.runs.peekFirst();
-                                if (ok_02 != null && ok_02.cards[0].cardId == 0 && cardStackTwo.getCardCount() < 12) {
-                                    n2 = 1;
-                                }
-                            }
-                            if (n2 != 0) {
-                                if (this.solverContext.logLevel <= 5) {
-                                    this.solverContext.log("Invoking play() due to unknown cards, stack " + cardStackTwo.stackIndex + " lastCard " + topCard + " peek " + cardStackTwo.runs.peekFirst());
-                                }
-                                this.solverContext.sleepBriefly(1000L, "Wait for auto to complete");
-                            }
-                            this.search(n13, 0);
-                        }
-                        if (this.currenBackout >= 0) {
-                            --this.currenBackout;
-                        }
-                    }
-                    --this.solverContext.searchState.depth;
-                    cardStackOne.undoMoveCardsFrom(cardStackTwo, n7, null);
-                }
+            } else if (topRank < lowestRedFoundationRank) {
+                lowestRedFoundationRank = topRank;
             }
         }
-        this.solverContext.complexity = complexity;
-        return bl;
+        return new int[]{lowestBlackFoundationRank, lowestRedFoundationRank};
+    }
+
+    /**
+     * 判断某个 foundation 是否已经“安全地”允许继续自动推进。
+     */
+    private boolean shouldAutoAdvanceFoundation(
+            CardStack foundationStack,
+            int lowestBlackFoundationRank,
+            int lowestRedFoundationRank
+    ) {
+        int foundationTopRank = foundationStack.getTopRank();
+        if (foundationTopRank < 2) {
+            return true;
+        }
+        if (FreeCellSolver.suitColor(foundationStack.foundationSuit)) {
+            return foundationTopRank <= lowestRedFoundationRank;
+        }
+        return foundationTopRank <= lowestBlackFoundationRank;
+    }
+
+    /**
+     * 针对一个 foundation 目标，依次尝试一组来源。
+     *
+     * 自动上 foundation 的模式只有当某个来源真正产出了有效递归分支时，
+     * 才会返回 `true`，这样外层就能马上停掉当前 mode。
+     */
+    private boolean tryAutomaticFoundationMoveFromSources(
+            CardStack foundationStack,
+            CardStack[] sourceStacks,
+            int moveMode,
+            int previousEncodedMove,
+            String productiveLogPrefix
+    ) {
+        for (CardStack sourceStack : sourceStacks) {
+            if (this.tryMoveStackAndRecurse(foundationStack, sourceStack, moveMode, previousEncodedMove)) {
+                if (this.solverContext.logLevel <= 3) {
+                    this.solverContext.log(productiveLogPrefix + sourceStack.stackIndex + " was productive");
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 针对一个 foundation 目标，依次尝试一组常规来源。
+     */
+    private boolean tryFoundationMovesFromSources(
+            CardStack foundationStack,
+            CardStack[] sourceStacks,
+            int moveMode,
+            int previousEncodedMove
+    ) {
+        for (CardStack sourceStack : sourceStacks) {
+            if (this.currenBackout > 0) {
+                return false;
+            }
+            if (this.tryMoveStackAndRecurse(foundationStack, sourceStack, moveMode, previousEncodedMove)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 对一组具体的“目标栈 / 来源栈”做完整尝试。
+     *
+     * 这个方法的责任只有四步：
+     * 1. 过滤明显不可能或不值得试的组合；
+     * 2. 评估这次 join 理论上能搬多少张；
+     * 3. 检查 FreeCell 对空列/空闲单元的搬运上限；
+     * 4. 真正执行移动、递归搜索，然后把现场恢复。
+     */
+    private boolean tryMoveStackAndRecurse(
+            CardStack destinationStack,
+            CardStack sourceStack,
+            int moveMode,
+            int previousEncodedMove
+    ) {
+        if (this.shouldRejectMoveImmediately(destinationStack, sourceStack, previousEncodedMove)) {
+            return false;
+        }
+
+        int originalComplexity = this.solverContext.complexity;
+        try {
+            int sourceRunCardCount = sourceStack.topRun.cardCount;
+            int joinMode = this.resolveJoinMode(moveMode, destinationStack);
+            int joinSplitCount = destinationStack.evaluateJoinFrom(sourceStack, joinMode, false);
+            this.applySplitMatchesAcePenaltyIfNeeded(moveMode, sourceStack, joinSplitCount);
+            if (joinSplitCount < 0) {
+                return false;
+            }
+
+            int movedCardCount = joinSplitCount == 0 ? sourceRunCardCount : joinSplitCount;
+            if (!this.isMoveLengthAllowed(moveMode, joinMode, joinSplitCount, movedCardCount)) {
+                return false;
+            }
+            if (!this.acceptsPartialMove(moveMode, sourceRunCardCount, movedCardCount)) {
+                return false;
+            }
+            return this.executeMoveAndSearch(
+                    destinationStack,
+                    sourceStack,
+                    moveMode,
+                    sourceRunCardCount,
+                    movedCardCount,
+                    joinSplitCount
+            );
+        } finally {
+            this.solverContext.complexity = originalComplexity;
+        }
+    }
+
+    /**
+     * 过滤掉明显无效的候选。
+     *
+     * 这里有一段“用十进制位数比较上一手来源/目标”的老逻辑看起来很奇怪，
+     * 但它是原实现的一部分，所以这里保留相同规则，只把含义写清楚。
+     */
+    private boolean shouldRejectMoveImmediately(
+            CardStack destinationStack,
+            CardStack sourceStack,
+            int previousEncodedMove
+    ) {
+        if (destinationStack == sourceStack) {
+            return true;
+        }
+        if (sourceStack.topRun == null) {
+            return true;
+        }
+        if (previousEncodedMove <= 0) {
+            return false;
+        }
+
+        int previousDestinationCode = previousEncodedMove % 100;
+        int previousSourceCode = previousEncodedMove / 100 % 100;
+        return destinationStack.stackIndex == previousSourceCode && sourceStack.stackIndex == previousDestinationCode;
+    }
+
+    /**
+     * 把搜索层面的 move mode 转成 `CardStack.evaluateJoinFrom(...)` 能理解的 join mode。
+     *
+     * 这些数字本身是老代码留下来的协议值，所以这里不试图“发明新规则”，
+     * 只是把原来的 `switch` 明确成单独方法。
+     */
+    private int resolveJoinMode(int moveMode, CardStack destinationStack) {
+        switch (moveMode) {
+            case 1:
+            case 7:
+                return 1;
+            case 2:
+                return 3;
+            case 3:
+                return 2;
+            case 4:
+                return destinationStack.topRun == null ? 2 : 1;
+            case 5:
+                return 6;
+            case 6:
+            case 9:
+                return 1;
+            case 8:
+                return destinationStack.topRun == null ? 2 : 1;
+            case 10:
+                return 2;
+            default:
+                return -1;
+        }
+    }
+
+    /**
+     * `matchWithSplit` 有一个额外启发式：
+     * 如果这次拆分会把一张“下一步就能上 foundation 的牌”压回去，就下调 complexity。
+     */
+    private void applySplitMatchesAcePenaltyIfNeeded(int moveMode, CardStack sourceStack, int joinSplitCount) {
+        if (moveMode != 9 || joinSplitCount <= 0 || joinSplitCount >= sourceStack.topRun.cardCount) {
+            return;
+        }
+
+        Card newlyCoveredCard = sourceStack.topRun.cards[sourceStack.topRun.cardCount - joinSplitCount - 1];
+        if (this.isNextCardForAnyFoundation(newlyCoveredCard)) {
+            this.solverContext.complexity += this.splitMatchesAcePenalty;
+            if (this.solverContext.logLevel <= 3) {
+                this.solverContext.log("Adjusted complexity by splitMatchesAce to " + this.solverContext.complexity);
+            }
+        }
+    }
+
+    /**
+     * 判断一张牌是不是任意 foundation 的下一张合法牌。
+     */
+    private boolean isNextCardForAnyFoundation(Card candidateCard) {
+        CardStack[] foundationStacks = this.solverContext.searchState.stackGroups[2].stacks;
+        return foundationStacks[0].getTopCardValue() + 1 == candidateCard.cardId
+                || foundationStacks[1].getTopCardValue() + 1 == candidateCard.cardId
+                || foundationStacks[2].getTopCardValue() + 1 == candidateCard.cardId
+                || foundationStacks[3].getTopCardValue() + 1 == candidateCard.cardId;
+    }
+
+    /**
+     * 检查这次移动长度是否超过 FreeCell 当前局面允许的最大搬运长度。
+     */
+    private boolean isMoveLengthAllowed(
+            int moveMode,
+            int joinMode,
+            int joinSplitCount,
+            int movedCardCount
+    ) {
+        if (movedCardCount <= 1 || !this.moveModeUsesTransferCapacityCheck(moveMode)) {
+            return true;
+        }
+
+        int emptyWorkAreaCount = this.solverContext.searchState.stackGroups[1].emptyStackCount;
+        int emptyTableauCount = this.solverContext.searchState.stackGroups[0].emptyStackCount;
+        if (joinMode == 2) {
+            --emptyTableauCount;
+        }
+
+        int maxTransferLength = (1 << emptyTableauCount) * (emptyWorkAreaCount + 1);
+        if (this.solverContext.logLevel <= 2) {
+            this.solverContext.log("Workarea spaces " + emptyWorkAreaCount + " stack spaces " + emptyTableauCount + " allow length " + maxTransferLength);
+        }
+        if (movedCardCount > maxTransferLength) {
+            if (this.solverContext.logLevel <= 2) {
+                this.solverContext.log("Move of " + joinSplitCount + " denied because workarea spaces " + emptyWorkAreaCount + " and stack spaces " + emptyTableauCount);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 需要受“可搬运长度”限制的 mode。
+     */
+    private boolean moveModeUsesTransferCapacityCheck(int moveMode) {
+        return moveMode == 6
+                || moveMode == 9
+                || moveMode == 8
+                || moveMode == 3
+                || moveMode == 10
+                || moveMode == 2;
+    }
+
+    /**
+     * 某些 mode 只接受“整段移动”，不接受从 top run 里拆一截出来。
+     */
+    private boolean acceptsPartialMove(int moveMode, int sourceRunCardCount, int movedCardCount) {
+        if (movedCardCount == sourceRunCardCount) {
+            return true;
+        }
+        return moveMode != 6 && moveMode != 8 && moveMode != 2;
+    }
+
+    /**
+     * 真正执行一次移动，并在新状态上继续递归。
+     *
+     * 无论后面搜索是否继续，最后都要把 depth 和牌面状态恢复回来，
+     * 这样外层枚举下一个候选时看到的还是同一个现场。
+     */
+    private boolean executeMoveAndSearch(
+            CardStack destinationStack,
+            CardStack sourceStack,
+            int moveMode,
+            int sourceRunCardCount,
+            int movedCardCount,
+            int joinSplitCount
+    ) {
+        int moveFlags = destinationStack.topRun != null ? 2 : 0;
+        int undoMoveToken = destinationStack.moveCardsFrom(sourceStack, joinSplitCount, null);
+        if (undoMoveToken < 0) {
+            return false;
+        }
+
+        if (this.solverContext.logLevel <= 2) {
+            this.solverContext.log("Completed join with split of " + undoMoveToken);
+        }
+        if (movedCardCount != sourceRunCardCount) {
+            moveFlags |= 1;
+        }
+        if (moveMode == 7) {
+            moveFlags |= 16;
+        }
+
+        int encodedMove = Move.buildEncodedMove(moveFlags, movedCardCount, sourceStack, destinationStack);
+        this.solverContext.searchState.moves[this.solverContext.searchState.depth] = encodedMove;
+        ++this.solverContext.searchState.depth;
+
+        boolean producedSearchBranch = false;
+        try {
+            long stateHash = this.computeStateHash();
+            if (moveMode == 7 || !this.isReversalOfPreviousMove(destinationStack, sourceStack)) {
+                if (moveMode != 7) {
+                    this.currenBackout = this.checkCurrentStateHash(stateHash);
+                }
+                if (this.currenBackout < 0) {
+                    this.updateHashState(stateHash);
+                    producedSearchBranch = true;
+                    this.waitForUnknownCardResolutionIfNeeded(sourceStack);
+                    this.search(encodedMove, 0);
+                }
+                if (this.currenBackout >= 0) {
+                    --this.currenBackout;
+                }
+            }
+            return producedSearchBranch;
+        } finally {
+            --this.solverContext.searchState.depth;
+            destinationStack.undoMoveCardsFrom(sourceStack, undoMoveToken, null);
+        }
+    }
+
+    /**
+     * 某些局面在移动后会露出“未知牌”，原实现会暂停一下等待外部状态稳定。
+     */
+    private void waitForUnknownCardResolutionIfNeeded(CardStack sourceStack) {
+        Card topCard = sourceStack.getTopCard();
+        CardRun firstRun = sourceStack.runs.peekFirst();
+        boolean exposedUnknownTopCard = topCard != null && topCard.cardId == 0;
+        boolean exposedUnknownBottomCard = firstRun != null
+                && firstRun.cards[0].cardId == 0
+                && sourceStack.getCardCount() < 12;
+
+        if (!exposedUnknownTopCard && !exposedUnknownBottomCard) {
+            return;
+        }
+        if (this.solverContext.logLevel <= 5) {
+            this.solverContext.log("Invoking play() due to unknown cards, stack " + sourceStack.stackIndex + " lastCard " + topCard + " peek " + firstRun);
+        }
+        this.solverContext.sleepBriefly(1000L, "Wait for auto to complete");
     }
 
     final int countCardNum() {
@@ -702,8 +949,6 @@ final class FreeCellSolver extends BaseSolver {
      * cardRun是否有效
      *
      * 当前那些是只有一个有效的  或者压根就是null
-     *
-     * 是不是空列或者只有一个可以出的列
      * @param gamState
      * @return
      */
@@ -715,7 +960,6 @@ final class FreeCellSolver extends BaseSolver {
         if (gamState.stackGroups[2] == null) {
             return false;
         }
-        //是不是只有一个或者0个有效
         int flag = 1;
         CardStack[] cardStackArray = gamState.stackGroups[0].stacks;
         for (int i = 0; i < cardStackArray.length; ++i) {
