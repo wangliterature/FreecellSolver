@@ -13,7 +13,6 @@ import java.util.List;
  * 所以这里保留位编码方案，同时把相关工具方法改成了能看懂的名字。
  */
 public final class Move {
-   int encodedMove;
    int moveTypeFlags;
    StackGroup destinationGroup;
    StackGroup sourceGroup;
@@ -22,9 +21,6 @@ public final class Move {
    CardStack sourceStack;
    int sourceStackIndex;
    int movedCardCount;
-   int specialDestinationCode;
-   int specialSourceCode;
-   int specialCardCount;
    boolean specialMove;
    boolean autoMove;
    boolean splitMove;
@@ -35,8 +31,7 @@ public final class Move {
     * 这里在构造时一次性解码，是为了让后面的展示逻辑可以直接读字段，
     * 不必到处重复位运算。
     */
-   Move(SolverContext context, int encodedMove, int suppliedFlags) {
-      this.encodedMove = encodedMove;
+   Move(SolverContext context, int encodedMove) {
       this.moveTypeFlags = encodedMove >> 24;
       this.specialMove = (this.moveTypeFlags & 8) != 0;
       this.autoMove = (this.moveTypeFlags & 0x10) != 0;
@@ -48,10 +43,6 @@ public final class Move {
       this.movedCardCount = (encodedMove & 0xF0000) >> 16;
 
       if (this.specialMove) {
-         this.specialDestinationCode = encodedMove & 0xFF;
-         this.specialSourceCode = encodedMove >> 8 & 0xFF;
-         this.specialCardCount = encodedMove >> 16 & 0xFF;
-
          if (context.bridge.overrideDestinationGroupIndex >= 0) {
             this.destinationGroup = context.initialState.stackGroups[context.bridge.overrideDestinationGroupIndex];
             this.destinationStack = this.destinationGroup.stacks[0];

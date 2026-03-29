@@ -10,7 +10,7 @@ package com.solvitaire.app;
  * 2.
  */
 public final class StackGroup {
-    private final SolverContext context;
+    private SolverContext context;
     //组id
     int groupIndex;
     //名字

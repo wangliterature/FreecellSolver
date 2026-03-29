@@ -15,19 +15,15 @@ import java.nio.file.Paths;
  */
 public class SolverContext {
    int logLevel = 0;
-   int runMode = 3;
    int searchBudget = 0;
    int complexity = 0;
    int depth = 0;
    long searchStepCount = 0L;
    boolean foundCompleteSolution = false;
-   boolean searchInitialized = false;
-   boolean replayRequested = false;
    SolverBridge bridge;
    GameState initialState;
    GameState searchState;
    GameState bestSolutionState = new GameState();
-   GameState playbackState = new GameState();
    SolverFileSet fileSet;
 
    /**
@@ -111,18 +107,6 @@ public class SolverContext {
       }
    }
 
-   /**
-    * 确保目录存在。
-    *
-    * 抽成静态工具方法，是为了让“需要目录时先创建”的意图在调用点一眼可见。
-    */
-   static void ensureDirectoryExists(String path) {
-      try {
-         Files.createDirectories(Paths.get(path));
-      } catch (IOException exception) {
-         throw new IllegalStateException("Failed to create directory " + path, exception);
-      }
-   }
 
    /**
     * 把输入文件里的牌面字符串转成内部数值编码。

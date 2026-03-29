@@ -13,8 +13,6 @@ import java.util.Arrays;
 final class CardRun {
     // 当前有多少张牌
     public int cardCount;
-    // 是否背面（蜘蛛纸牌常见）
-    boolean isFaceDown;
     // 最多13张（K→A）   最优的时候就是13张
     Card[] cards = new Card[13];
     // 所属牌栈   card所在牌栈    card Run所在牌栈

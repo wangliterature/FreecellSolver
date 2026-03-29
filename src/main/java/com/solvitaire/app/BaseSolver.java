@@ -11,9 +11,6 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.stream.LongStream;
 
-/*
- * Renamed from com.solvitaire.app.op
- */
 public abstract class BaseSolver {
     private static final int SEARCH_OUTCOME_CONTINUE = 0;
     private static final int SEARCH_OUTCOME_PRUNE = 1;
@@ -220,7 +217,7 @@ public abstract class BaseSolver {
      */
     private boolean initializeSolverAndLogStart() {
         if (!this.initializeSolver()) {
-            this.solverContext.log("*** " + this.getSolverName() + " initialisation failed for game mode " + this.solverContext.runMode);
+            this.solverContext.log("*** " + this.getSolverName() + " initialisation failed for game mode 3");
             return false;
         }
 
@@ -254,8 +251,6 @@ public abstract class BaseSolver {
         if (this.solverContext.logLevel <= 4) {
             this.solverContext.log("In process, entering solve loop");
         }
-        this.solverContext.searchInitialized = true;
-
         while (this.solverContext.searchBudget > -this.searchCreditLimit) {
             this.initializeDuplicateStateBuckets();
             this.prepareSearchIteration();
@@ -347,20 +342,10 @@ public abstract class BaseSolver {
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("Play solution");
         }
-        this.solverContext.initialState.moveAnnotations = Arrays.copyOf(this.solverContext.bestSolutionState.moveAnnotations, this.solverContext.bestSolutionState.moveAnnotations.length);
-        if (!this.solverContext.replayRequested) {
-            if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Solved so exit process loop");
-            }
-            return true;
+          if (this.solverContext.logLevel <= 5) {
+            this.solverContext.log("Solved so exit process loop");
         }
-
-        if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log("Playback aborted, stay in play loop");
-        }
-        this.solverContext.replayRequested = false;
-        this.solverContext.searchBudget = 0;
-        return false;
+        return true;
     }
 
     private boolean sieve() {
@@ -524,7 +509,7 @@ public abstract class BaseSolver {
      */
     final boolean loadCheckpointState() {
         if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log("Into loadCheckpoint for game mode " + this.solverContext.runMode);
+            this.solverContext.log("Into loadCheckpoint for game mode 3");
         }
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("Capture request in standalone mode so set readcards to true");
@@ -1137,7 +1122,7 @@ public abstract class BaseSolver {
     private void markSolverAsSolved() {
         this.isSolver = true;
         if (this.solverContext.logLevel <= 9) {
-            this.solverContext.log("Mode " + this.solverContext.runMode + " (challenge " + this.solverContext.fileSet.challengeId + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.startTime) / 1000L);
+            this.solverContext.log("Mode 3 (challenge " + this.solverContext.fileSet.challengeId + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.startTime) / 1000L);
         }
         this.printCurrentFinishLog(9, this.solverContext.bestSolutionState, "Solved best moves");
         this.saveResult();
@@ -1216,7 +1201,7 @@ public abstract class BaseSolver {
         return gameState.depth + 1;
     }
 
-    final Card getCardFromPool(CardStack cardStack, int cardData) {
+    final Card getCardFromPool(int cardData) {
         if (this.poolCardIndex == this.cardPoolDefaultSize) {
             this.solverContext.failFast("Trying to allocate more than " + this.cardPoolDefaultSize + " cards");
         }
@@ -1225,7 +1210,6 @@ public abstract class BaseSolver {
         }
         Card card = this.cardPoolArray[this.poolCardIndex++];
         card.initFromEncodedValue(cardData);
-        card.ownerStack = cardStack;
         return card;
     }
 

@@ -11,12 +11,9 @@ import java.nio.file.Path;
  */
 public final class SolverFileSet {
    int challengeId = 0;
-   int targetSuit = 0;
    int maxSolutionMoves = 999;
    int clearedBoardCount = 0;
    String workingDirectoryPath;
-   String variantKey = "freecell";
-
    private final String inputFileName;
 
    /**
@@ -31,14 +28,6 @@ public final class SolverFileSet {
       this.inputFileName = absoluteInputFile.getFileName().toString();
    }
 
-   /**
-    * 返回输入文件名。
-    *
-    * 单独提供这个方法，是为了让调用方表达“我要文件名”而不是“我要自己拼路径”。
-    */
-   String inputFileName() {
-      return this.inputFileName;
-   }
 
    /**
     * 返回输入文件完整路径。

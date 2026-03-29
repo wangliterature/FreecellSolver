@@ -21,9 +21,7 @@ import java.util.List;
  * 这样写的目的不是追求最少代码，而是让阅读顺序和运行顺序一致。
  */
 public final class FreeCellStandaloneMain {
-   private static final int FREECELL_VARIANT_TYPE_ID = 3;
    private static final int DEFAULT_CHALLENGE_ID = 1;
-   private static final String FREECELL_VARIANT_KEY = "freecell";
    private static final String DEFAULT_SAMPLE_INPUT = "sample/cards6.txt";
 
    /**
@@ -97,10 +95,8 @@ public final class FreeCellStandaloneMain {
       solverContext.logLevel = 1;
       solverContext.fileSet = new SolverFileSet(preparedInputFile);
       solverContext.fileSet.challengeId = DEFAULT_CHALLENGE_ID;
-      solverContext.fileSet.variantKey = FREECELL_VARIANT_KEY;
       solverContext.initialState = createInitialFreeCellState(solverContext);
       solverContext.bestSolutionState = new GameState();
-      solverContext.playbackState = new GameState();
       return solverContext;
    }
 
@@ -232,9 +228,6 @@ public final class FreeCellStandaloneMain {
       String normalizedLine = removeUtf8Bom(firstLine).trim().toLowerCase();
       int commaIndex = normalizedLine.indexOf(',');
       String variantKey = commaIndex >= 0 ? normalizedLine.substring(0, commaIndex) : normalizedLine;
-      if (!FREECELL_VARIANT_KEY.equals(variantKey)) {
-         throw new IllegalArgumentException("Input must start with 'freecell' header, but was: " + firstLine);
-      }
    }
 
    /**

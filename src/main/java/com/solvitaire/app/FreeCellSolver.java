@@ -999,7 +999,7 @@ final class FreeCellSolver extends BaseSolver {
                         this.solverContext.log("Loading card " + encodedCard + " into stack " + stackIndex + " level " + rowIndex);
                     }
                     CardRun currentTopRun = targetStack.topRun;
-                    CardRun newSingleCardRun = new CardRun(this.getCardFromPool(targetStack, encodedCard));
+                    CardRun newSingleCardRun = new CardRun(this.getCardFromPool(encodedCard));
                     if (currentTopRun != null) {
                         int joinMode = targetStack.evaluateJoin(currentTopRun, newSingleCardRun, false, false);
                         if (joinMode > 0) {

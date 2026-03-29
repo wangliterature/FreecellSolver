@@ -37,7 +37,7 @@ abstract class SolverBridge {
     * 普通移动和特殊移动的解释方式不同，所以这里先分流，再进入各自的小方法。
     */
    String describeMove(int encodedMove, int moveFlags) {
-      Move decodedMove = new Move(this.context, encodedMove, moveFlags);
+      Move decodedMove = new Move(this.context, encodedMove);
       String encodedMoveText = Move.encodeMoveAsText(encodedMove);
       if ((moveFlags & 8) != 0) {
          return this.describeSpecialMove(decodedMove, encodedMoveText);
