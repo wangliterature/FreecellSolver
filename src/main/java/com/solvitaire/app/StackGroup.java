@@ -73,10 +73,10 @@ public final class StackGroup {
      */
     int addCompletedSuitRun(CardRun completedSuitRun) {
         if ((this.flags & 0x40) == 0) {
-            this.context.fail("Cannot add a run to a stackset that is not SpiderSuits");
+            this.context.failFast("Cannot add a run to a stackset that is not SpiderSuits");
         }
         if (completedSuitRun.cardCount != 13) {
-            this.context.fail("Trying to remove suit run that is not a full suit");
+            this.context.failFast("Trying to remove suit run that is not a full suit");
         }
         int stackIndex = 0;
         while (stackIndex < this.stacks.length) {
@@ -84,7 +84,7 @@ public final class StackGroup {
             ++stackIndex;
         }
         if (stackIndex == 8) {
-            this.context.fail("Add of suit stack when no available slots");
+            this.context.failFast("Add of suit stack when no available slots");
         }
         this.stacks[stackIndex].appendRun(completedSuitRun);
         return stackIndex;
@@ -99,7 +99,7 @@ public final class StackGroup {
     CardRun removeCompletedSuitRun() {
 //        必须是 Spider 模式（支持花色收集）
         if ((this.flags & 0x40) == 0) {
-            this.context.fail("Cannot remove a run from a stackset that is not SpiderSuits");
+            this.context.failFast("Cannot remove a run from a stackset that is not SpiderSuits");
         }
         int stackIndex = -1;
         int stackIndexTemp = 0;
@@ -109,7 +109,7 @@ public final class StackGroup {
             stackIndex = stackIndexTemp++;
         }
         if (stackIndex < 0) {
-            this.context.fail("Remove of suit stack when none available");
+            this.context.failFast("Remove of suit stack when none available");
         }
         CardRun completedSuitRun = this.stacks[stackIndex].popTopRun();
         return completedSuitRun;

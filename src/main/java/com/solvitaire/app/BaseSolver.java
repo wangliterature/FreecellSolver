@@ -220,7 +220,7 @@ public abstract class BaseSolver {
                 baseSolver.solverContext.log("Max heap memory: " + heapMax + " used: " + heapUse + " bucket size: " + baseSolver.bucketSize);
             }
         } else {
-            baseSolver.solverContext.fail("ERROR<br>System has insufficient available RAM (" + heapMax / 1024000L + " megabytes)<br>Solitaire Solver would run too slowly");
+            baseSolver.solverContext.failFast("ERROR<br>System has insufficient available RAM (" + heapMax / 1024000L + " megabytes)<br>Solitaire Solver would run too slowly");
         }
 
         //初始化部分
@@ -330,7 +330,7 @@ public abstract class BaseSolver {
         if (this.solverContext.searchState.depth > 3 && this.solverContext.searchState.depth == this.K[0] + 1) {
             int n2 = this.solverContext.searchState.depth - 4;
             while (n2 < this.solverContext.searchState.depth && n2 < this.K.length - 1) {
-                if (!Move.undoOpt(Move.b(this.K[n2 + 1]), this.solverContext.searchState.moves[n2])) {
+                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.K[n2 + 1]), this.solverContext.searchState.moves[n2])) {
                     return false;
                 }
                 ++n2;
@@ -355,7 +355,7 @@ public abstract class BaseSolver {
             }
             int n2 = 1;
             while (n2 < this.K.length) {
-                if (!Move.undoOpt(Move.b(this.K[n2]), this.solverContext.searchState.moves[this.solverContext.searchState.depth - this.K.length + n2])) break;
+                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.K[n2]), this.solverContext.searchState.moves[this.solverContext.searchState.depth - this.K.length + n2])) break;
                 ++n2;
             }
             if (n2 == this.K.length) {
@@ -365,7 +365,7 @@ public abstract class BaseSolver {
         } else {
             int n3 = 0;
             while (n3 < this.solverContext.searchState.depth && n3 < this.K.length - 1) {
-                if (!Move.undoOpt(Move.b(this.K[n3 + 1]), this.solverContext.searchState.moves[n3])) break;
+                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.K[n3 + 1]), this.solverContext.searchState.moves[n3])) break;
                 ++n3;
             }
             if (n3 >= this.K[0]) {
@@ -421,7 +421,7 @@ public abstract class BaseSolver {
 
     final long sieveNum2(int sieveIndex, int n3, long l2) {
         if (sieveIndex <= 0) {
-            this.solverContext.fail("Logic error: trying to hash invalid card");
+            this.solverContext.failFast("Logic error: trying to hash invalid card");
         }
         l2 = (long)this.sieveArray[sieveIndex] * (this.longRandom1[this.randomUseIndex] + (l2 & Integer.MAX_VALUE)) * (long)(n3 + 1);
         ++this.randomUseIndex;
@@ -430,7 +430,7 @@ public abstract class BaseSolver {
 
     private long sieveNum(int sieveIndex, long num2) {
         if (sieveIndex <= 0) {
-            this.solverContext.fail("Logic error: trying to hash invalid card");
+            this.solverContext.failFast("Logic error: trying to hash invalid card");
         }
         num2 = (long)this.sieveArray[sieveIndex] * (this.longRandom2[this.randomUseIndex] + (num2 & Integer.MAX_VALUE));
         ++this.randomUseIndex;
@@ -446,7 +446,7 @@ public abstract class BaseSolver {
             StringBuffer stringBuffer = this.createStateHeader(headInfo, bestState.depth);
             int moveIndex = 0;
             while (moveIndex < bestState.depth) {
-                stringBuffer.append(Move.undoOpt(bestState.moves[moveIndex]));
+                stringBuffer.append(Move.encodeMoveAsText(bestState.moves[moveIndex]));
                 stringBuffer.append(",");
                 ++moveIndex;
             }
@@ -492,7 +492,7 @@ public abstract class BaseSolver {
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("Capture request in standalone mode so set readcards to true");
         }
-        String[] contentArray = this.solverContext.readAllLines(String.valueOf(this.solverContext.fileSet.outputDirectoryPath) + this.solverContext.fileSet.getInputFileName());
+        String[] contentArray = this.solverContext.readUtf8Lines(this.solverContext.fileSet.inputFilePath());
         if (contentArray == null) {
             return false;
         }
@@ -504,7 +504,7 @@ public abstract class BaseSolver {
             ++contentIndex;
         }
         if (contentIndex < 6) {
-            this.solverContext.fail("Input file has too few lines");
+            this.solverContext.failFast("Input file has too few lines");
         } else if (!this.loadStateFromLines((String)name, contentArray, contentIndex)) {
             return false;
         }
@@ -515,12 +515,12 @@ public abstract class BaseSolver {
         StringBuffer stringBuffer = new StringBuffer();
         int n2 = 0;
         while (n2 < nY2.depth) {
-            stringBuffer.append(Move.undoOpt(nY2.moves[n2]));
+            stringBuffer.append(Move.encodeMoveAsText(nY2.moves[n2]));
             stringBuffer.append(",");
             ++n2;
         }
         if (this.solverContext.fileSet != null) {
-            this.solverContext.writeTextFile(String.valueOf(this.solverContext.fileSet.outputDirectoryPath) + this.solverContext.fileSet.getSolutionFileName(), stringBuffer.toString(), true);
+            this.solverContext.writeUtf8TextFile(this.solverContext.fileSet.solutionFilePath(), stringBuffer.toString(), true);
         }
     }
 
@@ -648,7 +648,7 @@ public abstract class BaseSolver {
 
     final int everyCardNum(HashMap<Integer,Integer> hashMap, int cardId) {
         if (cardId == -1) {
-            this.solverContext.fail("ERROR - Card could not be identified");
+            this.solverContext.failFast("ERROR - Card could not be identified");
         }
         int cardCount = 1;
         if (hashMap.get(cardId) == null) {
@@ -691,7 +691,7 @@ public abstract class BaseSolver {
                         if (everyCardNum > maxNum) {
                             Card nT2 = cardRun.cards[cardRunIndex];
                             Card nT3 = cardRun.cards[cardRunIndex];
-                            this.solverContext.fail("ERROR - Too many " + BaseSolver.bigZm(nT2.cardId) + " of " + BaseSolver.matchSuitColor(nT3.cardId) + "s in the deck");
+                            this.solverContext.failFast("ERROR - Too many " + BaseSolver.bigZm(nT2.cardId) + " of " + BaseSolver.matchSuitColor(nT3.cardId) + "s in the deck");
                         }
                         ++everyStackNum;
                     }
@@ -743,7 +743,7 @@ public abstract class BaseSolver {
                     }
                     if (n8 != 0) {
                         if (this.solverContext.logLevel < 3) {
-                            this.solverContext.log("Move " + Move.undoOpt(this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1]) + " is a reversal of " + Move.undoOpt(this.solverContext.searchState.moves[depth]));
+                            this.solverContext.log("Move " + Move.encodeMoveAsText(this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1]) + " is a reversal of " + Move.encodeMoveAsText(this.solverContext.searchState.moves[depth]));
                         }
                         return true;
                     }
@@ -950,7 +950,7 @@ public abstract class BaseSolver {
 
     final Card getCardFromPool(CardStack cardStack, int cardData) {
         if (this.poolCardIndex == this.cardPoolDefaultSize) {
-            this.solverContext.fail("Trying to allocate more than " + this.cardPoolDefaultSize + " cards");
+            this.solverContext.failFast("Trying to allocate more than " + this.cardPoolDefaultSize + " cards");
         }
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("@@@ Allocating card #" + this.poolCardIndex + " value " + cardData);

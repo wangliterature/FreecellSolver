@@ -77,7 +77,7 @@ final class CardStack {
      */
     final CardRun appendRun(CardRun run) {
         if (run.cardCount == 0) {
-            this.context.fail("ERROR adding empty run to stack");
+            this.context.failFast("ERROR adding empty run to stack");
         }
         if (this.topRun == null && this.ownerGroup != null) {
             --this.ownerGroup.emptyStackCount;
@@ -180,7 +180,7 @@ final class CardStack {
                 return joinCount;
             }
             if (splitJoinCount > 0) {
-                this.context.fail("Mismatched join caused split");
+                this.context.failFast("Mismatched join caused split");
                 return joinCount;
             }
             int sourceRunCount = sourceStack.runs.size();
@@ -292,7 +292,7 @@ final class CardStack {
                 cardId %= 100;
                 CardRun completedSuitRun = completedSuitGroup.removeCompletedSuitRun();
                 if (completedSuitRun.cards[0].suit != removedSuit) {
-                    this.context.fail("Logic error - move says remove suit " + removedSuit + " but suit stack is " + completedSuitRun.cards[0].suit);
+                    this.context.failFast("Logic error - move says remove suit " + removedSuit + " but suit stack is " + completedSuitRun.cards[0].suit);
                 }
                 this.appendRun(completedSuitRun);
             }

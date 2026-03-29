@@ -58,7 +58,7 @@ final class FreeCellSolver extends BaseSolver {
         this.filePath = this.solverContext.workspaceRootPath + "freecell" + File.separator;
         this.tableCardArray = new int[50][this.stackSize];
         this.tableArray = new int[this.stackSize][MAX_TABLEAU_HEIGHT];
-        if (!this.solverContext.bridge.solverInitialState()) {
+        if (!this.solverContext.bridge.loadInitialStateFromInputFile()) {
             return false;
         }
         //复制状态
@@ -602,7 +602,7 @@ final class FreeCellSolver extends BaseSolver {
                     if (n2 == 7) {
                         n12 |= 16;
                     }
-                    int n13 = Move.undoOpt(n12, n8, cardStackTwo, cardStackOne);
+                    int n13 = Move.buildEncodedMove(n12, n8, cardStackTwo, cardStackOne);
                     this.solverContext.searchState.moves[this.solverContext.searchState.depth] = n13;
                     ++this.solverContext.searchState.depth;
                     long l2 = this.computeStateHash();
@@ -712,51 +712,63 @@ final class FreeCellSolver extends BaseSolver {
         return flag != 0;
     }
 
+    /**
+     * 把文本输入里的 8 列牌面装进 solver 的初始状态。
+     *
+     * 这里按“行 -> 列 -> 牌堆”的顺序处理，
+     * 是为了让输入文件结构和代码结构一一对应，排查问题时更容易对照。
+     */
     @Override
-    final boolean loadStateFromLines(String string, String[] stringArray, int n2) {
-        StackGroup fristStackGroup = this.solverContext.initialState.stackGroups[0];
-        int n3 = 7;
-        int[] nArray = new int[]{7, 7, 7, 7, 6, 6, 6, 6};
+    final boolean loadStateFromLines(String gameName, String[] inputLines, int lineCount) {
+        StackGroup tableauGroup = this.solverContext.initialState.stackGroups[0];
+        int tableauRowCount = 7;
+        int[] stackHeights = new int[]{7, 7, 7, 7, 6, 6, 6, 6};
 
-        if (n2 != 8) {
-            this.solverContext.invalidInput("FreeCell input file must have 7 rows of cards", false);
+        if (lineCount != 8) {
+            this.solverContext.throwInvalidInput("FreeCell input file must have 7 rows of cards");
         }
         try {
             //解析数据，将数据放入， 创建cardRun
-            for (int i = 0; i < n3; ++i) {
-                String[] stringArray3 = stringArray[i + 1].split(",");
-                for (int j = 0; j < stringArray3.length; ++j) {
-                    if (nArray[j] <= i) continue;
-                    CardStack tempCardStack = fristStackGroup.stacks[j];
-                    String entry = stringArray3[j];
-                    int n5 = this.solverContext.parseCardCode(entry);
-                    this.tableCardArray[i][j] = n5;
+            for (int rowIndex = 0; rowIndex < tableauRowCount; ++rowIndex) {
+                String[] rowEntries = inputLines[rowIndex + 1].split(",");
+                for (int stackIndex = 0; stackIndex < rowEntries.length; ++stackIndex) {
+                    if (stackHeights[stackIndex] <= rowIndex) continue;
+                    CardStack targetStack = tableauGroup.stacks[stackIndex];
+                    String cardToken = rowEntries[stackIndex];
+                    int encodedCard = this.solverContext.parseCardToken(cardToken);
+                    this.tableCardArray[rowIndex][stackIndex] = encodedCard;
                     if (this.solverContext.logLevel <= 2) {
-                        this.solverContext.log("Loading card " + n5 + " into stack " + j + " level " + i);
+                        this.solverContext.log("Loading card " + encodedCard + " into stack " + stackIndex + " level " + rowIndex);
                     }
-                    CardRun cardRun = tempCardStack.topRun;
-                    CardRun tempCreateRun = new CardRun(this.getCardFromPool(tempCardStack, n5));
-                    if (cardRun != null) {
-                        int n6 = tempCardStack.evaluateJoin(cardRun, tempCreateRun, false, false);
-                        if (n6 > 0) {
-                            cardRun.appendFromRun(tempCreateRun, n6);
+                    CardRun currentTopRun = targetStack.topRun;
+                    CardRun newSingleCardRun = new CardRun(this.getCardFromPool(targetStack, encodedCard));
+                    if (currentTopRun != null) {
+                        int joinMode = targetStack.evaluateJoin(currentTopRun, newSingleCardRun, false, false);
+                        if (joinMode > 0) {
+                            currentTopRun.appendFromRun(newSingleCardRun, joinMode);
                         } else {
-                            tempCardStack.appendRun(tempCreateRun);
+                            targetStack.appendRun(newSingleCardRun);
                         }
                     } else {
-                        tempCardStack.appendRun(tempCreateRun);
+                        targetStack.appendRun(newSingleCardRun);
                     }
                 }
             }
         } catch (Exception exception) {
-            this.solverContext.invalidInput("Error interpreting the card data.  Probably unexpected number of cards somewhere in the file.", false);
+            this.solverContext.throwInvalidInput("Error interpreting the card data.  Probably unexpected number of cards somewhere in the file.");
         }
         if (this.countCardNum() != 52) {
-            this.solverContext.invalidInput("ERROR - Did not read 52 cards from the file", false);
+            this.solverContext.throwInvalidInput("ERROR - Did not read 52 cards from the file");
         }
         return true;
     }
 
+    /**
+     * 生成一段状态头信息，主要用于调试日志。
+     *
+     * 这里仍然保留旧 solver 的统计项顺序，
+     * 因为很多调试输出已经默认按这个顺序阅读。
+     */
     @Override
     final StringBuffer createStateHeader(String string, int n2) {
         return new StringBuffer(
