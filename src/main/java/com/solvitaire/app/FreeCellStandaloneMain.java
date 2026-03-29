@@ -95,7 +95,6 @@ public final class FreeCellStandaloneMain {
    private static SolverContext createSolverContext(Path preparedInputFile) {
       SolverContext solverContext = new SolverContext();
       solverContext.logLevel = 1;
-      solverContext.variantTypeId = FREECELL_VARIANT_TYPE_ID;
       solverContext.fileSet = new SolverFileSet(preparedInputFile);
       solverContext.fileSet.challengeId = DEFAULT_CHALLENGE_ID;
       solverContext.fileSet.variantKey = FREECELL_VARIANT_KEY;

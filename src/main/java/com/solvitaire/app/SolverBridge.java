@@ -75,25 +75,7 @@ abstract class SolverBridge {
     */
    private String describeSpecialMove(Move decodedMove, String encodedMoveText) {
       StringBuilder description = new StringBuilder();
-      switch (this.context.variantTypeId) {
-         case 1:
-            if (decodedMove.movedCardCount == 1) {
-               description.append("recycle Pile back to Feed, then deal ")
-                  .append(decodedMove.specialCardCount)
-                  .append(decodedMove.specialCardCount == 1 ? " card" : " cards");
-            } else {
-               description.append("deal ")
-                  .append(decodedMove.specialCardCount)
-                  .append(decodedMove.specialCardCount == 1 ? " card from Feed" : " cards from Feed");
-            }
-            break;
-         case 2:
-            description.append("deal a new row from Feed to all stacks");
-            break;
-         default:
-            description.append("special move");
-            break;
-      }
+      description.append("special move");
       if (decodedMove.autoMove) {
          description.append(" (auto)");
       }

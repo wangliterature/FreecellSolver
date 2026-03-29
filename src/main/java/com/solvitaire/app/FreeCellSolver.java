@@ -90,7 +90,7 @@ final class FreeCellSolver extends BaseSolver {
         if (this.solverContext.searchStepCount++ % 100000L == 0L) {
             this.logWorkMoveInfo(4);
         }
-        currentStateResult = this.evaluateCurrentStateForSearch(previousEncodedMove);
+        currentStateResult = this.evaluateCurrentStateForSearch();
         if (currentStateResult != 0) {
             return;
         }
@@ -107,9 +107,9 @@ final class FreeCellSolver extends BaseSolver {
      *
      * Returns `0` when search should continue and `1` when the current branch should stop.
      */
-    private int evaluateCurrentStateForSearch(int previousEncodedMove) {
+    private int evaluateCurrentStateForSearch() {
         if (!this.isSolver) {
-            int currentStateResult = this.currentState(this.solverContext.searchState, previousEncodedMove, false);
+            int currentStateResult = this.evaluateCurrentState(this.solverContext.searchState, false);
             if (currentStateResult == 2) {
                 if (this.solverContext.logLevel <= 4) {
                     this.solverContext.log("Solved state solved so backout 999");

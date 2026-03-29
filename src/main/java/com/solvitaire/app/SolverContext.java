@@ -14,21 +14,15 @@ import java.nio.file.Paths;
  * 但把几个原本难理解的方法名换成了带语义的名字，方便阅读。
  */
 public class SolverContext {
-   static final String[] VARIANT_DISPLAY_NAMES = new String[]{"", "Klondike", "Spider", "FreeCell", "Pyramid", "TriPeaks"};
-
    int logLevel = 0;
-   int variantTypeId = 3;
    int runMode = 3;
    int searchBudget = 0;
    int complexity = 0;
    int depth = 0;
    long searchStepCount = 0L;
    boolean foundCompleteSolution = false;
-
    boolean searchInitialized = false;
    boolean replayRequested = false;
-   String workspaceRootPath = "";
-
    SolverBridge bridge;
    GameState initialState;
    GameState searchState;
