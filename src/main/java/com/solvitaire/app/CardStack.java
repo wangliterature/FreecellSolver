@@ -164,7 +164,7 @@ final class CardStack {
      * `0` means "move the whole top run object as-is",
      * positive values mean "move that many cards".
      */
-    final int evaluateJoinFrom(CardStack sourceStack, int moveMode, boolean exactMatchOnly) {
+    final int evaluateJoinFrom(CardStack sourceStack, int moveMode) {
         if (sourceStack.topRun == null) {
             return -1;
         }
@@ -172,12 +172,12 @@ final class CardStack {
             return this.evaluateJoinIntoEmptyStack(sourceStack, moveMode);
         }
         if (moveMode == 1) {
-            return this.evaluateDirectJoinFrom(sourceStack, exactMatchOnly);
+            return this.evaluateDirectJoinFrom(sourceStack);
         }
         if (moveMode == 3) {
-            return this.evaluateSingleRunJoinFrom(sourceStack, exactMatchOnly);
+            return this.evaluateSingleRunJoinFrom(sourceStack);
         }
-        return this.evaluateSplitAwareJoinFrom(sourceStack, moveMode, exactMatchOnly);
+        return this.evaluateSplitAwareJoinFrom(sourceStack, moveMode);
     }
 
     /**
@@ -187,7 +187,7 @@ final class CardStack {
      * Foundation stacks and tableau-style stacks follow different rules, so the logic is split into
      * two branches and kept deliberately explicit.
      */
-    int evaluateJoin(CardRun destinationRun, CardRun sourceRun, boolean allowSplit, boolean allowPartialJoin) {
+    int evaluateJoin(CardRun destinationRun, CardRun sourceRun, boolean allowSplit) {
         Card sourceTopCard = sourceRun.cards[sourceRun.cardCount - 1];
         if (sourceTopCard == null) {
             return -1;
@@ -206,8 +206,7 @@ final class CardStack {
                     sourceRun,
                     destinationTopCard,
                     sourceTopCard,
-                    allowSplit,
-                    allowPartialJoin
+                    allowSplit
             );
         }
         return this.evaluateAlternatingColorJoin(destinationRun, sourceRun, destinationTopCard, sourceTopCard);
@@ -284,24 +283,24 @@ final class CardStack {
     /**
      * Helper for a straight run-to-run join without source-run restrictions.
      */
-    private int evaluateDirectJoinFrom(CardStack sourceStack, boolean exactMatchOnly) {
-        int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false, exactMatchOnly);
+    private int evaluateDirectJoinFrom(CardStack sourceStack) {
+        int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false);
         return directJoinCount > 0 ? directJoinCount : -1;
     }
 
     /**
      * Helper for joins that only allow sources already compressed into a single run.
      */
-    private int evaluateSingleRunJoinFrom(CardStack sourceStack, boolean exactMatchOnly) {
+    private int evaluateSingleRunJoinFrom(CardStack sourceStack) {
         if (sourceStack.runs.size() != 1) {
             return -1;
         }
 
-        int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false, exactMatchOnly);
+        int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false);
         if (directJoinCount > 0) {
             return directJoinCount;
         }
-        return this.evaluateJoin(this.topRun, sourceStack.topRun, true, exactMatchOnly) == 0 ? 0 : -1;
+        return this.evaluateJoin(this.topRun, sourceStack.topRun, true) == 0 ? 0 : -1;
     }
 
     /**
@@ -310,11 +309,8 @@ final class CardStack {
      * The slightly odd `moveMode == 4/5` checks are preserved from the original code because other
      * solver variants may still rely on those protocol values even though FreeCell currently does not.
      */
-    private int evaluateSplitAwareJoinFrom(CardStack sourceStack, int moveMode, boolean exactMatchOnly) {
-        int splitJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, true, exactMatchOnly);
-        if (exactMatchOnly) {
-            return splitJoinCount;
-        }
+    private int evaluateSplitAwareJoinFrom(CardStack sourceStack, int moveMode) {
+        int splitJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, true);
         if (splitJoinCount < 0) {
             return -1;
         }
@@ -359,13 +355,12 @@ final class CardStack {
             CardRun sourceRun,
             Card destinationTopCard,
             Card sourceTopCard,
-            boolean allowSplit,
-            boolean allowPartialJoin
+            boolean allowSplit
     ) {
         int joinCount;
         if (!allowSplit) {
             joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount, true);
-            if (!allowPartialJoin && joinCount + destinationRun.cardCount <= sourceRun.cardCount) {
+            if (joinCount + destinationRun.cardCount <= sourceRun.cardCount) {
                 return -1;
             }
             return joinCount;
@@ -375,10 +370,8 @@ final class CardStack {
         if (joinCount == sourceRun.cardCount) {
             return 0;
         }
-        if (!allowPartialJoin) {
-            return -1;
-        }
-        return joinCount;
+
+        return -1;
     }
 
     /**

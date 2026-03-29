@@ -25,7 +25,6 @@ public abstract class BaseSolver {
     int cardPoolDefaultSize;
     private long startTime;
     private int buetMaxSize;
-    private int[] depthArray = null;
     private int[] sieveArray = new int[414];
     private int num1;
     private int num2;
@@ -46,7 +45,6 @@ public abstract class BaseSolver {
     boolean bestSolutionUpdatedSinceLastConfirmation;
 
     BaseSolver(SolverContext solverContext, int searchCreditLimit) {
-        depthArray = new int[500];
         this.solverContext = solverContext;
         this.searchCreditLimit = searchCreditLimit;
         Random random = new Random(314159265358979323L);
@@ -290,9 +288,6 @@ public abstract class BaseSolver {
         this.currenBackout = -1;
         this.deepestRecursionDepth = 0;
         this.deepestRecursionComplexity = 0;
-        if (this.depthArray != null && this.depthArray[0] > 0) {
-            this.depthArray[0] = 0;
-        }
     }
 
     /**
@@ -347,68 +342,6 @@ public abstract class BaseSolver {
     }
 
     private boolean sieve() {
-        if (this.solverContext.searchState.depth > 3 && this.solverContext.searchState.depth == this.depthArray[0] + 1) {
-            int n2 = this.solverContext.searchState.depth - 4;
-            while (n2 < this.solverContext.searchState.depth && n2 < this.depthArray.length - 1) {
-                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.depthArray[n2 + 1]), this.solverContext.searchState.moves[n2])) {
-                    return false;
-                }
-                ++n2;
-            }
-            return true;
-        }
-        return false;
-    }
-
-    private boolean trackSolutionProgress() {
-        if (this.depthArray[0] == -2) {
-            if (this.solverContext.searchState.depth <= this.depthArray[1]) {
-                return false;
-            }
-            this.depthArray[1] = this.solverContext.searchState.depth;
-            this.solverContext.log("Found longer solution");
-            this.logWorkMoveInfo(9);
-            this.dumpState(9, false);
-        } else if (this.depthArray[0] == -1) {
-            if (this.solverContext.searchState.depth < this.depthArray.length - 1) {
-                return false;
-            }
-            int n2 = 1;
-            while (n2 < this.depthArray.length) {
-                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.depthArray[n2]), this.solverContext.searchState.moves[this.solverContext.searchState.depth - this.depthArray.length + n2])) break;
-                ++n2;
-            }
-            if (n2 == this.depthArray.length) {
-                this.logWorkMoveInfo(9);
-                this.solverContext.log("Found segment");
-            }
-        } else {
-            int n3 = 0;
-            while (n3 < this.solverContext.searchState.depth && n3 < this.depthArray.length - 1) {
-                if (!Move.isSameMoveIgnoringAutoFlag(Move.decodeStoredMoveNumber(this.depthArray[n3 + 1]), this.solverContext.searchState.moves[n3])) break;
-                ++n3;
-            }
-            if (n3 >= this.depthArray[0]) {
-                if (n3 > this.depthArray[0]) {
-                    BaseSolver op_02 = this;
-                    this.solverContext.log("Approaching solution to " + n3 + " of " + (this.depthArray.length - 1) + " dealindex " + this.solverContext.searchState.currentDealIndex + " score " + op_02.analyzeSpiderBoard(op_02.solverContext.searchState, false));
-                    this.dumpState(5, false);
-                    if (this.solverContext.logLevel <= 5) {
-                        this.solverContext.log("State hash " + this.computeStateHash());
-                    }
-                    this.logWorkMoveInfo(9);
-                    this.depthArray[0] = n3;
-                }
-                if (n3 == this.depthArray.length - 1 && n3 == this.solverContext.searchState.depth) {
-                    this.solverContext.log("Hit end of known solution");
-                    return true;
-                }
-            } else if (n3 < this.depthArray[0] && this.depthArray[0] < 1000) {
-                this.logWorkMoveInfo(9);
-                this.solverContext.log("@@@ Backing out of solution");
-                this.depthArray[0] = this.depthArray[0] + 1000;
-            }
-        }
         return false;
     }
 
@@ -763,11 +696,6 @@ public abstract class BaseSolver {
             bucket = hashValue;
             int n4 = bucket & 0xFFFF;
             if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.fileSet.maxSolutionMoves == 999 || this.solverContext.searchState.depth >= n4)) {
-                if (this.depthArray != null && this.sieve()) {
-                    this.logWorkMoveInfo(9);
-                    this.solverContext.log("About to reject trial solution as a duplicate, hash = " + hashKey + " overriding");
-                    return -1;
-                }
                 return 0;
             }
             return -1;
@@ -777,11 +705,6 @@ public abstract class BaseSolver {
             bucket = hashValue;
             int n5 = bucket & 0xFFFF;
             if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.fileSet.maxSolutionMoves == 999 || this.solverContext.searchState.depth >= n5)) {
-                if (this.depthArray != null && this.sieve()) {
-                    this.logWorkMoveInfo(9);
-                    this.solverContext.log("About to reject trial solution as a duplicate, hash = " + hashKey + " overriding");
-                    return -1;
-                }
                 return 0;
             }
             return -1;
@@ -873,11 +796,6 @@ public abstract class BaseSolver {
         if (!currentBranchIsNotBetter) {
             return false;
         }
-        if (this.depthArray != null && this.sieve()) {
-            this.logWorkMoveInfo(9);
-            this.solverContext.log("About to reject trial solution as a duplicate, hash = " + stateHash + " overriding");
-            return false;
-        }
         return true;
     }
 
@@ -932,9 +850,9 @@ public abstract class BaseSolver {
 //        if (this.statusUpdateCounter++ > 10000) {
 //            this.statusUpdateCounter = 0;
 //        }
-        if (this.depthArray != null) {
-            this.trackSolutionProgress();
-        }
+//        if (this.depthArray != null) {
+//            this.trackSolutionProgress();
+//        }
         if (this.solverContext.searchState.depth < this.solverContext.depth) {
             this.solverContext.depth = this.solverContext.searchState.depth;
         }
@@ -1024,7 +942,7 @@ public abstract class BaseSolver {
     }
 
     /**
-     * 某些模式会配置最大允许步数，启发式代价超过这个上限时可以直接剪掉。
+     * 某些模式会配置最大允许步数，启发式代价超过这个上限时可以直接剪掉。 对于深度太深的直接剪掉
      */
     private boolean exceedsConfiguredMoveLimit(int heuristicCost) {
         return this.solverContext.fileSet.maxSolutionMoves < 999

@@ -105,7 +105,7 @@ final class FreeCellSolver extends BaseSolver {
 
     /**
      * Evaluate the current node before trying any outgoing moves.
-     *
+     * 评估当前
      * Returns `0` when search should continue and `1` when the current branch should stop.
      */
     private int evaluateCurrentStateForSearch() {
@@ -659,7 +659,7 @@ final class FreeCellSolver extends BaseSolver {
         try {
             int sourceRunCardCount = sourceStack.topRun.cardCount;
             int joinMode = this.resolveJoinMode(moveMode, destinationStack);
-            int joinSplitCount = destinationStack.evaluateJoinFrom(sourceStack, joinMode, false);
+            int joinSplitCount = destinationStack.evaluateJoinFrom(sourceStack, joinMode);
             this.applySplitMatchesAcePenaltyIfNeeded(moveMode, sourceStack, joinSplitCount);
             if (joinSplitCount < 0) {
                 return false;
@@ -1002,7 +1002,7 @@ final class FreeCellSolver extends BaseSolver {
                     CardRun currentTopRun = targetStack.topRun;
                     CardRun newSingleCardRun = new CardRun(this.getCardFromPool(encodedCard));
                     if (currentTopRun != null) {
-                        int joinMode = targetStack.evaluateJoin(currentTopRun, newSingleCardRun, false, false);
+                        int joinMode = targetStack.evaluateJoin(currentTopRun, newSingleCardRun, false);
                         if (joinMode > 0) {
                             currentTopRun.appendFromRun(newSingleCardRun, joinMode);
                         } else {
