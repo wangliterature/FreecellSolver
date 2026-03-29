@@ -574,24 +574,6 @@ public abstract class BaseSolver {
         return "Unknown";
     }
 
-    private static String suitZm(int n2) {
-        switch (n2) {
-            case 1: {
-                return "s";
-            }
-            case 2: {
-                return "h";
-            }
-            case 3: {
-                return "d";
-            }
-            case 4: {
-                return "c";
-            }
-        }
-        return "?";
-    }
-
 
     static String bigZm(int n2) {
         switch (n2 %= 100) {
@@ -638,33 +620,6 @@ public abstract class BaseSolver {
         return "empty/invalid";
     }
 
-    static String rankNum(int n2) {
-        if (n2 > 1 && n2 < 10) {
-            return "" + n2;
-        }
-        switch (n2) {
-            case 1: {
-                return "A";
-            }
-            case 10: {
-                return "10";
-            }
-            case 11: {
-                return "J";
-            }
-            case 12: {
-                return "Q";
-            }
-            case 13: {
-                return "K";
-            }
-        }
-        return "?";
-    }
-
-    static String convetValue(int n2) {
-        return String.valueOf(BaseSolver.rankNum(n2 % 100)) + BaseSolver.suitZm(n2 / 100);
-    }
 
     final int everyCardNum(HashMap<Integer,Integer> hashMap, int cardId) {
         if (cardId == -1) {
@@ -1148,46 +1103,6 @@ public abstract class BaseSolver {
         if (markAsCompleteSolution) {
             this.solverContext.foundCompleteSolution = true;
         }
-    }
-
-    private void updateBestSate(GameState bestState, String bestInfoStr, boolean bl, boolean bl2) {
-        if (this.solverContext != null) {
-            this.recordBestSolutionState(bestState, bestInfoStr, bl, bl2);
-            return;
-        }
-        if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log(bestInfoStr);
-            this.dumpState(5, false);
-        }
-        this.solverContext.bestSolutionState = new GameState(bestState, true);
-        if (bl) {
-            this.bestSolutionUpdatedSinceLastConfirmation = true;
-        }
-
-        if (bl2) {
-            this.solverContext.foundCompleteSolution = true;
-        }
-    }
-
-    private boolean accumLog(boolean isBest) {
-        if (this.solverContext != null) {
-            return this.shouldFinalizeBestSolution(isBest);
-        }
-        if (this.solverContext.bestSolutionState.solutionLength == 0) {
-            return false;
-        }
-        //1000L   濡傛灉瑙ｅ喅浜嗭紝灏变細鎵撳嵃
-        if (isBest || this.solverContext.searchStepCount % 1000L == 0L) {
-            if (this.solverContext.foundCompleteSolution || this.bestSolutionUpdatedSinceLastConfirmation) {
-                if (this.solverContext.logLevel <= 5) {
-                    String string = "Test final (forced " + isBest + ") best moves";
-                    this.solverContext.log("Best solution length " + this.solverContext.bestSolutionState.solutionLength);
-                    this.printCurrentFinishLog(5, this.solverContext.bestSolutionState, string);
-                }
-                return true;
-            }
-        }
-        return false;
     }
 
     int analyzeSpiderBoard(GameState nY2, boolean bl) {
