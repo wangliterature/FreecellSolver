@@ -53,7 +53,7 @@ final class FreeCellSolver extends BaseSolver {
     @Override
     boolean initializeSolver() {
         this.initializeBaseState();
-        this.tableCardArray = new int[50][this.stackSize];
+
         if (!this.solverContext.bridge.loadInitialStateFromInputFile()) {
             return false;
         }
@@ -994,7 +994,7 @@ final class FreeCellSolver extends BaseSolver {
                     CardStack targetStack = tableauGroup.stacks[stackIndex];
                     String cardToken = rowEntries[stackIndex];
                     int encodedCard = this.solverContext.parseCardToken(cardToken);
-                    this.tableCardArray[rowIndex][stackIndex] = encodedCard;
+
                     if (this.solverContext.logLevel <= 2) {
                         this.solverContext.log("Loading card " + encodedCard + " into stack " + stackIndex + " level " + rowIndex);
                     }

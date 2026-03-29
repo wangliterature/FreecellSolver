@@ -20,9 +20,6 @@ public abstract class BaseSolver {
     private int bucketSize = 0x100000;
     //牌局的堆大小     比如table是10
     int stackSize;
-    //table
-    int[][] tableCardArray;
-
     int randomUseIndex;
     //pool的大小
     int cardPoolDefaultSize;
