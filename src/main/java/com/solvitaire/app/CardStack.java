@@ -123,6 +123,8 @@ final class CardStack {
 
     /**
      * Remove and return the currently exposed top run.
+     *
+     * 删除最顶上的
      */
     CardRun popTopRun() {
         if (this.runs.isEmpty()) {
@@ -349,7 +351,7 @@ final class CardStack {
             Card destinationTopCard,
             Card sourceTopCard
     ) {
-        int joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount, false);
+        int joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount);
         if (joinCount > 0 && !(joinCount % 2 == 0 ^ CardRun.isAlternatingColor(destinationTopCard, sourceTopCard))) {
             return -1;
         }

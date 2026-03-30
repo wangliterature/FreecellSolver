@@ -166,15 +166,6 @@ public final class Move {
       return flagBits << 24 | movedCardCount << 16 | sourceCode << 8 | destinationCode;
    }
 
-   /**
-    * 判断两个动作是否等价。
-    *
-    * 原逻辑会忽略某个自动移动位，所以这里保留完全一致的比较规则，只把名字解释清楚。
-    */
-   static boolean isSameMoveIgnoringAutoFlag(int leftEncodedMove, int rightEncodedMove) {
-      return ((leftEncodedMove ^ rightEncodedMove) & 0xFFFFFF) == 0
-         && (leftEncodedMove &= 0x8000000) == (rightEncodedMove &= 0x8000000);
-   }
 
    /**
     * 把一串动作翻译成文本步骤列表。

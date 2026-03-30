@@ -48,19 +48,16 @@ final class CardRun {
      * @param card1 要移动的牌
      * @param card2 目标牌
      * @param n2 最大允许差值（比如13）
-     * @param bl 是否严格模式（Spider同花色）
+     * @param false 是否严格模式（Spider同花色）
      * @return
      */
-    final int checkMoveDistance(Card card1, Card card2, int n2, boolean bl) {
+    final int checkMoveDistance(Card card1, Card card2, int n2) {
         int diff;
-        if (!bl) {
-            if (!this.overStack.alternatingColors && card1.suit == card2.suit) {
-                return -1;
-            }
-            diff = card1.rank - card2.rank;
-        } else {
-            diff = card1.cardId - card2.cardId;
+        if (!this.overStack.alternatingColors && card1.suit == card2.suit) {
+            return -1;
         }
+        //数值相邻
+        diff = card1.rank - card2.rank;
         if (diff <= 0 || diff > n2) {
             diff = -1;
         }

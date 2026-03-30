@@ -86,6 +86,7 @@ public final class StackGroup {
         if (stackIndex == 8) {
             this.context.failFast("Add of suit stack when no available slots");
         }
+        //增加completedSuitRun
         this.stacks[stackIndex].appendRun(completedSuitRun);
         return stackIndex;
     }
@@ -111,6 +112,7 @@ public final class StackGroup {
         if (stackIndex < 0) {
             this.context.failFast("Remove of suit stack when none available");
         }
+        //删除最顶端的
         CardRun completedSuitRun = this.stacks[stackIndex].popTopRun();
         return completedSuitRun;
     }
