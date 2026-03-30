@@ -17,7 +17,6 @@ public final class StackGroup {
     String name;
     //列数量   8 4 4
     int stackCount;
-
     int flags;
     //空
     int emptyStackCount;
@@ -54,6 +53,7 @@ public final class StackGroup {
 
     /**
      * 计算牌的张数
+     *
      * @return
      */
     int countCards() {
@@ -67,7 +67,7 @@ public final class StackGroup {
     }
 
     /**
-     * 这部分应该是
+     * 找到一列空的，将完成的，放过去
      * @param completedSuitRun
      * @return
      */

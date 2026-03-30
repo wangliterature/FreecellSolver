@@ -72,7 +72,7 @@ final class FreeCellSolver extends BaseSolver {
     }
 
     @Override
-    final void dumpState(int logLevel, boolean bl) {
+    final void dumpState(int logLevel) {
         if (this.solverContext.logLevel <= logLevel) {
             this.logWorkMoveInfo(logLevel);
             this.printStackInfo(logLevel, this.solverContext.searchState.stackGroups[2]);

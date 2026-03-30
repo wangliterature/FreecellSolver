@@ -200,15 +200,7 @@ final class CardStack {
         }
 
         Card destinationTopCard = destinationRun.cards[destinationRun.cardCount - 1];
-        if (!this.alternatingColors) {
-            return this.evaluateNonAlternatingJoin(
-                    destinationRun,
-                    sourceRun,
-                    destinationTopCard,
-                    sourceTopCard,
-                    allowSplit
-            );
-        }
+
         return this.evaluateAlternatingColorJoin(destinationRun, sourceRun, destinationTopCard, sourceTopCard);
     }
 
@@ -347,32 +339,6 @@ final class CardStack {
         return sourceTopCard.cardId == destinationRun.cards[destinationRun.cardCount - 1].cardId + 1 ? 1 : -1;
     }
 
-    /**
-     * Evaluate joins for stacks that do not enforce alternating colors.
-     */
-    private int evaluateNonAlternatingJoin(
-            CardRun destinationRun,
-            CardRun sourceRun,
-            Card destinationTopCard,
-            Card sourceTopCard,
-            boolean allowSplit
-    ) {
-        int joinCount;
-        if (!allowSplit) {
-            joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount, true);
-            if (joinCount + destinationRun.cardCount <= sourceRun.cardCount) {
-                return -1;
-            }
-            return joinCount;
-        }
-
-        joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount, false);
-        if (joinCount == sourceRun.cardCount) {
-            return 0;
-        }
-
-        return -1;
-    }
 
     /**
      * Evaluate joins for stacks that require alternating colors.
@@ -476,7 +442,7 @@ final class CardStack {
     /**
      * Undo the special token `20`, which means "merge the whole destination top run back".
      *
-     *
+     * current cardRun copy sourceStack
      */
     private void mergeEntireTopRunBackIntoSource(CardStack sourceStack) {
         for (int cardIndex = 0; cardIndex < this.topRun.cardCount; ++cardIndex) {

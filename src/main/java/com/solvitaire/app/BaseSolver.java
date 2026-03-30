@@ -845,7 +845,7 @@ public abstract class BaseSolver {
     final void updateSearchProgressCheckpoint() {
         if (this.solverContext.logLevel <= 3) {
             this.logWorkMoveInfo(3); //打印work
-            this.dumpState(3, false); //打印牌局
+            this.dumpState(3); //打印牌局
         }
 //        if (this.statusUpdateCounter++ > 10000) {
 //            this.statusUpdateCounter = 0;
@@ -958,9 +958,7 @@ public abstract class BaseSolver {
         if (candidateState.solutionLength < this.solverContext.fileSet.maxSolutionMoves && isBetterThanCurrentBest) {
             this.recordBestSolutionState(
                     candidateState,
-                    "Best solution currently " + candidateState.solutionLength + " moves",
-                    true,
-                    true
+                    "Best solution currently " + candidateState.solutionLength + " moves"
             );
         }
     }
@@ -1006,28 +1004,18 @@ public abstract class BaseSolver {
      */
     private void recordBestSolutionState(
             GameState bestState,
-            String logMessage,
-            boolean markAsPendingConfirmation,
-            boolean markAsCompleteSolution
+            String logMessage
     ) {
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log(logMessage);
-            this.dumpState(5, false);
+            this.dumpState(5);
         }
         this.solverContext.bestSolutionState = new GameState(bestState, true);
-        if (markAsPendingConfirmation) {
-            this.bestSolutionUpdatedSinceLastConfirmation = true;
-        }
-        if (markAsCompleteSolution) {
-            this.solverContext.foundCompleteSolution = true;
-        }
+        this.bestSolutionUpdatedSinceLastConfirmation = true;
+        this.solverContext.foundCompleteSolution = true;
     }
 
-    int analyzeSpiderBoard(GameState nY2, boolean bl) {
-        return -1;
-    }
-
-    int computeHeuristicCost(GameState gameState) {
+    int computeHeuristicCost(GameState gameState)  {
         return gameState.depth + 1;
     }
 
@@ -1056,7 +1044,7 @@ public abstract class BaseSolver {
 
     abstract boolean loadStateFromLines(String var1, String[] var2, int var3);
 
-    abstract void dumpState(int var1, boolean var2);
+    abstract void dumpState(int var1);
 
     abstract boolean isCardRunValid(GameState var1);
 
