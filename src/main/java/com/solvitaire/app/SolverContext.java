@@ -17,7 +17,6 @@ public class SolverContext {
    int logLevel = 0;
    int searchBudget = 0;
    int complexity = 0;
-
    long searchStepCount = 0L;
    boolean foundCompleteSolution = false;
    SolverBridge bridge;

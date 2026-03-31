@@ -861,7 +861,7 @@ public abstract class BaseSolver {
         if (this.isSolver) {
             return SEARCH_OUTCOME_SOLVED;
         }
-
+        //当前深度
         gameState.solutionLength = gameState.depth;
         //如果没解，但是比已有的结果更糟糕，就拉倒  不在继续    太糟糕的结果不在继续
         if (this.shouldPruneBecauseWorseThanKnownSolution(gameState)) {
@@ -883,10 +883,6 @@ public abstract class BaseSolver {
         }
         //是不是最优解了
         if (this.shouldFinalizeBestSolution(forceSolvedCheck)) {
-            ++this.solverContext.fileSet.clearedBoardCount;
-            if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Board cleared, accum now " + this.solverContext.fileSet.clearedBoardCount);
-            }
             this.markSolverAsSolved();
             return SEARCH_OUTCOME_SOLVED;
         }
@@ -911,6 +907,7 @@ public abstract class BaseSolver {
      *
      */
     private boolean exceedsConfiguredMoveLimit(int heuristicCost) {
+        //减去一些离谱的
         return this.solverContext.fileSet.maxSolutionMoves < 999
                 &&
                 heuristicCost > this.solverContext.fileSet.maxSolutionMoves;
@@ -920,11 +917,12 @@ public abstract class BaseSolver {
      * 如果当前状态本身已经是一份更好的完整解，就把它复制到 bestSolutionState。
      */
     private void recordBetterSolutionIfNeeded(GameState candidateState) {
+        //等于0 说明初次   或者当前的 是最优的
         boolean isBetterThanCurrentBest
                 =
                 this.solverContext.bestSolutionState.solutionLength == 0 ||
                         candidateState.solutionLength < this.solverContext.bestSolutionState.solutionLength;
-
+        //没有超过预期
         if (candidateState.solutionLength < this.solverContext.fileSet.maxSolutionMoves && isBetterThanCurrentBest) {
             this.recordBestSolutionState(
                     candidateState,
@@ -956,12 +954,11 @@ public abstract class BaseSolver {
 
     /**
      * 进入 solved 状态后的统一收尾逻辑。
+     *
+     * 标记找到最优解了
      */
     private void markSolverAsSolved() {
         this.isSolver = true;
-        if (this.solverContext.logLevel <= 9) {
-            this.solverContext.log("Mode 3 (challenge " + this.solverContext.fileSet.challengeId + ") found a solution length " + this.solverContext.bestSolutionState.solutionLength + " in " + (System.currentTimeMillis() - this.startTime) / 1000L);
-        }
         this.printCurrentFinishLog(9, this.solverContext.bestSolutionState, "Solved best moves");
         this.saveResult();
     }
@@ -1005,9 +1002,6 @@ public abstract class BaseSolver {
     final Card getCardFromPool(int cardData) {
         if (this.poolCardIndex == this.cardPoolDefaultSize) {
             this.solverContext.failFast("Trying to allocate more than " + this.cardPoolDefaultSize + " cards");
-        }
-        if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log("@@@ Allocating card #" + this.poolCardIndex + " value " + cardData);
         }
         Card card = this.cardPoolArray[this.poolCardIndex++];
         card.initFromEncodedValue(cardData);

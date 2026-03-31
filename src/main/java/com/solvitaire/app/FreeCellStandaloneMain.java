@@ -22,8 +22,7 @@ import java.util.List;
  * 这样写的目的不是追求最少代码，而是让阅读顺序和运行顺序一致。
  */
 public final class FreeCellStandaloneMain {
-   private static final int DEFAULT_CHALLENGE_ID = 1;
-   private static final String DEFAULT_SAMPLE_INPUT = "sample/cards6.txt";
+   private static final String DEFAULT_SAMPLE_INPUT = "sample/cards2.txt";
 
    /**
     * 工具类不需要实例。
@@ -95,7 +94,6 @@ public final class FreeCellStandaloneMain {
       SolverContext solverContext = new SolverContext();
       solverContext.logLevel = 1;
       solverContext.fileSet = new SolverFileSet(preparedInputFile);
-      solverContext.fileSet.challengeId = DEFAULT_CHALLENGE_ID;
       solverContext.initialState = createInitialFreeCellState(solverContext);
       solverContext.bestSolutionState = new GameState();
       return solverContext;

@@ -10,9 +10,7 @@ import java.nio.file.Path;
  * 让调用方不必自己手动拼字符串。
  */
 public final class SolverFileSet {
-   int challengeId = 0;
-   int maxSolutionMoves = 999;
-   int clearedBoardCount = 0;
+   int maxSolutionMoves = 999; //最大移动步数
    String workingDirectoryPath;
    private final String inputFileName;
 

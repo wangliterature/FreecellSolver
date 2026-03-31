@@ -833,7 +833,7 @@ final class FreeCellSolver extends BaseSolver {
             int joinSplitCount
     ) {
         int moveFlags = destinationStack.topRun != null ? 2 : 0;
-        int undoMoveToken = destinationStack.moveCardsFrom(sourceStack, joinSplitCount, null);
+        int undoMoveToken = destinationStack.moveCardsFrom(sourceStack, joinSplitCount);
         if (undoMoveToken < 0) {
             return false;
         }
@@ -872,7 +872,7 @@ final class FreeCellSolver extends BaseSolver {
             return producedSearchBranch;
         } finally {
             --this.solverContext.searchState.depth;
-            destinationStack.undoMoveCardsFrom(sourceStack, undoMoveToken, null);
+            destinationStack.undoMoveCardsFrom(sourceStack, undoMoveToken);
         }
     }
 
