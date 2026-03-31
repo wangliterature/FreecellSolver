@@ -101,25 +101,23 @@ public abstract class BaseSolver {
 
     /**
      * 初始化场景
+     *         //模式3会变为一个更高的移动
+     * //        为什么要这样做
+     * //        因为求解器常常支持多种运行方式：
+     * //              1.正常求解
+     * //              2.截图识别
+     * //              3.批处理
+     * //              4.回放
+     * //              5.challenge 模式
+     * //        不同模式对“最大步数”的需求不一样。
+     * //        这里实际上是在做：
+     * //        给普通模式一个默认大上限，给特殊模式保留自己的限制逻辑。
      */
     final void initializeBaseState() {
+        initCardPool();
         this.isSolver = false;
         //步数开始为0
         this.solverContext.searchStepCount = 0L;    //搜索的步数
-        //模式3会变为一个更高的移动
-//        为什么要这样做
-//        因为求解器常常支持多种运行方式：
-//              1.正常求解
-//              2.截图识别
-//              3.批处理
-//              4.回放
-//              5.challenge 模式
-//        不同模式对“最大步数”的需求不一样。
-//        这里实际上是在做：
-//        给普通模式一个默认大上限，给特殊模式保留自己的限制逻辑。
-
-        initCardPool();
-        this.poolCardIndex = 0;
 //        第一轮搜索先从“最严格/最保守”的预算开始
         this.solverContext.searchBudget = 0;
 //        在base init中，将递归深度和播放位置设置为0
@@ -132,10 +130,8 @@ public abstract class BaseSolver {
         }
         //搜素状态
         this.solverContext.searchState = null;
-
 //        完整解已经成立
         this.solverContext.foundCompleteSolution = false;
-
         //分桶上限
 //        也就是说：
 //        如果 H = 200
@@ -150,6 +146,7 @@ public abstract class BaseSolver {
     }
 
     private void initCardPool() {
+        this.poolCardIndex = 0;
         this.cardPoolArray = new Card[this.cardPoolDefaultSize];
         int poolIndexTemp = 0;
         while (poolIndexTemp < this.cardPoolDefaultSize) {
@@ -167,7 +164,6 @@ public abstract class BaseSolver {
         if (!this.initializeSolverAndLogStart()) {
             return;
         }
-        this.solverContext.sleepBriefly(100L, "Prevent tight loop");
         this.maxSearchDepth = 298;
         this.runSearchProcessLoop();
         this.solverContext.bestSolutionState.reset();
@@ -216,7 +212,6 @@ public abstract class BaseSolver {
             this.solverContext.log("*** " + this.getSolverName() + " initialisation failed for game mode 3");
             return false;
         }
-
         if (this.solverContext.logLevel <= 9) {
             this.solverContext.log("*** " + this.getSolverName() + " initialisation complete (Solvitaire version 5.1.2 on " + new Date() + ")");
         }
@@ -227,7 +222,7 @@ public abstract class BaseSolver {
      * Repeatedly run search passes until one pass asks the outer loop to stop.
      */
     private void runSearchProcessLoop() {
-        while (this.solverContext.searchBudget > -this.searchCreditLimit) {
+        while (this.solverContext.searchBudget > -this.searchCreditLimit) { //信用额度
             this.runBudgetLimitedSearch();
             this.clearDuplicateStateBuckets();
             System.gc();
@@ -354,14 +349,14 @@ public abstract class BaseSolver {
             l2 += this.num2;
         } else {
             for (CardRun cardRun : cardStack.runs) {
-                int n2 = 0;
-                while (n2 < cardRun.cardCount) {
-                    int n3 = cardRun.cards[n2].cardId;
+                int runIndex = 0;
+                while (runIndex < cardRun.cardCount) {
+                    int n3 = cardRun.cards[runIndex].cardId;
                     if (n3 == 0) {
                         n3 = this.O;
                     }
                     l2 = flag ? (l2 += this.sieveNum(n3, l2)) : (l2 += this.sieveNum2(n3, cardStack.stackIndex, l2));
-                    ++n2;
+                    ++runIndex;
                 }
             }
         }
@@ -372,11 +367,11 @@ public abstract class BaseSolver {
         return l2;
     }
 
-    final long sieveNum2(int sieveIndex, int n3, long l2) {
+    final long sieveNum2(int sieveIndex, int cardStackIndex, long l2) {
         if (sieveIndex <= 0) {
             this.solverContext.failFast("Logic error: trying to hash invalid card");
         }
-        l2 = (long)this.sieveArray[sieveIndex] * (this.longRandom1[this.randomUseIndex] + (l2 & Integer.MAX_VALUE)) * (long)(n3 + 1);
+        l2 = (long)this.sieveArray[sieveIndex] * (this.longRandom1[this.randomUseIndex] + (l2 & Integer.MAX_VALUE)) * (long)(cardStackIndex + 1);
         ++this.randomUseIndex;
         return l2;
     }
@@ -413,16 +408,16 @@ public abstract class BaseSolver {
         }
         int stackIndex = 0;
         while (stackIndex < stackGroup.stacks.length) {
-            StringBuffer stringBuffer = new StringBuffer(String.valueOf(stackGroup.name) + " stack " + stackIndex + ": ");
+            StringBuffer stringBuffer = new StringBuffer(stackGroup.name + " stack " + stackIndex + ": ");
             CardStack cardStack = stackGroup.stacks[stackIndex];
             for (CardRun cardRun : cardStack.runs) {
-                int n3 = 0;
-                while (n3 < cardRun.cardCount) {
-                    stringBuffer.append("" + cardRun.cards[n3]);
-                    if (n3 < cardRun.cardCount - 1) {
+                int cardIndex = 0;
+                while (cardIndex < cardRun.cardCount) {
+                    stringBuffer.append("" + cardRun.cards[cardIndex]);
+                    if (cardIndex < cardRun.cardCount - 1) {
                         stringBuffer.append("+");
                     }
-                    ++n3;
+                    ++cardIndex;
                 }
                 stringBuffer.append(" ");
             }
@@ -442,9 +437,6 @@ public abstract class BaseSolver {
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("Into loadCheckpoint for game mode 3");
         }
-        if (this.solverContext.logLevel <= 5) {
-            this.solverContext.log("Capture request in standalone mode so set readcards to true");
-        }
         String[] contentArray = this.solverContext.readUtf8Lines(this.solverContext.fileSet.inputFilePath());
         if (contentArray == null) {
             return false;
@@ -458,25 +450,28 @@ public abstract class BaseSolver {
         }
         if (contentIndex < 6) {
             this.solverContext.failFast("Input file has too few lines");
-        } else if (!this.loadStateFromLines((String)name, contentArray, contentIndex)) {
+        } else if (!this.loadStateFromLines(name, contentArray, contentIndex)) {
             return false;
         }
         return true;
     }
 
-    private void saveSolutionFile(GameState nY2) {
+    private void saveSolutionFile(GameState gameState) {
         StringBuffer stringBuffer = new StringBuffer();
-        int n2 = 0;
-        while (n2 < nY2.depth) {
-            stringBuffer.append(Move.encodeMoveAsText(nY2.moves[n2]));
+        int moveIndex = 0;
+        while (moveIndex < gameState.depth) {
+            stringBuffer.append(Move.encodeMoveAsText(gameState.moves[moveIndex]));
             stringBuffer.append(",");
-            ++n2;
+            ++moveIndex;
         }
         if (this.solverContext.fileSet != null) {
             this.solverContext.writeUtf8TextFile(this.solverContext.fileSet.solutionFilePath(), stringBuffer.toString(), true);
         }
     }
 
+    /**
+     * 没有存储最优的就保存有解的，有最优的 就保存最优的
+     */
     final void saveResult() {
         if (this.solverContext.bestSolutionState.depth == 0) {
             saveSolutionFile(solverContext.searchState);
@@ -553,7 +548,12 @@ public abstract class BaseSolver {
         return "empty/invalid";
     }
 
-
+    /**
+     * 每张牌的个数
+     * @param hashMap
+     * @param cardId
+     * @return
+     */
     final int everyCardNum(HashMap<Integer,Integer> hashMap, int cardId) {
         if (cardId == -1) {
             this.solverContext.failFast("ERROR - Card could not be identified");
@@ -582,7 +582,7 @@ public abstract class BaseSolver {
         int index = 0;
         while (index < stackLength) {
             CardStack cardStack = cardStacks[index];
-            int runNUm = 0;
+            int stackCardNum = 0;
             int everyStackNum = 0;
             for (CardRun cardRun : cardStack.runs) {
                 int cardRunIndex = 0;
@@ -590,9 +590,9 @@ public abstract class BaseSolver {
                 while (cardRunIndex < cardRun.cardCount) {
                     if (cardRun.cards[cardRunIndex].cardId != 0) {
                         if (this.solverContext.logLevel <= 0) {
-                            this.solverContext.log("Testing stack " + cardStack.stackIndex + " run " + runNUm + " entry " + cardRunIndex + " card " + cardRun.cards[cardRunIndex]);
+                            this.solverContext.log("Testing stack " + cardStack.stackIndex + " run " + stackCardNum + " entry " + cardRunIndex + " card " + cardRun.cards[cardRunIndex]);
                         }
-                        ++runNUm;
+                        ++stackCardNum;
                         //计算每一张牌的个数
                         int everyCardNum = this.everyCardNum(hashMap, cardRun.cards[cardRunIndex].cardId);
                         //这里主要是校验     如果数量大于1   spider > 2
@@ -663,55 +663,6 @@ public abstract class BaseSolver {
         return false;
     }
 
-    final void updateHashState(long hash) {
-        if (this.solverContext != null) {
-            this.recordVisitedStateHash(hash);
-            return;
-        }
-        int bucketIndex = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
-        if (bucketIndex >= 10) {
-            bucketIndex = 9;
-        }
-        //濡傛灉澶т簬妗剁殑澶у皬灏变粛
-        if (this.R[bucketIndex].size() > this.bucketSize) {
-            if (this.solverContext.logLevel <= 4) {
-                this.solverContext.log(String.format("Discarding %d  hashes in bucket %d, counts %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d", this.bucketSize, bucketIndex, this.R[0].size(), this.S[0].size(), this.R[1].size(), this.S[1].size(), this.R[2].size(), this.S[2].size(), this.R[3].size(), this.S[3].size(), this.R[4].size(), this.S[4].size(), this.R[5].size(), this.S[5].size(), this.R[6].size(), this.S[6].size(), this.R[7].size(), this.S[7].size(), this.R[8].size(), this.S[8].size(), this.R[9].size(), this.S[9].size()));
-            }
-            this.S[bucketIndex] = this.R[bucketIndex];
-            this.R[bucketIndex] = new HashMap(this.getBucket(bucketIndex));
-        }
-        this.R[bucketIndex].put(hash, this.solverContext.complexity << 16 | this.solverContext.searchState.depth);
-    }
-
-    final int checkCurrentStateHash(long hashKey) {
-        if (this.solverContext != null) {
-            return this.checkVisitedStateHash(hashKey);
-        }
-        Integer hashValue;
-        int bucket = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
-        if (bucket >= 10) {
-            bucket = 9;
-        }
-        if ((hashValue = (Integer)this.R[bucket].get(hashKey)) != null) {
-            bucket = hashValue;
-            int n4 = bucket & 0xFFFF;
-            if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.fileSet.maxSolutionMoves == 999 || this.solverContext.searchState.depth >= n4)) {
-                return 0;
-            }
-            return -1;
-        }
-        hashValue = (Integer)this.S[bucket].get(hashKey);
-        if (hashValue != null) {
-            bucket = hashValue;
-            int n5 = bucket & 0xFFFF;
-            if (this.solverContext.complexity >= (bucket >>= 16) - 50 && (this.solverContext.fileSet.maxSolutionMoves == 999 || this.solverContext.searchState.depth >= n5)) {
-                return 0;
-            }
-            return -1;
-        }
-        return -1;
-    }
-
     /**
      * 把栈位置编码成 solver 内部一直沿用的“group * 10 + stack”格式。
      */
@@ -756,6 +707,7 @@ public abstract class BaseSolver {
 
     /**
      * 判断在两个候选动作之间，某个栈是否被其它普通动作碰过。
+     *
      */
     private boolean wasStackTouchedBetweenMoves(int stackCode, int newestMoveIndex, int oldestMoveIndex) {
         for (int moveIndex = newestMoveIndex; moveIndex > oldestMoveIndex; --moveIndex) {
@@ -771,6 +723,9 @@ public abstract class BaseSolver {
 
     /**
      * 根据当前递归深度定位访问哈希桶。
+     *
+     * 分成十桶     根据当前的深度  来计算桶
+     *
      */
     private int currentDepthBucketIndex() {
         int depthBucketIndex = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
@@ -787,12 +742,16 @@ public abstract class BaseSolver {
     /**
      * 判断命中的旧状态是否足够“接近当前分支”，从而可以直接剪枝。
      */
-    private boolean shouldRejectVisitedStateEntry(int packedVisitedState, long stateHash) {
+    private boolean shouldRejectVisitedStateEntry(int packedVisitedState) {
         int storedDepth = packedVisitedState & 0xFFFF;
         int storedComplexity = packedVisitedState >> 16;
-        boolean currentBranchIsNotBetter = this.solverContext.complexity >= storedComplexity - 50
-                && (this.solverContext.fileSet.maxSolutionMoves == 999
-                || this.solverContext.searchState.depth >= storedDepth);
+        boolean currentBranchIsNotBetter
+                =
+                this.solverContext.complexity >= storedComplexity - 50
+                &&
+                        (this.solverContext.fileSet.maxSolutionMoves == 999
+                                ||
+                                this.solverContext.searchState.depth >= storedDepth);
         if (!currentBranchIsNotBetter) {
             return false;
         }
@@ -801,6 +760,9 @@ public abstract class BaseSolver {
 
     /**
      * 可读版的状态记录逻辑，供新的搜索主流程调用。
+     *
+     *
+     * 记录的并不是游戏状态，而是复杂度和深度
      */
     final void recordVisitedStateHash(long stateHash) {
         int depthBucketIndex = this.currentDepthBucketIndex();
@@ -825,12 +787,12 @@ public abstract class BaseSolver {
         int depthBucketIndex = this.currentDepthBucketIndex();
         Integer recentBucketEntry = (Integer) this.R[depthBucketIndex].get(stateHash);
         if (recentBucketEntry != null) {
-            return this.shouldRejectVisitedStateEntry(recentBucketEntry, stateHash) ? 0 : -1;
+            return this.shouldRejectVisitedStateEntry(recentBucketEntry) ? 0 : -1;
         }
 
         Integer rotatedBucketEntry = (Integer) this.S[depthBucketIndex].get(stateHash);
         if (rotatedBucketEntry != null) {
-            return this.shouldRejectVisitedStateEntry(rotatedBucketEntry, stateHash) ? 0 : -1;
+            return this.shouldRejectVisitedStateEntry(rotatedBucketEntry) ? 0 : -1;
         }
         return -1;
     }
@@ -847,15 +809,7 @@ public abstract class BaseSolver {
             this.logWorkMoveInfo(3); //打印work
             this.dumpState(3); //打印牌局
         }
-//        if (this.statusUpdateCounter++ > 10000) {
-//            this.statusUpdateCounter = 0;
-//        }
-//        if (this.depthArray != null) {
-//            this.trackSolutionProgress();
-//        }
-        if (this.solverContext.searchState.depth < this.solverContext.depth) {
-            this.solverContext.depth = this.solverContext.searchState.depth;
-        }
+        //搜索的深度
         if (this.solverContext.searchState.depth > this.deepestRecursionDepth) {
             this.deepestRecursionDepth = this.solverContext.searchState.depth;
             this.deepestRecursionComplexity = this.solverContext.complexity;
@@ -867,28 +821,20 @@ public abstract class BaseSolver {
      * Enabled aggressive block sorting
      */
     private static boolean[] sieve(int n2) {
-        boolean[] blArray;
-        block5: {
-            int n3;
-            int n4;
-            block4: {
-                blArray = new boolean[n2+1];
-                Arrays.fill(blArray, true);
-                n4 = 2;
-                n3 = ++n4;
-                if (n3 * n3 > 500) break block5;
-            }
-            do {
-                if (blArray[n4]) {
-                    int n5 = n4 << 1;
-                    while (n5 <= n2) {
-                        blArray[n5] = false;
-                        n5 += n4;
-                    }
+        int n3 = 0;
+        int n4= 2;
+        boolean[] blArray = new boolean[n2+1];
+        Arrays.fill(blArray, true);
+        do {
+            if (blArray[n4]) {
+                int n5 = n4 << 1;
+                while (n5 <= n2) {
+                    blArray[n5] = false;
+                    n5 += n4;
                 }
-                n3 = ++n4;
-            } while (n3 * n3 <= n2);
-        }
+            }
+            n3 = ++n4;
+        } while (n3 * n3 <= n2);
         return blArray;
     }
 
@@ -901,26 +847,31 @@ public abstract class BaseSolver {
      * 3. 在合适的时机把“找到完整解”升级成“本轮可以停机”。
      */
     final int evaluateCurrentState(GameState gameState, boolean forceSolvedCheck) {
+        //有解了就返回
         if (this.isSolver) {
             return SEARCH_OUTCOME_SOLVED;
         }
 
         gameState.solutionLength = gameState.depth;
+        //如果没解，但是比已有的结果更糟糕，就拉倒  不在继续    太糟糕的结果不在继续
         if (this.shouldPruneBecauseWorseThanKnownSolution(gameState)) {
             return SEARCH_OUTCOME_PRUNE;
         }
-
+        //计算分数  或者是状态分
         int heuristicCost = this.computeHeuristicCost(gameState);
+        //是不是全部有解
         boolean currentStateFormsCompleteSolution = this.isCardRunValid(gameState);
-        int searchOutcome = currentStateFormsCompleteSolution ? SEARCH_OUTCOME_PRUNE : SEARCH_OUTCOME_CONTINUE;
 
+        int searchOutcome = currentStateFormsCompleteSolution ? SEARCH_OUTCOME_PRUNE : SEARCH_OUTCOME_CONTINUE;
+        //当前状态有没有超过限制
         if (this.exceedsConfiguredMoveLimit(heuristicCost)) {
             return SEARCH_OUTCOME_PRUNE;
         }
+        //有解就更新
         if (currentStateFormsCompleteSolution) {
             this.recordBetterSolutionIfNeeded(gameState);
         }
-
+        //是不是最优解了
         if (this.shouldFinalizeBestSolution(forceSolvedCheck)) {
             ++this.solverContext.fileSet.clearedBoardCount;
             if (this.solverContext.logLevel <= 5) {
@@ -935,6 +886,8 @@ public abstract class BaseSolver {
 
     /**
      * 已有完整解时，更长的分支没有继续搜索的价值。
+     *
+     * 已经有解，对于更大的可以不去考虑
      */
     private boolean shouldPruneBecauseWorseThanKnownSolution(GameState gameState) {
         return this.solverContext.foundCompleteSolution
@@ -943,18 +896,25 @@ public abstract class BaseSolver {
 
     /**
      * 某些模式会配置最大允许步数，启发式代价超过这个上限时可以直接剪掉。 对于深度太深的直接剪掉
+     *
+     * 其实第一个应该本身就是true
+     *
      */
     private boolean exceedsConfiguredMoveLimit(int heuristicCost) {
         return this.solverContext.fileSet.maxSolutionMoves < 999
-                && heuristicCost > this.solverContext.fileSet.maxSolutionMoves;
+                &&
+                heuristicCost > this.solverContext.fileSet.maxSolutionMoves;
     }
 
     /**
      * 如果当前状态本身已经是一份更好的完整解，就把它复制到 bestSolutionState。
      */
     private void recordBetterSolutionIfNeeded(GameState candidateState) {
-        boolean isBetterThanCurrentBest = this.solverContext.bestSolutionState.solutionLength == 0
-                || candidateState.solutionLength < this.solverContext.bestSolutionState.solutionLength;
+        boolean isBetterThanCurrentBest
+                =
+                this.solverContext.bestSolutionState.solutionLength == 0 ||
+                        candidateState.solutionLength < this.solverContext.bestSolutionState.solutionLength;
+
         if (candidateState.solutionLength < this.solverContext.fileSet.maxSolutionMoves && isBetterThanCurrentBest) {
             this.recordBestSolutionState(
                     candidateState,
@@ -999,6 +959,8 @@ public abstract class BaseSolver {
     /**
      * 记录一份新的最佳解，并同步更新相关标志位。
      *
+     * 存储一份最优解
+     *
      * `markAsPendingConfirmation` 表示这份解需要在后续 checkpoint 中再次确认；
      * `markAsCompleteSolution` 表示它已经被视为完整解，可参与 solved 判断。
      */
@@ -1015,10 +977,21 @@ public abstract class BaseSolver {
         this.solverContext.foundCompleteSolution = true;
     }
 
+    /**
+     * 计算当前状态的分数
+     * @param gameState
+     * @return
+     */
     int computeHeuristicCost(GameState gameState)  {
         return gameState.depth + 1;
     }
 
+    /**
+     * 创建cardPool
+     *
+     * @param cardData
+     * @return
+     */
     final Card getCardFromPool(int cardData) {
         if (this.poolCardIndex == this.cardPoolDefaultSize) {
             this.solverContext.failFast("Trying to allocate more than " + this.cardPoolDefaultSize + " cards");

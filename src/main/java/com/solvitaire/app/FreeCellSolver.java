@@ -32,12 +32,6 @@ final class FreeCellSolver extends BaseSolver {
     private int alternatingJoinAttempts = 0;
     private int splitMatchAttempts = 0;
     static private String[] moveModeNames = new String[]{"?", "toAces", "fromSpace", "toSpace", "fromWork", "toWork", "matching", "toAcesAuto", "expose", "matchWithSplit", "toSpaceKing"};
-    final static int[] targetFoundationIndexBySuit;
-
-    static {
-//        目标基础指数按花色分类
-        targetFoundationIndexBySuit = new int[]{-1,3,2,1};
-    }
 
     FreeCellSolver(SolverContext solverContext) {
         super(solverContext, 2000);
@@ -53,7 +47,6 @@ final class FreeCellSolver extends BaseSolver {
     @Override
     boolean initializeSolver() {
         this.initializeBaseState();
-
         if (!this.solverContext.bridge.loadInitialStateFromInputFile()) {
             return false;
         }
@@ -864,10 +857,10 @@ final class FreeCellSolver extends BaseSolver {
             long stateHash = this.computeStateHash();
             if (moveMode == 7 || !this.isReversalOfPreviousMove(destinationStack, sourceStack)) {
                 if (moveMode != 7) {
-                    this.currenBackout = this.checkCurrentStateHash(stateHash);
+                    this.currenBackout = this.checkVisitedStateHash(stateHash);
                 }
                 if (this.currenBackout < 0) {
-                    this.updateHashState(stateHash);
+                    this.recordVisitedStateHash(stateHash);
                     producedSearchBranch = true;
                     this.waitForUnknownCardResolutionIfNeeded(sourceStack);
                     this.search(encodedMove, 0);
@@ -1029,11 +1022,11 @@ final class FreeCellSolver extends BaseSolver {
      * 因为很多调试输出已经默认按这个顺序阅读。
      */
     @Override
-    final StringBuffer createStateHeader(String string, int n2) {
+    final StringBuffer createStateHeader(String string, int depth) {
         return new StringBuffer(
                 string
                 + "[" +
-                        n2 + ":" +
+                        depth + ":" +
                         this.moveToAcesAttempts + "," +
                         this.toSpaceAttempts + "," +
                         this.fromSpaceAttempts + "," +
