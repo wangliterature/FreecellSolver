@@ -23,7 +23,6 @@ public abstract class BaseSolver {
     int randomUseIndex;
     //pool的大小
     int cardPoolDefaultSize;
-    private long startTime;
     private int buetMaxSize;
     private int[] sieveArray = new int[414];
     private int num1;
@@ -160,7 +159,7 @@ public abstract class BaseSolver {
      * Run the solver from setup to shutdown.
      */
     final void solve() {
-        this.startTime = System.currentTimeMillis();
+
         this.configureBucketSizeForAvailableHeap();
         if (!this.initializeSolverAndLogStart()) {
             return;
@@ -651,7 +650,10 @@ public abstract class BaseSolver {
             boolean sameMoveShape = priorComparableFlags == latestComparableFlags
                     && this.extractMovedCardCount(priorEncodedMove) == latestMovedCardCount
                     && priorDestinationCode == currentSourceCode;
-            if (sameMoveShape && !this.wasStackTouchedBetweenMoves(currentSourceCode, this.solverContext.searchState.depth - 2, priorMoveIndex)) {
+            if (sameMoveShape && !this.wasStackTouchedBetweenMoves(
+                    currentSourceCode,
+                    this.solverContext.searchState.depth - 2,
+                    priorMoveIndex)) {
                 if (this.solverContext.logLevel < 3) {
                     this.solverContext.log("Move "
                             + Move.encodeMoveAsText(latestEncodedMove)
@@ -753,8 +755,10 @@ public abstract class BaseSolver {
      * 判断命中的旧状态是否足够“接近当前分支”，从而可以直接剪枝。
      */
     private boolean shouldRejectVisitedStateEntry(int packedVisitedState) {
+        //取出深度  取出当前的 c
         int storedDepth = packedVisitedState & 0xFFFF;
         int storedComplexity = packedVisitedState >> 16;
+        //当前不是最好的
         boolean currentBranchIsNotBetter
                 =
                 this.solverContext.complexity >= storedComplexity - 50
@@ -778,7 +782,16 @@ public abstract class BaseSolver {
         int depthBucketIndex = this.currentDepthBucketIndex();
         if (this.R[depthBucketIndex].size() > this.bucketSize) {
             if (this.solverContext.logLevel <= 4) {
-                this.solverContext.log(String.format("Discarding %d  hashes in bucket %d, counts %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d", this.bucketSize, depthBucketIndex, this.R[0].size(), this.S[0].size(), this.R[1].size(), this.S[1].size(), this.R[2].size(), this.S[2].size(), this.R[3].size(), this.S[3].size(), this.R[4].size(), this.S[4].size(), this.R[5].size(), this.S[5].size(), this.R[6].size(), this.S[6].size(), this.R[7].size(), this.S[7].size(), this.R[8].size(), this.S[8].size(), this.R[9].size(), this.S[9].size()));
+                this.solverContext.log(
+                        String.format(
+                                "Discarding %d  hashes in bucket %d, counts %d/%d, " +
+                                        "%d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, %d/%d, " +
+                                        "%d/%d, %d/%d", this.bucketSize, depthBucketIndex,
+                                this.R[0].size(), this.S[0].size(), this.R[1].size(), this.S[1].size(),
+                                this.R[2].size(), this.S[2].size(), this.R[3].size(), this.S[3].size(),
+                                this.R[4].size(), this.S[4].size(), this.R[5].size(), this.S[5].size(),
+                                this.R[6].size(), this.S[6].size(), this.R[7].size(), this.S[7].size(),
+                                this.R[8].size(), this.S[8].size(), this.R[9].size(), this.S[9].size()));
             }
             this.S[depthBucketIndex] = this.R[depthBucketIndex];
             this.R[depthBucketIndex] = new HashMap(this.getBucket(depthBucketIndex));
@@ -794,12 +807,13 @@ public abstract class BaseSolver {
      * `-1` 表示允许继续搜索。
      */
     final int checkVisitedStateHash(long stateHash) {
+        //hash 根据当前的深度  返回桶的编号
         int depthBucketIndex = this.currentDepthBucketIndex();
         Integer recentBucketEntry = (Integer) this.R[depthBucketIndex].get(stateHash);
         if (recentBucketEntry != null) {
             return this.shouldRejectVisitedStateEntry(recentBucketEntry) ? 0 : -1;
         }
-
+        //
         Integer rotatedBucketEntry = (Integer) this.S[depthBucketIndex].get(stateHash);
         if (rotatedBucketEntry != null) {
             return this.shouldRejectVisitedStateEntry(rotatedBucketEntry) ? 0 : -1;
@@ -813,6 +827,8 @@ public abstract class BaseSolver {
      * Despite the old method name, this is not about selecting a hash bucket. It performs the
      * recurring "search heartbeat": optional state dumps, known-solution tracking and deepest-depth
      * bookkeeping.
+     *
+     * 更新当前递归搜索
      */
     final void updateSearchProgressCheckpoint() {
         if (this.solverContext.logLevel <= 3) {
@@ -830,22 +846,22 @@ public abstract class BaseSolver {
      * Handled impossible loop by duplicating code
      * Enabled aggressive block sorting
      */
-    private static boolean[] sieve(int n2) {
+    private static boolean[] sieve(int sieveNumSize) {
         int n3 = 0;
-        int n4= 2;
-        boolean[] blArray = new boolean[n2+1];
-        Arrays.fill(blArray, true);
+        int n4 = 2;
+        boolean[] sieveArray = new boolean[sieveNumSize+1];
+        Arrays.fill(sieveArray, true);
         do {
-            if (blArray[n4]) {
+            if (sieveArray[n4]) {
                 int n5 = n4 << 1;
-                while (n5 <= n2) {
-                    blArray[n5] = false;
+                while (n5 <= sieveNumSize) {
+                    sieveArray[n5] = false;
                     n5 += n4;
                 }
             }
             n3 = ++n4;
-        } while (n3 * n3 <= n2);
-        return blArray;
+        } while (n3 * n3 <= sieveNumSize);
+        return sieveArray;
     }
 
     /**
@@ -869,14 +885,13 @@ public abstract class BaseSolver {
         }
         //计算分数  或者是状态分
         int heuristicCost = this.computeHeuristicCost(gameState);
-        //是不是全部有解
-        boolean currentStateFormsCompleteSolution = this.isCardRunValid(gameState);
-
-        int searchOutcome = currentStateFormsCompleteSolution ? SEARCH_OUTCOME_PRUNE : SEARCH_OUTCOME_CONTINUE;
         //当前状态有没有超过限制
         if (this.exceedsConfiguredMoveLimit(heuristicCost)) {
             return SEARCH_OUTCOME_PRUNE;
         }
+        //是不是全部有解   节点标准就是  桌面上都有解了
+        boolean currentStateFormsCompleteSolution = this.isAllStackSolved(gameState);
+        int searchOutcome = currentStateFormsCompleteSolution ? SEARCH_OUTCOME_PRUNE : SEARCH_OUTCOME_CONTINUE;
         //有解就更新
         if (currentStateFormsCompleteSolution) {
             this.recordBetterSolutionIfNeeded(gameState);
@@ -886,7 +901,6 @@ public abstract class BaseSolver {
             this.markSolverAsSolved();
             return SEARCH_OUTCOME_SOLVED;
         }
-
         return searchOutcome;
     }
 
@@ -1023,7 +1037,7 @@ public abstract class BaseSolver {
 
     abstract void dumpState(int var1);
 
-    abstract boolean isCardRunValid(GameState var1);
+    abstract boolean isAllStackSolved(GameState var1);
 
 }
 
