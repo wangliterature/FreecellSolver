@@ -30,7 +30,6 @@ public abstract class BaseSolver {
     private int num2;
     private int O;
     int maxSearchDepth = 298;
-
     int searchCreditLimit;
     Card[] cardPoolArray;
     int poolCardIndex;
@@ -46,42 +45,44 @@ public abstract class BaseSolver {
 
     BaseSolver(SolverContext solverContext, int searchCreditLimit) {
         this.solverContext = solverContext;
-        this.searchCreditLimit = searchCreditLimit;
+        this.searchCreditLimit = searchCreditLimit; //搜索限制
         Random random = new Random(314159265358979323L);
         LongStream longStream = random.longs(150L, 1L, 1000000000000L);
         this.longRandom1 = longStream.toArray();
         longStream = random.longs(150L, 1L, 1000000000000L);
         this.longRandom2 = longStream.toArray();
-        boolean[] sieveArray = this.sieve(500);
+        boolean[] sieveArrayTemp = this.sieve(500);
         int n3 = 3;
+        //给每张牌一个质数    hansh更加的不易发生碰撞
         for (int n4 = 1; n4 < 5; ++n4) {
             for (int n5 = 1; n5 < 14; ++n5) {
-                while (!sieveArray[n3]) {
+                while (!sieveArrayTemp[n3]) {
                     ++n3;
                 }
+                //给每张牌
                 this.sieveArray[n4 * 100 + n5] = n3++;
             }
         }
-        while (!sieveArray[n3]) {
+        while (!sieveArrayTemp[n3]) {
             ++n3;
         }
         this.num1 = n3;
-        while (!sieveArray[n3]) {
+        while (!sieveArrayTemp[n3]) {
             ++n3;
         }
         this.num2 = n3;
-        while (!sieveArray[n3]) {
+        while (!sieveArrayTemp[n3]) {
             ++n3;
         }
         this.O = n3;
-        while (!sieveArray[n3]) {
+        while (!sieveArrayTemp[n3]) {
             ++n3;
         }
 
     }
 
     /**
-     * 分桶
+     * 分桶  每个的大小不一样   7 * buck + 41/64
      * @param n2
      * @return
      */
@@ -220,12 +221,16 @@ public abstract class BaseSolver {
 
     /**
      * Repeatedly run search passes until one pass asks the outer loop to stop.
+     *
+     * 开始遍历
      */
     private void runSearchProcessLoop() {
         while (this.solverContext.searchBudget > -this.searchCreditLimit) { //信用额度
             this.runBudgetLimitedSearch();
+            //清理缓存状态
             this.clearDuplicateStateBuckets();
             System.gc();
+            //是否已经拿下
             if (this.handleCompletedSearchPass()) {
                 break;
             }
@@ -243,7 +248,9 @@ public abstract class BaseSolver {
             this.solverContext.log("In process, entering solve loop");
         }
         while (this.solverContext.searchBudget > -this.searchCreditLimit) {
+            //分配缓存map
             this.initializeDuplicateStateBuckets();
+            //清理参数
             this.prepareSearchIteration();
             this.search(-1, 0);
 
@@ -261,6 +268,7 @@ public abstract class BaseSolver {
             if (this.solverContext.logLevel <= 5) {
                 this.solverContext.log("Credit expired and solve not flagged, do final check");
             }
+            //循环结算，判断是否完成解题
             this.isSolver = this.evaluateCurrentState(this.solverContext.searchState, true) == SEARCH_OUTCOME_SOLVED;
         }
     }
@@ -336,9 +344,6 @@ public abstract class BaseSolver {
         return true;
     }
 
-    private boolean sieve() {
-        return false;
-    }
 
     final long hashValue(CardStack cardStack, long l2, boolean flag) {
         if (flag) {
@@ -570,6 +575,9 @@ public abstract class BaseSolver {
 
     /**
      * 计算每一个stack的个数
+     *
+     * 计算当前Group的牌张树
+     *
      * @param hashMap
      * @param stackGroup
      * @param maxNum
@@ -665,6 +673,8 @@ public abstract class BaseSolver {
 
     /**
      * 把栈位置编码成 solver 内部一直沿用的“group * 10 + stack”格式。
+     *
+     * 可以区分出  3个group
      */
     private int encodeStackLocation(CardStack cardStack) {
         return cardStack.ownerGroup.groupIndex * 10 + cardStack.stackIndex;
