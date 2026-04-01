@@ -85,6 +85,7 @@ final class FreeCellSolver extends BaseSolver {
             this.logWorkMoveInfo(4);
         }
         currentStateResult = this.evaluateCurrentStateForSearch();
+        //停止搜索  成功
         if (currentStateResult != 0) {
             return;
         }
@@ -104,12 +105,13 @@ final class FreeCellSolver extends BaseSolver {
     private int evaluateCurrentStateForSearch() {
         if (!this.isSolver) {
             int currentStateResult = this.evaluateCurrentState(this.solverContext.searchState, false);
-            if (currentStateResult == 2) {
+            //解决了
+            if (currentStateResult == SEARCH_OUTCOME_SOLVED) {
                 if (this.solverContext.logLevel <= 4) {
                     this.solverContext.log("Solved state solved so backout 999");
                 }
                 this.currenBackout = 999;
-            } else if (currentStateResult == 1) {
+            } else if (currentStateResult == SEARCH_OUTCOME_PRUNE) {
                 return 1;
             }
         }
@@ -123,10 +125,11 @@ final class FreeCellSolver extends BaseSolver {
      * At depth 0 the solver gives one immediate chance to a direct move-to-foundation step.
      */
     private void tryImmediateRootMove(int previousEncodedMove) {
-        if (this.currenBackout < 0
+        if (
+                this.currenBackout < 0 //回滚
                 && this.solverContext.searchState.depth == 0
                 && this.generateAndTryMoves(1, previousEncodedMove)
-                && this.currenBackout < 0) {
+        ) {
             this.currenBackout = 0;
         }
     }
@@ -872,7 +875,9 @@ final class FreeCellSolver extends BaseSolver {
             }
             return producedSearchBranch;
         } finally {
+            //深度减去一
             --this.solverContext.searchState.depth;
+            //回退
             destinationStack.undoMoveCardsFrom(sourceStack, undoMoveToken);
         }
     }

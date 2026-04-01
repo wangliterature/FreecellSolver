@@ -12,9 +12,9 @@ import java.util.Random;
 import java.util.stream.LongStream;
 
 public abstract class BaseSolver {
-    private static final int SEARCH_OUTCOME_CONTINUE = 0;
-    private static final int SEARCH_OUTCOME_PRUNE = 1;
-    private static final int SEARCH_OUTCOME_SOLVED = 2;
+    protected static final int SEARCH_OUTCOME_CONTINUE = 0;
+    protected static final int SEARCH_OUTCOME_PRUNE = 1;
+    protected static final int SEARCH_OUTCOME_SOLVED = 2;
     SolverContext solverContext;
     //桶的大小  每一个桶放多少个值
     private int bucketSize = 0x100000;
