@@ -145,7 +145,7 @@ final class FreeCellSolver extends BaseSolver {
     private void tryDeferredMoveModes(int previousEncodedMove, int baseComplexity) {
         this.tryMoveModeWithAdjustedComplexity(1, previousEncodedMove, baseComplexity, this.moveToAcesPenalty, true, "try moving aces");
         this.tryMoveModeWithAdjustedComplexity(4, previousEncodedMove, baseComplexity, this.fromWorkAreaPenalty, false, "try moving from work area");
-        this.tryMoveModeWithAdjustedComplexity(2, previousEncodedMove, baseComplexity, this.fromSpacePenalty, false, null);
+        this.tryMoveModeWithAdjustedComplexity(2, previousEncodedMove, baseComplexity, this.fromSpacePenalty, false, "try table to table");
         this.tryMoveModeWithAdjustedComplexity(8, previousEncodedMove, baseComplexity, this.exposeAcePenalty, false, "try exposing board ace");
         this.tryMoveModeWithAdjustedComplexity(6, previousEncodedMove, baseComplexity, this.alternatingJoinPenalty, false, "try alternating joins");
         this.tryMoveModeWithAdjustedComplexity(10, previousEncodedMove, baseComplexity, this.kingToSpacePenalty, false, "try moving to a space");
@@ -471,6 +471,7 @@ final class FreeCellSolver extends BaseSolver {
      * 就和原实现一样立刻结束当前 mode。
      */
     private boolean tryDirectFoundationMoves(int moveMode, int previousEncodedMove) {
+        //遍历目标stack
         for (CardStack foundationStack : this.solverContext.searchState.stackGroups[2].stacks) {
             if (this.currenBackout > 0) {
                 return false;
@@ -848,6 +849,7 @@ final class FreeCellSolver extends BaseSolver {
             int joinSplitCount
     ) {
         int moveFlags = destinationStack.topRun != null ? 2 : 0;
+        //将sourceStack上的count移动倒dest中
         int undoMoveToken = destinationStack.moveCardsFrom(sourceStack, joinSplitCount);
         if (undoMoveToken < 0) {
             return false;
@@ -862,7 +864,7 @@ final class FreeCellSolver extends BaseSolver {
         if (moveMode == 7) {
             moveFlags |= 16;
         }
-
+        //移动完成后，   加入倒move中
         int encodedMove = Move.buildEncodedMove(moveFlags, movedCardCount, sourceStack, destinationStack);
         this.solverContext.searchState.moves[this.solverContext.searchState.depth] = encodedMove;
         ++this.solverContext.searchState.depth;
@@ -917,7 +919,7 @@ final class FreeCellSolver extends BaseSolver {
      * 牌的三个堆中一共有多少张牌， 累加
      * @return
      */
-    final int countCardNum() {
+    int countCardNum() {
         HashMap<Integer,Integer> hashMap = new HashMap(52);
         return this.calCardGroupCardNum(hashMap, this.solverContext.initialState.stackGroups[0], 1) +
                 this.calCardGroupCardNum(hashMap, this.solverContext.initialState.stackGroups[1], 1) +
@@ -933,7 +935,7 @@ final class FreeCellSolver extends BaseSolver {
      * @return
      */
     @Override
-    final int computeCurrentDepth(GameState gameState) {
+    int computeCurrentDepth(GameState gameState) {
         //牌堆中  是不是有多个可以run的，是不是都有续
         boolean allStackSolved = isAllStackSolved(gameState);
         if (allStackSolved) {
@@ -973,7 +975,7 @@ final class FreeCellSolver extends BaseSolver {
      * 是为了让输入文件结构和代码结构一一对应，排查问题时更容易对照。
      */
     @Override
-    final boolean loadStateFromLines(String gameName, String[] inputLines, int lineCount) {
+    boolean loadStateFromLines(String[] inputLines, int lineCount) {
         StackGroup tableauGroup = this.solverContext.initialState.stackGroups[0];
         int tableauRowCount = 7;
         int[] stackHeights = new int[]{7, 7, 7, 7, 6, 6, 6, 6};
@@ -997,10 +999,13 @@ final class FreeCellSolver extends BaseSolver {
                     CardRun currentTopRun = targetStack.topRun;
                     CardRun newSingleCardRun = new CardRun(this.getCardFromPool(encodedCard));
                     if (currentTopRun != null) {
+                        //top是否可以加入单个
                         int joinMode = targetStack.evaluateJoin(currentTopRun, newSingleCardRun);
+                        //如果可以连在后面就连在后面
                         if (joinMode > 0) {
                             currentTopRun.appendFromRun(newSingleCardRun, joinMode);
                         } else {
+                            //否则就跟一个
                             targetStack.appendRun(newSingleCardRun);
                         }
                     } else {
@@ -1011,6 +1016,7 @@ final class FreeCellSolver extends BaseSolver {
         } catch (Exception exception) {
             this.solverContext.throwInvalidInput("Error interpreting the card data.  Probably unexpected number of cards somewhere in the file.");
         }
+        //检查是不是52张
         if (this.countCardNum() != 52) {
             this.solverContext.throwInvalidInput("ERROR - Did not read 52 cards from the file");
         }

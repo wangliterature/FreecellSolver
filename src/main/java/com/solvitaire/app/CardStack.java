@@ -202,13 +202,14 @@ final class CardStack {
         }
 
         Card destinationTopCard = destinationRun.cards[destinationRun.cardCount - 1];
-
         return this.evaluateAlternatingColorJoin(destinationRun, sourceRun, destinationTopCard, sourceTopCard);
     }
 
     /**
      * Transfer cards from `sourceStack` onto this stack and return the undo token expected by
      * `undoMoveCardsFrom(...)`.
+     *
+     *
      */
     int moveCardsFrom(CardStack sourceStack, int cardCount) {
         int undoToken = cardCount;

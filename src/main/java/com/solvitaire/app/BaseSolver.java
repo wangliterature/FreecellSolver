@@ -446,7 +446,6 @@ public abstract class BaseSolver {
             return false;
         }
         String[] contentFristArray = contentArray[0].split(",");
-        String name = contentFristArray.length < 2 ? null : contentFristArray[1];
         int contentIndex = 0;
         while (contentIndex < contentArray.length) {
             if (contentArray[contentIndex] == null) break;
@@ -454,7 +453,7 @@ public abstract class BaseSolver {
         }
         if (contentIndex < 6) {
             this.solverContext.failFast("Input file has too few lines");
-        } else if (!this.loadStateFromLines(name, contentArray, contentIndex)) {
+        } else if (!this.loadStateFromLines(contentArray, contentIndex)) {
             return false;
         }
         return true;
@@ -1033,7 +1032,7 @@ public abstract class BaseSolver {
 
     abstract long computeStateHash();
 
-    abstract boolean loadStateFromLines(String var1, String[] var2, int var3);
+    abstract boolean loadStateFromLines(String[] var2, int var3);
 
     abstract void dumpState(int var1);
 
