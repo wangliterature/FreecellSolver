@@ -68,20 +68,20 @@ final class CardRun {
      *
      * 如果是续上了  返回20，应该是一个标识
      * @param cardRun
-     * @param n2
+     * @param count
      * @return
      */
-    int appendFromRun(CardRun cardRun, int n2) {
-        int n3 = 0;
-        while (n3 < n2) {
-            this.cards[this.cardCount + n3] = cardRun.cards[cardRun.cardCount - n2 + n3];
-            ++n3;
+    int appendFromRun(CardRun cardRun, int count) {
+        int addIndex = 0;
+        while (addIndex < count) {
+            this.cards[this.cardCount + addIndex] = cardRun.cards[cardRun.cardCount - count + addIndex];
+            ++addIndex;
         }
-        this.cardCount += n2;
-        if (n2 < cardRun.cardCount) {
-            n2 += 20;
+        this.cardCount += count;
+        if (count < cardRun.cardCount) {
+            count += 20;
         }
-        return n2;
+        return count;
     }
 
     /**
@@ -90,19 +90,18 @@ final class CardRun {
      */
     public String toString() {
         StringBuffer stringBuffer = new StringBuffer("Run:");
-        boolean bl = true;
-        Card[] nTArray = this.cards;
-        int n2 = this.cards.length;
-        int n3 = 0;
-        while (n3 < n2) {
-            Card nT2 = nTArray[n3];
-            if (nT2 == null) break;
-            if (!bl) {
+        boolean flag = true;
+        int cardLength = this.cards.length;
+        int cardIndex = 0;
+        while (cardIndex < cardLength) {
+            Card card = this.cards[cardIndex];
+            ++cardIndex;
+            if (card == null) break;
+            if (!flag) {
                 stringBuffer.append(",");
             }
-            bl = false;
-            stringBuffer.append(nT2.cardId);
-            ++n3;
+            flag = false;
+            stringBuffer.append(card.cardId);
         }
         return stringBuffer.toString();
     }

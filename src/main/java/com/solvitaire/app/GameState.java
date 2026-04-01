@@ -11,8 +11,6 @@ import java.util.Arrays;
 public final class GameState {
     //牌堆栈    分为牌  free 收牌
     StackGroup[] stackGroups;
-    //处理列
-    int currentDealIndex;
     //move
     int[] moves;
     int depth;
@@ -33,7 +31,6 @@ public final class GameState {
             }
             ++stackGroupIndex;
         }
-        this.currentDealIndex = sourceState.currentDealIndex;
         this.moves = Arrays.copyOf(sourceState.moves, sourceState.moves.length);
         this.depth = sourceState.depth;
         this.solutionLength = sourceState.solutionLength;
@@ -41,7 +38,6 @@ public final class GameState {
     }
 
     void reset() {
-        this.currentDealIndex = 0;
         this.depth = 0;
         this.solutionLength = 0;
     }

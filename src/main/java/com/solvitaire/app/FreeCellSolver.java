@@ -85,6 +85,7 @@ final class FreeCellSolver extends BaseSolver {
             this.logWorkMoveInfo(4);
         }
         currentStateResult = this.evaluateCurrentStateForSearch();
+        //停止搜索  成功
         if (currentStateResult != 0) {
             return;
         }
@@ -104,12 +105,13 @@ final class FreeCellSolver extends BaseSolver {
     private int evaluateCurrentStateForSearch() {
         if (!this.isSolver) {
             int currentStateResult = this.evaluateCurrentState(this.solverContext.searchState, false);
-            if (currentStateResult == 2) {
+            //解决了
+            if (currentStateResult == SEARCH_OUTCOME_SOLVED) {
                 if (this.solverContext.logLevel <= 4) {
                     this.solverContext.log("Solved state solved so backout 999");
                 }
                 this.currenBackout = 999;
-            } else if (currentStateResult == 1) {
+            } else if (currentStateResult == SEARCH_OUTCOME_PRUNE) {
                 return 1;
             }
         }
@@ -123,10 +125,11 @@ final class FreeCellSolver extends BaseSolver {
      * At depth 0 the solver gives one immediate chance to a direct move-to-foundation step.
      */
     private void tryImmediateRootMove(int previousEncodedMove) {
-        if (this.currenBackout < 0
+        if (
+                this.currenBackout < 0 //回滚
                 && this.solverContext.searchState.depth == 0
                 && this.generateAndTryMoves(1, previousEncodedMove)
-                && this.currenBackout < 0) {
+        ) {
             this.currenBackout = 0;
         }
     }
@@ -800,12 +803,13 @@ final class FreeCellSolver extends BaseSolver {
      * 需要受“可搬运长度”限制的 mode。
      */
     private boolean moveModeUsesTransferCapacityCheck(int moveMode) {
-        return moveMode == 6
+        return moveMode == 2
+                || moveMode == 3
+                || moveMode == 6
                 || moveMode == 9
                 || moveMode == 8
-                || moveMode == 3
                 || moveMode == 10
-                || moveMode == 2;
+                ;
     }
 
     /**
@@ -833,7 +837,7 @@ final class FreeCellSolver extends BaseSolver {
             int joinSplitCount
     ) {
         int moveFlags = destinationStack.topRun != null ? 2 : 0;
-        int undoMoveToken = destinationStack.moveCardsFrom(sourceStack, joinSplitCount, null);
+        int undoMoveToken = destinationStack.moveCardsFrom(sourceStack, joinSplitCount);
         if (undoMoveToken < 0) {
             return false;
         }
@@ -871,8 +875,10 @@ final class FreeCellSolver extends BaseSolver {
             }
             return producedSearchBranch;
         } finally {
+            //深度减去一
             --this.solverContext.searchState.depth;
-            destinationStack.undoMoveCardsFrom(sourceStack, undoMoveToken, null);
+            //回退
+            destinationStack.undoMoveCardsFrom(sourceStack, undoMoveToken);
         }
     }
 
@@ -893,9 +899,12 @@ final class FreeCellSolver extends BaseSolver {
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("Invoking play() due to unknown cards, stack " + sourceStack.stackIndex + " lastCard " + topCard + " peek " + firstRun);
         }
-        this.solverContext.sleepBriefly(1000L, "Wait for auto to complete");
     }
 
+    /**
+     * 牌的三个堆中一共有多少张牌， 累加
+     * @return
+     */
     final int countCardNum() {
         HashMap<Integer,Integer> hashMap = new HashMap(52);
         return this.calCardGroupCardNum(hashMap, this.solverContext.initialState.stackGroups[0], 1) +
@@ -922,20 +931,21 @@ final class FreeCellSolver extends BaseSolver {
         }
         //牌堆中  是不是有多个可以run的，是不是都有续
         if (this.solverContext.fileSet.maxSolutionMoves == 999) {
-            boolean bl = true;
+            boolean isSuccess = true;
             CardStack[] cardStackArray = gameState.stackGroups[0].stacks;
-            for (int i = 0; i < cardStackArray.length; ++i) {
-                if (cardStackArray[i].runs.size() <= 1) continue;
-                bl = false;
+            for (int cardStackIndex = 0; cardStackIndex < cardStackArray.length; ++cardStackIndex) {
+                if (cardStackArray[cardStackIndex].runs.size() <= 1) continue;
+                isSuccess = false;
                 break;
             }
-            if (bl) {
+            if (isSuccess) {
                 if (this.solverContext.logLevel <= 5) {
                     this.solverContext.log("Freecell completed because stacks sequenced, depth " + gameState.depth);
                 }
                 return gameState.depth; //说明成功了
             }
         }
+        //都是一张   影响最大的是深度了
         return gameState.depth + 52 - gameState.stackGroups[2].countCards(); //加深度
     }
 
@@ -947,7 +957,7 @@ final class FreeCellSolver extends BaseSolver {
      * @return
      */
     @Override
-    final boolean isCardRunValid(GameState gamState) {
+    final boolean isAllStackSolved(GameState gamState) {
         if (gamState == null) {
             return false;
         }

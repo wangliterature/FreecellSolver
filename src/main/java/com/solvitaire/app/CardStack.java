@@ -210,11 +210,10 @@ final class CardStack {
      * Transfer cards from `sourceStack` onto this stack and return the undo token expected by
      * `undoMoveCardsFrom(...)`.
      */
-    int moveCardsFrom(CardStack sourceStack, int cardCount, StackGroup completedSuitGroup) {
+    int moveCardsFrom(CardStack sourceStack, int cardCount) {
         int undoToken = cardCount;
         if (undoToken > 0) {
             undoToken = this.appendSelectedCardsFromSource(sourceStack, undoToken);
-            undoToken = this.moveCompletedSuitOutIfNeeded(undoToken, completedSuitGroup);
         } else {
             this.appendRun(sourceStack.topRun);
         }
@@ -228,9 +227,8 @@ final class CardStack {
      * The `undoToken` encodes whether cards were split out of a run, whether the whole destination
      * run was merged back, and whether a completed suit was temporarily moved out to a side group.
      */
-    void undoMoveCardsFrom(CardStack sourceStack, int undoToken, StackGroup completedSuitGroup) {
+    void undoMoveCardsFrom(CardStack sourceStack, int undoToken) {
         if (undoToken > 0 && undoToken != 20) {
-            undoToken = this.restoreCompletedSuitIfNeeded(undoToken, completedSuitGroup);
             int restoredCardCount = undoToken;
             if (undoToken > 20) {
                 restoredCardCount = undoToken - 20;
@@ -376,20 +374,6 @@ final class CardStack {
     }
 
     /**
-     * When a full suit has just been completed, move it to the supplied completed-suit group and
-     * encode that fact into the undo token.
-     */
-    private int moveCompletedSuitOutIfNeeded(int undoToken, StackGroup completedSuitGroup) {
-        if (this.topRun.cardCount == 13 && completedSuitGroup != null) {
-            int encodedUndoToken = undoToken + 100 * this.topRun.cards[0].suit;
-            CardRun completedSuitRun = this.popTopRun();
-            completedSuitGroup.addCompletedSuitRun(completedSuitRun);
-            return encodedUndoToken;
-        }
-        return undoToken;
-    }
-
-    /**
      * Shrink or remove the source run after cards have been transferred away.
      */
     private void removeTransferredCardsFromSource(CardStack sourceStack, int undoToken) {
@@ -404,18 +388,7 @@ final class CardStack {
      * Undo the temporary move of a completed suit into another group.
      */
     private int restoreCompletedSuitIfNeeded(int undoToken, StackGroup completedSuitGroup) {
-        if (undoToken <= 100) {
             return undoToken;
-        }
-
-        int removedSuit = undoToken / 100;
-        int normalizedUndoToken = undoToken % 100;
-        CardRun completedSuitRun = completedSuitGroup.removeCompletedSuitRun();
-        if (completedSuitRun.cards[0].suit != removedSuit) {
-            this.context.failFast("Logic error - move says remove suit " + removedSuit + " but suit stack is " + completedSuitRun.cards[0].suit);
-        }
-        this.appendRun(completedSuitRun);
-        return normalizedUndoToken;
     }
 
     /**
@@ -431,6 +404,7 @@ final class CardStack {
 
     /**
      * Restore cards as a fresh run above the source stack's current top run.
+     * 将当前的几张添加倒目标中
      */
     private void restoreCardsAsSeparateRun(CardStack sourceStack, int restoredCardCount) {
         CardRun restoredRun = new CardRun();
@@ -443,12 +417,12 @@ final class CardStack {
 
     /**
      * Undo the special token `20`, which means "merge the whole destination top run back".
-     *
+     * 将当前的顶部加入倒原stack中
      * current cardRun copy sourceStack
      */
     private void mergeEntireTopRunBackIntoSource(CardStack sourceStack) {
-        for (int cardIndex = 0; cardIndex < this.topRun.cardCount; ++cardIndex) {
-            sourceStack.topRun.cards[sourceStack.topRun.cardCount++] = this.topRun.cards[cardIndex];
+        for (int cardRunIndex = 0; cardRunIndex < this.topRun.cardCount; ++cardRunIndex) {
+            sourceStack.topRun.cards[sourceStack.topRun.cardCount++] = this.topRun.cards[cardRunIndex];
         }
     }
 
