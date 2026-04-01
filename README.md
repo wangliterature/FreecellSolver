@@ -67,3 +67,23 @@
 * 2. 评估这次 join 理论上能搬多少张；
 * 3. 检查 FreeCell 对空列/空闲单元的搬运上限；
 * 4. 真正执行移动、递归搜索，然后把现场恢复。
+
+
+## 类说明
+
+### StackGroup
+
+栈group，里面存放的是栈，Freecell游戏包含三个区域：牌区    自由区   收牌区
+
+### CardStack
+
+牌栈中存放CardRun，每一个栈分为多个CardRun保存
+
+### Card
+
+牌的id,以及牌的花色和值
+
+### CardRun
+
+包含几个card
+

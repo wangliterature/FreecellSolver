@@ -7,6 +7,8 @@ import java.util.Arrays;
 
 /**
  * 游戏状态
+ *
+ * 并没有无限的存储
  */
 public final class GameState {
     //牌堆栈    分为牌  free 收牌
