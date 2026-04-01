@@ -57,8 +57,11 @@ final class FreeCellSolver extends BaseSolver {
             if (this.solverContext.logLevel <= 5) {
                 this.solverContext.log("Using modified search for max move target");
             }
+            //移动到Aces惩罚
             this.moveToAcesPenalty = this.maxMoveTargetMoveToAcesPenalty;
+            //揭露Ace惩罚
             this.exposeAcePenalty = this.maxMoveTargetExposeAcePenalty;
+            //alternatingJoinPenalty
             this.alternatingJoinPenalty = this.maxMoveTargetAlternatingJoinPenalty;
         }
         return true;
@@ -86,7 +89,7 @@ final class FreeCellSolver extends BaseSolver {
         }
         currentStateResult = this.evaluateCurrentStateForSearch();
         //停止搜索  成功
-        if (currentStateResult != 0) {
+        if (currentStateResult != SEARCH_OUTCOME_CONTINUE) {
             return;
         }
         this.tryImmediateRootMove(previousEncodedMove);
@@ -112,13 +115,13 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.currenBackout = 999;
             } else if (currentStateResult == SEARCH_OUTCOME_PRUNE) {
-                return 1;
+                return SEARCH_OUTCOME_PRUNE;
             }
         }
         if (this.solverContext.searchState.depth > this.maxSearchDepth) {
-            return 1;
+            return SEARCH_OUTCOME_PRUNE;
         }
-        return 0;
+        return SEARCH_OUTCOME_CONTINUE;
     }
 
     /**
@@ -311,8 +314,11 @@ final class FreeCellSolver extends BaseSolver {
      * 枚举“空闲单元 -> tableau”的候选。
      *
      * 这里保留原逻辑：只有目标列非空，或者待移动序列以 K 开头时，才允许尝试。
+     *
+     * 自由牌区怎么只有一张牌，这里用过检测是否有牌  结果就是当是k的时候才允许尝试
      */
     private void tryMovesFromWorkAreaToTableau(int moveMode, int previousEncodedMove) {
+        //自由区   桌面
         CardStack[] workAreaStacks = this.solverContext.searchState.stackGroups[1].stacks;
         CardStack[] tableauStacks = this.solverContext.searchState.stackGroups[0].stacks;
 
@@ -326,9 +332,7 @@ final class FreeCellSolver extends BaseSolver {
 
             boolean canMoveToEmptyTableau = workAreaStack.topRun.cards[0].rank == 13;
             for (CardStack tableauStack : tableauStacks) {
-                if (this.currenBackout > 0) {
-                    return;
-                }
+                //桌面 栈 顶端不为null，或者是k，k肯定是放空白区域了
                 if (tableauStack.topRun != null || canMoveToEmptyTableau) {
                     this.tryMoveStackAndRecurse(tableauStack, workAreaStack, moveMode, previousEncodedMove);
                 }
@@ -342,15 +346,16 @@ final class FreeCellSolver extends BaseSolver {
      * 只挑第一个空列，是为了和原实现保持一致，避免在多个等价空列之间重复搜索。
      */
     private void tryMovesToEmptyTableau(int moveMode, int previousEncodedMove) {
+        if (this.currenBackout > 0) {
+            return;
+        }
+        //桌面找出一个空白的栈
         CardStack emptyTableauStack = this.findFirstEmptyStack(this.solverContext.searchState.stackGroups[0].stacks);
         if (emptyTableauStack == null) {
             return;
         }
 
         for (CardStack sourceTableauStack : this.solverContext.searchState.stackGroups[0].stacks) {
-            if (this.currenBackout > 0) {
-                return;
-            }
             if (!this.isEligibleEmptyTableauSource(moveMode, sourceTableauStack)) {
                 continue;
             }
@@ -635,6 +640,8 @@ final class FreeCellSolver extends BaseSolver {
     /**
      * 对一组具体的“目标栈 / 来源栈”做完整尝试。
      *
+     * 尝试移动堆栈和资源
+     *
      * 这个方法的责任只有四步：
      * 1. 过滤明显不可能或不值得试的组合；
      * 2. 评估这次 join 理论上能搬多少张；
@@ -701,7 +708,7 @@ final class FreeCellSolver extends BaseSolver {
         if (previousEncodedMove <= 0) {
             return false;
         }
-
+        //上一步是不是刚移动过来   应该是避免来回
         int previousDestinationCode = previousEncodedMove % 100;
         int previousSourceCode = previousEncodedMove / 100 % 100;
         return destinationStack.stackIndex == previousSourceCode && sourceStack.stackIndex == previousDestinationCode;
@@ -958,12 +965,6 @@ final class FreeCellSolver extends BaseSolver {
      */
     @Override
     final boolean isAllStackSolved(GameState gamState) {
-        if (gamState == null) {
-            return false;
-        }
-        if (gamState.stackGroups[2] == null) {
-            return false;
-        }
         int flag = 1;
         CardStack[] cardStackArray = gamState.stackGroups[0].stacks;
         for (int i = 0; i < cardStackArray.length; ++i) {
@@ -1005,7 +1006,7 @@ final class FreeCellSolver extends BaseSolver {
                     CardRun currentTopRun = targetStack.topRun;
                     CardRun newSingleCardRun = new CardRun(this.getCardFromPool(encodedCard));
                     if (currentTopRun != null) {
-                        int joinMode = targetStack.evaluateJoin(currentTopRun, newSingleCardRun, false);
+                        int joinMode = targetStack.evaluateJoin(currentTopRun, newSingleCardRun);
                         if (joinMode > 0) {
                             currentTopRun.appendFromRun(newSingleCardRun, joinMode);
                         } else {

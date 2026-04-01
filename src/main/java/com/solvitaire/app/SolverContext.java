@@ -22,7 +22,7 @@ public class SolverContext {
    SolverBridge bridge;
    GameState initialState;
    GameState searchState;
-   GameState bestSolutionState = new GameState();
+   GameState bestSolutionState;
    SolverFileSet fileSet;
 
    /**

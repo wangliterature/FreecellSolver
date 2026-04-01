@@ -189,7 +189,7 @@ final class CardStack {
      * Foundation stacks and tableau-style stacks follow different rules, so the logic is split into
      * two branches and kept deliberately explicit.
      */
-    int evaluateJoin(CardRun destinationRun, CardRun sourceRun, boolean allowSplit) {
+    int evaluateJoin(CardRun destinationRun, CardRun sourceRun) {
         Card sourceTopCard = sourceRun.cards[sourceRun.cardCount - 1];
         if (sourceTopCard == null) {
             return -1;
@@ -276,7 +276,7 @@ final class CardStack {
      * Helper for a straight run-to-run join without source-run restrictions.
      */
     private int evaluateDirectJoinFrom(CardStack sourceStack) {
-        int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false);
+        int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun);
         return directJoinCount > 0 ? directJoinCount : -1;
     }
 
@@ -288,11 +288,11 @@ final class CardStack {
             return -1;
         }
 
-        int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, false);
+        int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun);
         if (directJoinCount > 0) {
             return directJoinCount;
         }
-        return this.evaluateJoin(this.topRun, sourceStack.topRun, true) == 0 ? 0 : -1;
+        return this.evaluateJoin(this.topRun, sourceStack.topRun) == 0 ? 0 : -1;
     }
 
     /**
@@ -302,7 +302,7 @@ final class CardStack {
      * solver variants may still rely on those protocol values even though FreeCell currently does not.
      */
     private int evaluateSplitAwareJoinFrom(CardStack sourceStack, int moveMode) {
-        int splitJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun, true);
+        int splitJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun);
         if (splitJoinCount < 0) {
             return -1;
         }
