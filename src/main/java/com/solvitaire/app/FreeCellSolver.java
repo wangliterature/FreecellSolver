@@ -346,16 +346,15 @@ final class FreeCellSolver extends BaseSolver {
      * 只挑第一个空列，是为了和原实现保持一致，避免在多个等价空列之间重复搜索。
      */
     private void tryMovesToEmptyTableau(int moveMode, int previousEncodedMove) {
-        if (this.currenBackout > 0) {
-            return;
-        }
-        //桌面找出一个空白的栈
         CardStack emptyTableauStack = this.findFirstEmptyStack(this.solverContext.searchState.stackGroups[0].stacks);
         if (emptyTableauStack == null) {
             return;
         }
 
         for (CardStack sourceTableauStack : this.solverContext.searchState.stackGroups[0].stacks) {
+            if (this.currenBackout > 0) {
+                return;
+            }
             if (!this.isEligibleEmptyTableauSource(moveMode, sourceTableauStack)) {
                 continue;
             }
