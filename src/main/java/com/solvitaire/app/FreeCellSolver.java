@@ -6,8 +6,9 @@ package com.solvitaire.app;
 import java.io.File;
 import java.util.HashMap;
 
-/*
- * Renamed from com.solvitaire.app.nz
+/**
+ *
+ *
  */
 final class FreeCellSolver extends BaseSolver {
     private int moveToAcesPenalty = 0;
@@ -87,6 +88,7 @@ final class FreeCellSolver extends BaseSolver {
         if (this.solverContext.searchStepCount++ % 100000L == 0L) {
             this.logWorkMoveInfo(4);
         }
+        //检测当前的状态  是继续还是停止
         currentStateResult = this.evaluateCurrentStateForSearch();
         //停止搜索  成功
         if (currentStateResult != SEARCH_OUTCOME_CONTINUE) {
@@ -764,6 +766,9 @@ final class FreeCellSolver extends BaseSolver {
 
     /**
      * 判断一张牌是不是任意 foundation 的下一张合法牌。
+     *
+     *
+     * 牌是都可以放入到目标区
      */
     private boolean isNextCardForAnyFoundation(Card candidateCard) {
         CardStack[] foundationStacks = this.solverContext.searchState.stackGroups[2].stacks;
@@ -872,7 +877,6 @@ final class FreeCellSolver extends BaseSolver {
                 if (this.currenBackout < 0) {
                     this.recordVisitedStateHash(stateHash);
                     producedSearchBranch = true;
-                    this.waitForUnknownCardResolutionIfNeeded(sourceStack);
                     this.search(encodedMove, 0);
                 }
                 if (this.currenBackout >= 0) {
@@ -890,6 +894,8 @@ final class FreeCellSolver extends BaseSolver {
 
     /**
      * 某些局面在移动后会露出“未知牌”，原实现会暂停一下等待外部状态稳定。
+     *
+     * 没有用
      */
     private void waitForUnknownCardResolutionIfNeeded(CardStack sourceStack) {
         Card topCard = sourceStack.getTopCard();
@@ -927,32 +933,18 @@ final class FreeCellSolver extends BaseSolver {
      * @return
      */
     @Override
-    final int computeHeuristicCost(GameState gameState) {
-        if (gameState == null) {
-            return 999;
-        }
-        //stack group 有3个部分    这是取目标区域
-        if (gameState.stackGroups[2] == null) {
-            return 999;
-        }
+    final int computeCurrentDepth(GameState gameState) {
         //牌堆中  是不是有多个可以run的，是不是都有续
-        if (this.solverContext.fileSet.maxSolutionMoves == 999) {
-            boolean isSuccess = true;
-            CardStack[] cardStackArray = gameState.stackGroups[0].stacks;
-            for (int cardStackIndex = 0; cardStackIndex < cardStackArray.length; ++cardStackIndex) {
-                if (cardStackArray[cardStackIndex].runs.size() <= 1) continue;
-                isSuccess = false;
-                break;
+        boolean allStackSolved = isAllStackSolved(gameState);
+        if (allStackSolved) {
+            if (this.solverContext.logLevel <= 5) {
+                this.solverContext.log("Freecell completed because stacks sequenced, depth " + gameState.depth);
             }
-            if (isSuccess) {
-                if (this.solverContext.logLevel <= 5) {
-                    this.solverContext.log("Freecell completed because stacks sequenced, depth " + gameState.depth);
-                }
-                return gameState.depth; //说明成功了
-            }
+            return gameState.depth; //说明成功了   返回深度
         }
+
         //都是一张   影响最大的是深度了
-        return gameState.depth + 52 - gameState.stackGroups[2].countCards(); //加深度
+        return gameState.depth + 52 - gameState.stackGroups[2].countCards(); //
     }
 
     /**
@@ -964,14 +956,14 @@ final class FreeCellSolver extends BaseSolver {
      */
     @Override
     final boolean isAllStackSolved(GameState gamState) {
-        int flag = 1;
+        boolean flag = true;
         CardStack[] cardStackArray = gamState.stackGroups[0].stacks;
         for (int i = 0; i < cardStackArray.length; ++i) {
             if (cardStackArray[i].runs.size() <= 1) continue;
-            flag = 0;
+            flag = false;
             break;
         }
-        return flag != 0;
+        return flag;
     }
 
     /**

@@ -52,7 +52,7 @@ public final class StackGroup {
     }
 
     /**
-     * 计算牌当前group牌的总张数
+     * 计算牌当前group牌的总张数   找到牌区的总张数
      *
      * @return
      */

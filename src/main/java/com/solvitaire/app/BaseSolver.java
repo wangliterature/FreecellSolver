@@ -884,9 +884,9 @@ public abstract class BaseSolver {
             return SEARCH_OUTCOME_PRUNE;
         }
         //计算分数  或者是状态分
-        int heuristicCost = this.computeHeuristicCost(gameState);
+        int currentGameStateDepth = this.computeCurrentDepth(gameState);
         //当前状态有没有超过限制
-        if (this.exceedsConfiguredMoveLimit(heuristicCost)) {
+        if (this.exceedsConfiguredMoveLimit(currentGameStateDepth)) {
             return SEARCH_OUTCOME_PRUNE;
         }
         //是不是全部有解   节点标准就是  桌面上都有解了
@@ -1003,7 +1003,7 @@ public abstract class BaseSolver {
      * @param gameState
      * @return
      */
-    int computeHeuristicCost(GameState gameState)  {
+    int computeCurrentDepth(GameState gameState)  {
         return gameState.depth + 1;
     }
 
