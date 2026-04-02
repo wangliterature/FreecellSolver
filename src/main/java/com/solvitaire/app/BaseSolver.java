@@ -28,7 +28,7 @@ public abstract class BaseSolver {
     private int num1;
     private int num2;
     private int O;
-    int maxSearchDepth = 298;
+    int maxSearchDepth = 298; //深度其实可以理解为步数
     int searchCreditLimit;
     Card[] cardPoolArray;
     int poolCardIndex;
@@ -246,6 +246,7 @@ public abstract class BaseSolver {
         if (this.solverContext.logLevel <= 4) {
             this.solverContext.log("In process, entering solve loop");
         }
+        //
         while (this.solverContext.searchBudget > -this.searchCreditLimit) {
             //分配缓存map
             this.initializeDuplicateStateBuckets();

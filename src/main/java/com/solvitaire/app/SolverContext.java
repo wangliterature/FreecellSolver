@@ -55,18 +55,6 @@ public class SolverContext {
       throw new IllegalArgumentException(message);
    }
 
-   /**
-    * 保留旧 solver 的“短暂停顿”接口。
-    *
-    * 在当前独立版里我们不真的 `sleep`，因为这只是原 UI 版本用来防止界面过快刷新的钩子。
-    * 这里保留方法名和入口，是为了不破坏旧代码调用关系。
-    */
-   void sleepBriefly(long millis, String reason) {
-      if (millis <= 0L) {
-         return;
-      }
-      System.out.println(reason);
-   }
 
    /**
     * 用 UTF-8 写文本文件。
