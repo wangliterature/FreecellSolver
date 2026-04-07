@@ -159,8 +159,9 @@ public abstract class BaseSolver {
      * Run the solver from setup to shutdown.
      */
     final void solve() {
-
+        //栈大小
         this.configureBucketSizeForAvailableHeap();
+        //初始化以及 记录日志
         if (!this.initializeSolverAndLogStart()) {
             return;
         }
@@ -251,7 +252,7 @@ public abstract class BaseSolver {
             this.initializeDuplicateStateBuckets();
             //清理参数
             this.prepareSearchIteration();
-            this.search(-1, 0);
+            this.search(-1);
 
             if (this.isSolver || this.currenBackout > 0) {
                 return;
@@ -779,6 +780,7 @@ public abstract class BaseSolver {
      */
     final void recordVisitedStateHash(long stateHash) {
         int depthBucketIndex = this.currentDepthBucketIndex();
+        //状态值存储太多就是丢弃
         if (this.R[depthBucketIndex].size() > this.bucketSize) {
             if (this.solverContext.logLevel <= 4) {
                 this.solverContext.log(
@@ -1028,7 +1030,7 @@ public abstract class BaseSolver {
 
     abstract boolean initializeSolver();
 
-    abstract void search(int var1, int var2);
+    abstract void search(int var1);
 
     abstract long computeStateHash();
 

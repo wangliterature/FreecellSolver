@@ -82,14 +82,14 @@ final class FreeCellSolver extends BaseSolver {
      * Explore one recursive search node.
      */
     @Override
-    final void search(int previousEncodedMove, int currentStateResult) {
+    final void search(int previousEncodedMove) {
         this.updateSearchProgressCheckpoint();
         //到达一定数量，打印日志
         if (this.solverContext.searchStepCount++ % 100000L == 0L) {
             this.logWorkMoveInfo(4);
         }
         //检测当前的状态  是继续还是停止
-        currentStateResult = this.evaluateCurrentStateForSearch();
+        int currentStateResult = this.evaluateCurrentStateForSearch();
         //停止搜索  成功
         if (currentStateResult != SEARCH_OUTCOME_CONTINUE) {
             return;
@@ -650,7 +650,7 @@ final class FreeCellSolver extends BaseSolver {
      * 3. 检查 FreeCell 对空列/空闲单元的搬运上限；
      * 4. 真正执行移动、递归搜索，然后把现场恢复。
      */
-    private boolean tryMoveStackAndRecurse(
+    private boolean  tryMoveStackAndRecurse(
             CardStack destinationStack,
             CardStack sourceStack,
             int moveMode,
@@ -879,7 +879,7 @@ final class FreeCellSolver extends BaseSolver {
                 if (this.currenBackout < 0) {
                     this.recordVisitedStateHash(stateHash);
                     producedSearchBranch = true;
-                    this.search(encodedMove, 0);
+                    this.search(encodedMove);
                 }
                 if (this.currenBackout >= 0) {
                     --this.currenBackout;
