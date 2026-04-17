@@ -319,7 +319,7 @@ final class FreeCellSolver extends BaseSolver {
         }
         //0 1    2 3 4 5 6 7 8 9 10
         switch (moveMode) {
-            case FROM_WORK:
+            case FROM_WORK://收牌
                 this.tryMovesFromWorkAreaToTableau(moveMode, previousEncodedMove);
                 return false;
             case TO_SPACE:
@@ -337,7 +337,7 @@ final class FreeCellSolver extends BaseSolver {
                 return false;
             case ACES_AUTO:
                 return this.tryAutomaticFoundationMoves(moveMode, previousEncodedMove);
-            default:
+            default: //自己收牌
                 return this.tryDirectFoundationMoves(moveMode, previousEncodedMove);
         }
     }
@@ -496,6 +496,8 @@ final class FreeCellSolver extends BaseSolver {
 
     /**
      * 枚举“tableau / 空闲单元 -> foundation”的常规候选。
+     *
+     * 简单说就是自动收
      *
      * 这里只负责按 foundation 目标逐个尝试；一旦某个目标产生了有效搜索分支，
      * 就和原实现一样立刻结束当前 mode。
