@@ -3,14 +3,8 @@ package com.solvitaire.app;
 import java.util.LinkedList;
 
 /**
- * One logical stack inside a {@link StackGroup}.
- *
- * A stack owns an ordered list of {@link CardRun} objects. The last run in that list is the
- * currently exposed run (`topRun`). Search code mutates stacks very aggressively, so this class
- * centralizes three kinds of bookkeeping:
- * 1. Keeping `runs` and `topRun` in sync.
- * 2. Maintaining `StackGroup.emptyStackCount`.
- * 3. Encoding and undoing run transfers without allocating unnecessary objects.
+ * group分为3部分
+ * 8 4 4
  */
 final class CardStack {
     final SolverContext context;
@@ -58,10 +52,11 @@ final class CardStack {
     }
 
     /**
-     * Return the currently exposed top card, or `null` when the stack is empty.
+     * 返回最上面的card
      */
     final Card getTopCard() {
-        return this.topRun != null && this.topRun.cardCount != 0
+        return this.topRun != null
+                && this.topRun.cardCount != 0
                 ? this.topRun.cards[this.topRun.cardCount - 1]
                 : null;
     }
@@ -70,7 +65,8 @@ final class CardStack {
      * Return the encoded card id of the exposed top card, or `-1` when empty.
      */
     final int getTopCardValue() {
-        return this.topRun != null && this.topRun.cardCount != 0
+        return this.topRun != null
+                && this.topRun.cardCount != 0
                 ? this.topRun.cards[this.topRun.cardCount - 1].cardId
                 : -1;
     }
@@ -79,7 +75,8 @@ final class CardStack {
      * Return the rank of the exposed top card, or `0` when empty.
      */
     final int getTopRank() {
-        return this.topRun != null && this.topRun.cardCount != 0
+        return this.topRun != null
+                && this.topRun.cardCount != 0
                 ? this.topRun.cards[this.topRun.cardCount - 1].rank
                 : 0;
     }
@@ -385,12 +382,6 @@ final class CardStack {
         sourceStack.removeRun(sourceStack.topRun);
     }
 
-    /**
-     * Undo the temporary move of a completed suit into another group.
-     */
-    private int restoreCompletedSuitIfNeeded(int undoToken, StackGroup completedSuitGroup) {
-            return undoToken;
-    }
 
     /**
      * Restore cards into an already existing source top run.
@@ -418,7 +409,7 @@ final class CardStack {
 
     /**
      * Undo the special token `20`, which means "merge the whole destination top run back".
-     * 将当前的顶部加入倒原stack中
+     * 将当前的top添加倒目标中
      * current cardRun copy sourceStack
      */
     private void mergeEntireTopRunBackIntoSource(CardStack sourceStack) {

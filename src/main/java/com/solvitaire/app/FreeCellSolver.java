@@ -32,7 +32,35 @@ final class FreeCellSolver extends BaseSolver {
     private int exposeAceAttempts = 0;
     private int alternatingJoinAttempts = 0;
     private int splitMatchAttempts = 0;
-    static private String[] moveModeNames = new String[]{"?", "toAces", "fromSpace", "toSpace", "fromWork", "toWork", "matching", "toAcesAuto", "expose", "matchWithSplit", "toSpaceKing"};
+    static private String[] moveModeNames = new String[]{
+            "?", //0
+            "toAces",  //1
+            "fromSpace",  //2
+            "toSpace", //3
+            "fromWork", //4
+            "toWork", //5
+            "matching", //6
+            "toAcesAuto", //7
+            "expose", //8
+            "matchWithSplit",  //9
+            "toSpaceKing" //10
+    };
+
+
+    public static final int UNKNOWN = 0;
+
+    public static final int TO_ACES = 1;          // toAces
+    public static final int FROM_SPACE = 2;       // fromSpace
+    public static final int TO_SPACE = 3;         // toSpace
+    public static final int FROM_WORK = 4;        // fromWork
+    public static final int TO_WORK = 5;          // toWork
+    public static final int MATCHING = 6;         // matching
+
+    public static final int ACES_AUTO = 7; // toAcesAuto ⭐你说的这个
+
+    public static final int EXPOSE = 8;           // expose
+    public static final int MATCH_WITH_SPLIT = 9; // matchWithSplit
+    public static final int TO_SPACE_KING = 10;   // toSpaceKing
 
     FreeCellSolver(SolverContext solverContext) {
         super(solverContext, 2000);
@@ -96,11 +124,12 @@ final class FreeCellSolver extends BaseSolver {
         }
         this.tryImmediateRootMove(previousEncodedMove);
         int baseComplexity = this.solverContext.complexity;
-        if (this.currenBackout < 0 && !this.generateAndTryMoves(7, previousEncodedMove)) {
+        if (this.currenBackout < 0 && !this.generateAndTryMoves(ACES_AUTO, previousEncodedMove)) {
             this.tryDeferredMoveModes(previousEncodedMove, baseComplexity);
         }
         this.consumeBackoutStep();
     }
+
 
     /**
      * Evaluate the current node before trying any outgoing moves.
@@ -284,28 +313,29 @@ final class FreeCellSolver extends BaseSolver {
      * 都交给 `tryMoveStackAndRecurse(...)` 处理。
      */
     private boolean generateAndTryMoves(int moveMode, int previousEncodedMove) {
+        System.out.println(moveMode);
         if (this.solverContext.logLevel <= 3) {
             this.solverContext.log("Entered dojoins for mode " + moveModeNames[moveMode] + " complexity " + this.solverContext.complexity);
         }
-
+        //0 1    2 3 4 5 6 7 8 9 10
         switch (moveMode) {
-            case 4:
+            case FROM_WORK:
                 this.tryMovesFromWorkAreaToTableau(moveMode, previousEncodedMove);
                 return false;
-            case 3:
-            case 10:
+            case TO_SPACE:
+            case TO_SPACE_KING:
                 this.tryMovesToEmptyTableau(moveMode, previousEncodedMove);
                 return false;
-            case 2:
-            case 6:
-            case 8:
-            case 9:
+            case FROM_SPACE:
+            case MATCHING:
+            case EXPOSE:
+            case MATCH_WITH_SPLIT:
                 this.tryTableauToTableauMoves(moveMode, previousEncodedMove);
                 return false;
-            case 5:
+            case TO_WORK:
                 this.tryMovesToWorkArea(moveMode, previousEncodedMove);
                 return false;
-            case 7:
+            case ACES_AUTO:
                 return this.tryAutomaticFoundationMoves(moveMode, previousEncodedMove);
             default:
                 return this.tryDirectFoundationMoves(moveMode, previousEncodedMove);

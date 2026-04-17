@@ -27,8 +27,8 @@ public abstract class BaseSolver {
     private int[] sieveArray = new int[414];
     private int num1;
     private int num2;
-    private int O;
-    int maxSearchDepth = 298; //深度其实可以理解为步数
+    private int num3;
+    int maxSearchDepth = 200; //深度其实可以理解为步数   能接受的最优步数
     int searchCreditLimit;
     Card[] cardPoolArray;
     int poolCardIndex;
@@ -36,6 +36,7 @@ public abstract class BaseSolver {
     private HashMap[] S = new HashMap[10];
     boolean isSolver = false;
     int currenBackout = -1;
+    //最深深度
     private int deepestRecursionDepth;
     private int deepestRecursionComplexity;
     private long[] longRandom1;
@@ -73,11 +74,7 @@ public abstract class BaseSolver {
         while (!sieveArrayTemp[n3]) {
             ++n3;
         }
-        this.O = n3;
-        while (!sieveArrayTemp[n3]) {
-            ++n3;
-        }
-
+        this.num3 = n3;
     }
 
     /**
@@ -145,6 +142,7 @@ public abstract class BaseSolver {
         }
     }
 
+    //创建缓存的card
     private void initCardPool() {
         this.poolCardIndex = 0;
         this.cardPoolArray = new Card[this.cardPoolDefaultSize];
@@ -156,15 +154,13 @@ public abstract class BaseSolver {
     }
 
     /**
-     * Run the solver from setup to shutdown.
+     * 开始解题
      */
     final void solve() {
-
         this.configureBucketSizeForAvailableHeap();
         if (!this.initializeSolverAndLogStart()) {
             return;
         }
-        this.maxSearchDepth = 298;
         this.runSearchProcessLoop();
         this.solverContext.bestSolutionState.reset();
         if (this.solverContext.logLevel <= 6) {
@@ -177,12 +173,13 @@ public abstract class BaseSolver {
      *
      * Larger heaps allow larger hash buckets, which reduces collision pressure during the search.
      * The numeric thresholds are intentionally kept identical to the original implementation.
+     *
+     * 查看HeapMemory 根据大小来设置每个桶的大小
      */
     private void configureBucketSizeForAvailableHeap() {
         MemoryUsage heapUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
         long maxHeapBytes = heapUsage.getMax();
         long usedHeapBytes = heapUsage.getUsed();
-
         if (maxHeapBytes > 8000000000L) {
             this.bucketSize = 0x200000;
         } else if (maxHeapBytes > 4000000000L) {
@@ -198,7 +195,6 @@ public abstract class BaseSolver {
         } else {
             this.solverContext.failFast("ERROR<br>System has insufficient available RAM (" + maxHeapBytes / 1024000L + " megabytes)<br>Solitaire Solver would run too slowly");
         }
-
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("Max heap memory: " + maxHeapBytes + " used: " + usedHeapBytes + " bucket size: " + this.bucketSize);
         }
@@ -358,7 +354,7 @@ public abstract class BaseSolver {
                 while (runIndex < cardRun.cardCount) {
                     int n3 = cardRun.cards[runIndex].cardId;
                     if (n3 == 0) {
-                        n3 = this.O;
+                        n3 = this.num3;
                     }
                     l2 = flag ? (l2 += this.sieveNum(n3, l2)) : (l2 += this.sieveNum2(n3, cardStack.stackIndex, l2));
                     ++runIndex;
@@ -929,6 +925,8 @@ public abstract class BaseSolver {
 
     /**
      * 如果当前状态本身已经是一份更好的完整解，就把它复制到 bestSolutionState。
+     *
+     * 更新最优解
      */
     private void recordBetterSolutionIfNeeded(GameState candidateState) {
         //等于0 说明初次   或者当前的 是最优的
@@ -1008,7 +1006,8 @@ public abstract class BaseSolver {
     }
 
     /**
-     * 创建cardPool
+     *
+     * 从pool中取Card
      *
      * @param cardData
      * @return
@@ -1027,6 +1026,10 @@ public abstract class BaseSolver {
 
     abstract StringBuffer createStateHeader(String var1, int var2);
 
+    /**
+     * 初始化初始状态
+     * @return
+     */
     abstract boolean initializeSolver();
 
     abstract void search(int var1, int var2);
