@@ -1,6 +1,9 @@
 package com.solvitaire.app;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,6 +37,15 @@ public class SolverContext {
     */
    void log(String message) {
       System.out.println(message);
+//      try (FileWriter fw = new FileWriter("log.txt", true);
+//           BufferedWriter bw = new BufferedWriter(fw);
+//           PrintWriter out = new PrintWriter(bw)) {
+//
+//         out.println(message);
+//
+//      } catch (IOException e) {
+//         e.printStackTrace();
+//      }
    }
 
    /**

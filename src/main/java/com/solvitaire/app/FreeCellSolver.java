@@ -21,9 +21,6 @@ final class FreeCellSolver extends BaseSolver {
     private int exposeAcePenalty = -12;
     private int splitMatchPenalty = 30;
     private int splitMatchesAcePenalty = -10;
-    private int maxMoveTargetMoveToAcesPenalty = -3;
-    private int maxMoveTargetAlternatingJoinPenalty = -2;
-    private int maxMoveTargetExposeAcePenalty = -4;
     private int moveToAcesAttempts = 0;
     private int toSpaceAttempts = 0;
     private int fromSpaceAttempts = 0;
@@ -79,20 +76,8 @@ final class FreeCellSolver extends BaseSolver {
         if (!this.solverContext.bridge.loadInitialStateFromInputFile()) {
             return false;
         }
-        //复制状态
+        //复制状态     复制
         this.solverContext.searchState = new GameState(this.solverContext.initialState, true);
-        // 999的时候压根执行不到
-        if (this.solverContext.fileSet.maxSolutionMoves < 999) {
-            if (this.solverContext.logLevel <= 5) {
-                this.solverContext.log("Using modified search for max move target");
-            }
-            //移动到Aces惩罚
-            this.moveToAcesPenalty = this.maxMoveTargetMoveToAcesPenalty;
-            //揭露Ace惩罚
-            this.exposeAcePenalty = this.maxMoveTargetExposeAcePenalty;
-            //alternatingJoinPenalty
-            this.alternatingJoinPenalty = this.maxMoveTargetAlternatingJoinPenalty;
-        }
         return true;
     }
 
@@ -271,21 +256,18 @@ final class FreeCellSolver extends BaseSolver {
         long l2 = 0L;
         int n2 = 0;
         while (n2 < this.stackSize) {
-            FreeCellSolver nz_02 = this;
-            l2 += nz_02.hashValue(nz_02.solverContext.searchState.stackGroups[0].stacks[n2], l2, true);
+            l2 += hashValue(solverContext.searchState.stackGroups[0].stacks[n2], l2, true);
             ++n2;
         }
         this.randomUseIndex = 0;
         n2 = 0;
         while (n2 < 4) {
-            FreeCellSolver nz_03 = this;
-            l2 += nz_03.hashValue(nz_03.solverContext.searchState.stackGroups[2].stacks[n2], l2, false);
+            l2 += hashValue(solverContext.searchState.stackGroups[2].stacks[n2], l2, false);
             ++n2;
         }
         n2 = 0;
         while (n2 < 4) {
-            FreeCellSolver nz_04 = this;
-            l2 += nz_04.hashValue(nz_04.solverContext.searchState.stackGroups[1].stacks[n2], l2, false);
+            l2 += hashValue(solverContext.searchState.stackGroups[1].stacks[n2], l2, false);
             ++n2;
         }
         return l2;
@@ -313,13 +295,13 @@ final class FreeCellSolver extends BaseSolver {
      * 都交给 `tryMoveStackAndRecurse(...)` 处理。
      */
     private boolean generateAndTryMoves(int moveMode, int previousEncodedMove) {
-        System.out.println(moveMode);
+        System.out.println(moveModeNames[moveMode]);
         if (this.solverContext.logLevel <= 3) {
             this.solverContext.log("Entered dojoins for mode " + moveModeNames[moveMode] + " complexity " + this.solverContext.complexity);
         }
         //0 1    2 3 4 5 6 7 8 9 10
         switch (moveMode) {
-            case FROM_WORK://收牌
+            case FROM_WORK://自由区 到 桌面
                 this.tryMovesFromWorkAreaToTableau(moveMode, previousEncodedMove);
                 return false;
             case TO_SPACE:
@@ -696,7 +678,7 @@ final class FreeCellSolver extends BaseSolver {
         try {
             int sourceRunCardCount = sourceStack.topRun.cardCount;
             int joinMode = this.resolveJoinMode(moveMode, destinationStack);
-            int joinSplitCount = destinationStack.evaluateJoinFrom(sourceStack, joinMode);
+            int joinSplitCount = destinationStack.evaluateJoinFrom(sourceStack, joinMode); //走found
             this.applySplitMatchesAcePenaltyIfNeeded(moveMode, sourceStack, joinSplitCount);
             if (joinSplitCount < 0) {
                 return false;
@@ -756,24 +738,22 @@ final class FreeCellSolver extends BaseSolver {
      */
     private int resolveJoinMode(int moveMode, CardStack destinationStack) {
         switch (moveMode) {
-            case 1:
-            case 7:
+            case TO_ACES:
+            case ACES_AUTO:
+            case MATCHING:
+            case MATCH_WITH_SPLIT:
                 return 1;
-            case 2:
+            case FROM_SPACE:
                 return 3;
-            case 3:
+            case TO_SPACE:
+            case TO_SPACE_KING:
                 return 2;
-            case 4:
+            case FROM_WORK:
                 return destinationStack.topRun == null ? 2 : 1;
-            case 5:
+            case TO_WORK:
                 return 6;
-            case 6:
-            case 9:
-                return 1;
-            case 8:
+            case EXPOSE:
                 return destinationStack.topRun == null ? 2 : 1;
-            case 10:
-                return 2;
             default:
                 return -1;
         }

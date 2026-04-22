@@ -142,7 +142,7 @@ public abstract class BaseSolver {
         }
     }
 
-    //创建缓存的card
+    //创建缓存的card   52张
     private void initCardPool() {
         this.poolCardIndex = 0;
         this.cardPoolArray = new Card[this.cardPoolDefaultSize];
@@ -220,16 +220,12 @@ public abstract class BaseSolver {
      * 开始遍历
      */
     private void runSearchProcessLoop() {
-        while (this.solverContext.searchBudget > -this.searchCreditLimit) { //信用额度
-            this.runBudgetLimitedSearch();
-            //清理缓存状态
-            this.clearDuplicateStateBuckets();
-            System.gc();
-            //是否已经拿下
-            if (this.handleCompletedSearchPass()) {
-                break;
-            }
-        }
+        this.runBudgetLimitedSearch();
+        //清理缓存状态
+        this.clearDuplicateStateBuckets();
+        System.gc();
+        //是否已经拿下
+        this.handleCompletedSearchPass();
     }
 
     /**
@@ -442,7 +438,7 @@ public abstract class BaseSolver {
         if (contentArray == null) {
             return false;
         }
-        String[] contentFristArray = contentArray[0].split(",");
+//        String[] contentFristArray = contentArray[0].split(",");
         int contentIndex = 0;
         while (contentIndex < contentArray.length) {
             if (contentArray[contentIndex] == null) break;
