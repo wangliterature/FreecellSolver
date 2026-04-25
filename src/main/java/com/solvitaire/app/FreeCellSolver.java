@@ -59,6 +59,18 @@ final class FreeCellSolver extends BaseSolver {
     public static final int MATCH_WITH_SPLIT = 9; // matchWithSplit
     public static final int TO_SPACE_KING = 10;   // toSpaceKing
 
+    // moveMode 总览（按编号）：
+    // 1 TO_ACES: 常规上 foundation（直接收牌）
+    // 2 FROM_SPACE: tableau -> tableau 的一类重排尝试
+    // 3 TO_SPACE: 把非 K 开头序列移到空 tableau
+    // 4 FROM_WORK: freecell -> tableau
+    // 5 TO_WORK: tableau -> freecell
+    // 6 MATCHING: tableau 间按匹配规则拼接
+    // 7 ACES_AUTO: 带安全门控的自动上 foundation
+    // 8 EXPOSE: 以“露出 A”为目标的 tableau 重排
+    // 9 MATCH_WITH_SPLIT: 允许拆分的匹配拼接
+    // 10 TO_SPACE_KING: 仅 K 开头序列移到空 tableau
+
     FreeCellSolver(SolverContext solverContext) {
         super(solverContext, 2000);
         this.cardPoolDefaultSize = 52; //52张
@@ -106,7 +118,8 @@ final class FreeCellSolver extends BaseSolver {
     final void search(int previousEncodedMove, int currentStateResult) {
         // 1) 周期性记录递归进度、最深层信息和可选调试输出。
         this.updateSearchProgressCheckpoint();
-        //到达一定数量，打印日志
+        // 到达固定步数打印一次心跳日志，避免高频刷屏影响可读性。
+        // 这里只做观测输出，不参与任何搜索判定。
         if (this.solverContext.searchStepCount++ % 100000L == 0L) {
             this.logWorkMoveInfo(4);
         }
@@ -149,10 +162,18 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.currenBackout = 999;
             } else if (currentStateResult == SEARCH_OUTCOME_PRUNE) {
+                // logLevel<=3: 记录剪枝原因，便于定位分支终止点；不改变返回路径。
+                if (this.solverContext.logLevel <= 3) {
+                    this.solverContext.log("Pruned at depth " + this.solverContext.searchState.depth + " by evaluateCurrentState");
+                }
                 return SEARCH_OUTCOME_PRUNE;
             }
         }
         if (this.solverContext.searchState.depth > this.maxSearchDepth) {
+            // logLevel<=3: 记录深度剪枝阈值命中情况，仅用于调试观察。
+            if (this.solverContext.logLevel <= 3) {
+                this.solverContext.log("Pruned at depth " + this.solverContext.searchState.depth + " because maxSearchDepth is " + this.maxSearchDepth);
+            }
             return SEARCH_OUTCOME_PRUNE;
         }
         return SEARCH_OUTCOME_CONTINUE;
@@ -172,6 +193,9 @@ final class FreeCellSolver extends BaseSolver {
                 && this.generateAndTryMoves(1, previousEncodedMove)
         ) {
             this.currenBackout = 0;
+            if (this.solverContext.logLevel <= 3) {
+                this.solverContext.log("Root TO_ACES produced a branch; backout set to 0");
+            }
         }
     }
 
@@ -185,6 +209,9 @@ final class FreeCellSolver extends BaseSolver {
      * - 最后恢复 complexity。
      */
     private void tryDeferredMoveModes(int previousEncodedMove, int baseComplexity) {
+        // 这里的顺序是“策略优先级”，不是随机排列：
+        // 先尝试更可能直接推进局面的模式（如 toAces/fromWork），
+        // 再尝试代价更高或更具重排性质的模式（如 toWork/splitMatch）。
         this.tryMoveModeWithAdjustedComplexity(1, previousEncodedMove, baseComplexity, this.moveToAcesPenalty, true, "try moving aces");
         this.tryMoveModeWithAdjustedComplexity(4, previousEncodedMove, baseComplexity, this.fromWorkAreaPenalty, false, "try moving from work area");
         this.tryMoveModeWithAdjustedComplexity(2, previousEncodedMove, baseComplexity, this.fromSpacePenalty, false, "try table to table");
@@ -226,6 +253,7 @@ final class FreeCellSolver extends BaseSolver {
         if (complexityAllowsSearch) {
             this.adjustAttemptCounter(moveMode, 1);
             try {
+                // logLevel<=2: 仅在较详细调试级别打印 mode 尝试入口，平衡信息量与噪声。
                 if (logMessage != null && this.solverContext.logLevel <= 2) {
                     this.solverContext.log("Depth " + this.solverContext.searchState.depth + " " + logMessage);
                 }
@@ -233,6 +261,13 @@ final class FreeCellSolver extends BaseSolver {
             } finally {
                 this.adjustAttemptCounter(moveMode, -1);
             }
+        } else if (this.solverContext.logLevel <= 3) {
+            // complexity gate 未通过时记一条原因日志，帮助解释“为什么该 mode 没展开”。
+            this.solverContext.log(
+                    "Skip mode " + moveModeNames[moveMode]
+                            + " at depth " + this.solverContext.searchState.depth
+                            + " due to complexity gate " + this.solverContext.complexity
+            );
         }
 
         this.solverContext.complexity = baseComplexity;
@@ -341,6 +376,13 @@ final class FreeCellSolver extends BaseSolver {
         if (this.solverContext.logLevel <= 3) {
             this.solverContext.log("Entered dojoins for mode " + moveModeNames[moveMode] + " complexity " + this.solverContext.complexity);
         }
+        // 分派图（mode -> 实际枚举方法）：
+        // 4 -> tryMovesFromWorkAreaToTableau
+        // 3/10 -> tryMovesToEmptyTableau
+        // 2/6/8/9 -> tryTableauToTableauMoves
+        // 5 -> tryMovesToWorkArea
+        // 7 -> tryAutomaticFoundationMoves
+        // 其它（主要是 1）-> tryDirectFoundationMoves
         //0 1    2 3 4 5 6 7 8 9 10
         switch (moveMode) {
             case FROM_WORK://自由区 到 桌面
@@ -766,6 +808,15 @@ final class FreeCellSolver extends BaseSolver {
             int joinSplitCount = destinationStack.evaluateJoinFrom(sourceStack, joinMode); //走found
             this.applySplitMatchesAcePenaltyIfNeeded(moveMode, sourceStack, joinSplitCount);
             if (joinSplitCount < 0) {
+                if (this.solverContext.logLevel <= 3) {
+                    // 记录 join 失败的直接原因，便于定位候选被拒位置；不改变判定结果。
+                    this.solverContext.log(
+                            "Reject move " + moveModeNames[moveMode]
+                                    + " source " + sourceStack.stackIndex
+                                    + " -> dest " + destinationStack.stackIndex
+                                    + " due to joinSplitCount " + joinSplitCount
+                    );
+                }
                 return false;
             }
 
@@ -774,6 +825,16 @@ final class FreeCellSolver extends BaseSolver {
                 return false;
             }
             if (!this.acceptsPartialMove(moveMode, sourceRunCardCount, movedCardCount)) {
+                if (this.solverContext.logLevel <= 3) {
+                    // 记录 partial move 规则拒绝，用于解释 mode 约束导致的回退。
+                    this.solverContext.log(
+                            "Reject partial move " + moveModeNames[moveMode]
+                                    + " source " + sourceStack.stackIndex
+                                    + " -> dest " + destinationStack.stackIndex
+                                    + " moved " + movedCardCount
+                                    + " of " + sourceRunCardCount
+                    );
+                }
                 return false;
             }
             return this.executeMoveAndSearch(
@@ -805,9 +866,17 @@ final class FreeCellSolver extends BaseSolver {
             int previousEncodedMove
     ) {
         if (destinationStack == sourceStack) {
+            if (this.solverContext.logLevel <= 3) {
+                // 快速拒绝原因日志：同栈移动属于无效候选。
+                this.solverContext.log("Reject move: source and destination are the same stack " + sourceStack.stackIndex);
+            }
             return true;
         }
         if (sourceStack.topRun == null) {
+            if (this.solverContext.logLevel <= 3) {
+                // 快速拒绝原因日志：来源无牌可搬。
+                this.solverContext.log("Reject move: source stack " + sourceStack.stackIndex + " has no top run");
+            }
             return true;
         }
         if (previousEncodedMove <= 0) {
@@ -816,7 +885,18 @@ final class FreeCellSolver extends BaseSolver {
         //上一步是不是刚移动过来   应该是避免来回
         int previousDestinationCode = previousEncodedMove % 100;
         int previousSourceCode = previousEncodedMove / 100 % 100;
-        return destinationStack.stackIndex == previousSourceCode && sourceStack.stackIndex == previousDestinationCode;
+        boolean isDirectReversal = destinationStack.stackIndex == previousSourceCode && sourceStack.stackIndex == previousDestinationCode;
+        if (isDirectReversal && this.solverContext.logLevel <= 3) {
+            // 快速拒绝原因日志：与上一手直接反向，避免无意义来回抖动。
+            this.solverContext.log(
+                    "Reject move: direct reversal of previous move ("
+                            + sourceStack.stackIndex
+                            + " -> "
+                            + destinationStack.stackIndex
+                            + ")"
+            );
+        }
+        return isDirectReversal;
     }
 
     /**
@@ -842,10 +922,12 @@ final class FreeCellSolver extends BaseSolver {
             case TO_SPACE_KING:
                 return 2;
             case FROM_WORK:
+                // 从 freecell 往 tableau 移动时，目标为空列与非空列使用不同 join 协议。
                 return destinationStack.topRun == null ? 2 : 1;
             case TO_WORK:
                 return 6;
             case EXPOSE:
+                // expose 模式同样区分“落到空列”与“接到现有 run”两种 join 规则。
                 return destinationStack.topRun == null ? 2 : 1;
             default:
                 return -1;
@@ -992,15 +1074,40 @@ final class FreeCellSolver extends BaseSolver {
             if (moveMode == 7 || !this.isReversalOfPreviousMove(destinationStack, sourceStack)) {
                 if (moveMode != 7) {
                     this.currenBackout = this.checkVisitedStateHash(stateHash);
+                    if (this.currenBackout >= 0 && this.solverContext.logLevel <= 3) {
+                        // 重复状态命中日志：解释“不递归”的原因；不修改去重逻辑。
+                        this.solverContext.log(
+                                "Skip recursion due to visited hash at depth "
+                                        + this.solverContext.searchState.depth
+                                        + " hash="
+                                        + stateHash
+                        );
+                    }
                 }
                 if (this.currenBackout < 0) {
                     this.recordVisitedStateHash(stateHash);
                     producedSearchBranch = true;
+                    if (this.solverContext.logLevel <= 3) {
+                        // 递归入口日志：记录本次展开的动作编号与深度，便于回放搜索路径。
+                        this.solverContext.log(
+                                "Recurse with move "
+                                        + Move.encodeMoveAsText(encodedMove)
+                                        + " depth "
+                                        + this.solverContext.searchState.depth
+                        );
+                    }
                     this.search(encodedMove, 0);
                 }
                 if (this.currenBackout >= 0) {
+                    // 子递归返回后再消费一层 backout，让“停止信号”逐层向上冒泡。
                     --this.currenBackout;
                 }
+            } else if (this.solverContext.logLevel <= 3) {
+                // reversal 命中日志：解释被反向移动检查阻止的分支。
+                this.solverContext.log(
+                        "Skip recursion due to reversal check for move "
+                                + Move.encodeMoveAsText(encodedMove)
+                );
             }
             return producedSearchBranch;
         } finally {

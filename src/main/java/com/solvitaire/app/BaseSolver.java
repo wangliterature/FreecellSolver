@@ -233,12 +233,17 @@ public abstract class BaseSolver {
      *
      * Within a pass the solver keeps lowering the budget in fixed steps until it either finds a
      * solution/backout signal or has to perform one last final-state check.
+     *
+     * 读法可以理解为：
+     * - `searchBudget` 是当前这一轮允许使用的复杂度起点；
+     * - 每跑完一轮完整递归就把预算再下调一个固定步长（30）；
+     * - 一旦出现 solved 或 backout 信号，立即结束本轮预算循环。
      */
     private void runBudgetLimitedSearch() {
         if (this.solverContext.logLevel <= 4) {
             this.solverContext.log("In process, entering solve loop");
         }
-        //
+        // 预算窗口：从 0 开始逐轮下调，直到触达 -searchCreditLimit。
         while (this.solverContext.searchBudget > -this.searchCreditLimit) {
             //分配缓存map
             this.initializeDuplicateStateBuckets();
@@ -246,6 +251,7 @@ public abstract class BaseSolver {
             this.prepareSearchIteration();
             this.search(-1, 0);
 
+            // 本轮出现 solved 或 backout，外层立即停机，不再继续降预算。
             if (this.isSolver || this.currenBackout > 0) {
                 return;
             }
@@ -253,9 +259,12 @@ public abstract class BaseSolver {
             if (this.solverContext.logLevel <= 4) {
                 this.solverContext.log("*** Deepest recursion for credit " + this.solverContext.searchBudget + " was " + this.deepestRecursionDepth + " with complexity " + this.deepestRecursionComplexity);
             }
+            // 固定步长下调预算：让下一轮以更宽松的复杂度门槛继续探索。
             this.solverContext.searchBudget -= 30;
         }
 
+        // 兜底 final check：预算耗尽后，若仍未 solved 且未处于 backout，
+        // 再做一次强制状态判定，避免漏掉边界条件下的完成局面。
         if (!this.isSolver && this.currenBackout <= 0) {
             if (this.solverContext.logLevel <= 5) {
                 this.solverContext.log("Credit expired and solve not flagged, do final check");
@@ -1039,9 +1048,4 @@ public abstract class BaseSolver {
     abstract boolean isAllStackSolved(GameState var1);
 
 }
-
-
-
-
-
 
