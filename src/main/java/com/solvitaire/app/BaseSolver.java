@@ -581,7 +581,7 @@ public abstract class BaseSolver {
         int index = 0;
         while (index < stackLength) {
             CardStack cardStack = cardStacks[index];
-            int stackCardNum = 0;
+            int cardRunNum = 0;
             int everyStackNum = 0;
             for (CardRun cardRun : cardStack.runs) {
                 int cardRunIndex = 0;
@@ -589,9 +589,9 @@ public abstract class BaseSolver {
                 while (cardRunIndex < cardRun.cardCount) {
                     if (cardRun.cards[cardRunIndex].cardId != 0) {
                         if (this.solverContext.logLevel <= 0) {
-                            this.solverContext.log("Testing stack " + cardStack.stackIndex + " run " + stackCardNum + " entry " + cardRunIndex + " card " + cardRun.cards[cardRunIndex]);
+                            this.solverContext.log("Testing stack " + cardStack.stackIndex + " run " + cardRunNum + " entry " + cardRunIndex + " card " + cardRun.cards[cardRunIndex]);
                         }
-                        ++stackCardNum;
+                        ++cardRunNum;
                         //计算每一张牌的个数
                         int everyCardNum = this.everyCardNum(hashMap, cardRun.cards[cardRunIndex].cardId);
                         //这里主要是校验     如果数量大于1   spider > 2
