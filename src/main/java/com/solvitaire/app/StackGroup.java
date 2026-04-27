@@ -65,7 +65,6 @@ public final class StackGroup {
         }
         return cardCount;
     }
-
 }
 
 
