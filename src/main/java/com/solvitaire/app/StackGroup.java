@@ -7,6 +7,8 @@ package com.solvitaire.app;
  * 桌面牌堆
  *
  *  1.groupIndex  编号
+ *
+ *  复制  + 统计个数
  * 2.
  */
 public final class StackGroup {
@@ -25,8 +27,8 @@ public final class StackGroup {
 
     StackGroup(SolverContext context, String name, int groupIndex, int stackCount, int flags) {
         this.context = context;
-        this.groupIndex = groupIndex;
         this.name = name;
+        this.groupIndex = groupIndex;
         this.stackCount = stackCount;
         this.flags = flags;
         this.stacks = new CardStack[stackCount];
