@@ -27,8 +27,8 @@ public abstract class BaseSolver {
     private int[] sieveArray = new int[414];
     private int num1;
     private int num2;
-    private int O;
-    int maxSearchDepth = 298; //深度其实可以理解为步数
+    private int num3;
+    int maxSearchDepth = 200; //深度其实可以理解为步数   能接受的最优步数
     int searchCreditLimit;
     Card[] cardPoolArray;
     int poolCardIndex;
@@ -36,6 +36,7 @@ public abstract class BaseSolver {
     private HashMap[] S = new HashMap[10];
     boolean isSolver = false;
     int currenBackout = -1;
+    //最深深度
     private int deepestRecursionDepth;
     private int deepestRecursionComplexity;
     private long[] longRandom1;
@@ -73,11 +74,7 @@ public abstract class BaseSolver {
         while (!sieveArrayTemp[n3]) {
             ++n3;
         }
-        this.O = n3;
-        while (!sieveArrayTemp[n3]) {
-            ++n3;
-        }
-
+        this.num3 = n3;
     }
 
     /**
@@ -145,6 +142,7 @@ public abstract class BaseSolver {
         }
     }
 
+    //创建缓存的card   52张
     private void initCardPool() {
         this.poolCardIndex = 0;
         this.cardPoolArray = new Card[this.cardPoolDefaultSize];
@@ -156,16 +154,13 @@ public abstract class BaseSolver {
     }
 
     /**
-     * Run the solver from setup to shutdown.
+     * 开始解题
      */
     final void solve() {
-        //栈大小
         this.configureBucketSizeForAvailableHeap();
-        //初始化以及 记录日志
         if (!this.initializeSolverAndLogStart()) {
             return;
         }
-        this.maxSearchDepth = 298;
         this.runSearchProcessLoop();
         this.solverContext.bestSolutionState.reset();
         if (this.solverContext.logLevel <= 6) {
@@ -178,12 +173,13 @@ public abstract class BaseSolver {
      *
      * Larger heaps allow larger hash buckets, which reduces collision pressure during the search.
      * The numeric thresholds are intentionally kept identical to the original implementation.
+     *
+     * 查看HeapMemory 根据大小来设置每个桶的大小
      */
     private void configureBucketSizeForAvailableHeap() {
         MemoryUsage heapUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
         long maxHeapBytes = heapUsage.getMax();
         long usedHeapBytes = heapUsage.getUsed();
-
         if (maxHeapBytes > 8000000000L) {
             this.bucketSize = 0x200000;
         } else if (maxHeapBytes > 4000000000L) {
@@ -199,7 +195,6 @@ public abstract class BaseSolver {
         } else {
             this.solverContext.failFast("ERROR<br>System has insufficient available RAM (" + maxHeapBytes / 1024000L + " megabytes)<br>Solitaire Solver would run too slowly");
         }
-
         if (this.solverContext.logLevel <= 5) {
             this.solverContext.log("Max heap memory: " + maxHeapBytes + " used: " + usedHeapBytes + " bucket size: " + this.bucketSize);
         }
@@ -225,16 +220,12 @@ public abstract class BaseSolver {
      * 开始遍历
      */
     private void runSearchProcessLoop() {
-        while (this.solverContext.searchBudget > -this.searchCreditLimit) { //信用额度
-            this.runBudgetLimitedSearch();
-            //清理缓存状态
-            this.clearDuplicateStateBuckets();
-            System.gc();
-            //是否已经拿下
-            if (this.handleCompletedSearchPass()) {
-                break;
-            }
-        }
+        this.runBudgetLimitedSearch();
+        //清理缓存状态
+        this.clearDuplicateStateBuckets();
+        System.gc();
+        //是否已经拿下
+        this.handleCompletedSearchPass();
     }
 
     /**
@@ -242,19 +233,25 @@ public abstract class BaseSolver {
      *
      * Within a pass the solver keeps lowering the budget in fixed steps until it either finds a
      * solution/backout signal or has to perform one last final-state check.
+     *
+     * 读法可以理解为：
+     * - `searchBudget` 是当前这一轮允许使用的复杂度起点；
+     * - 每跑完一轮完整递归就把预算再下调一个固定步长（30）；
+     * - 一旦出现 solved 或 backout 信号，立即结束本轮预算循环。
      */
     private void runBudgetLimitedSearch() {
         if (this.solverContext.logLevel <= 4) {
             this.solverContext.log("In process, entering solve loop");
         }
-        //
+        // 预算窗口：从 0 开始逐轮下调，直到触达 -searchCreditLimit。
         while (this.solverContext.searchBudget > -this.searchCreditLimit) {
             //分配缓存map
             this.initializeDuplicateStateBuckets();
             //清理参数
             this.prepareSearchIteration();
-            this.search(-1);
+            this.search(-1, 0);
 
+            // 本轮出现 solved 或 backout，外层立即停机，不再继续降预算。
             if (this.isSolver || this.currenBackout > 0) {
                 return;
             }
@@ -262,9 +259,12 @@ public abstract class BaseSolver {
             if (this.solverContext.logLevel <= 4) {
                 this.solverContext.log("*** Deepest recursion for credit " + this.solverContext.searchBudget + " was " + this.deepestRecursionDepth + " with complexity " + this.deepestRecursionComplexity);
             }
+            // 固定步长下调预算：让下一轮以更宽松的复杂度门槛继续探索。
             this.solverContext.searchBudget -= 30;
         }
 
+        // 兜底 final check：预算耗尽后，若仍未 solved 且未处于 backout，
+        // 再做一次强制状态判定，避免漏掉边界条件下的完成局面。
         if (!this.isSolver && this.currenBackout <= 0) {
             if (this.solverContext.logLevel <= 5) {
                 this.solverContext.log("Credit expired and solve not flagged, do final check");
@@ -359,7 +359,7 @@ public abstract class BaseSolver {
                 while (runIndex < cardRun.cardCount) {
                     int n3 = cardRun.cards[runIndex].cardId;
                     if (n3 == 0) {
-                        n3 = this.O;
+                        n3 = this.num3;
                     }
                     l2 = flag ? (l2 += this.sieveNum(n3, l2)) : (l2 += this.sieveNum2(n3, cardStack.stackIndex, l2));
                     ++runIndex;
@@ -447,7 +447,7 @@ public abstract class BaseSolver {
         if (contentArray == null) {
             return false;
         }
-        String[] contentFristArray = contentArray[0].split(",");
+//        String[] contentFristArray = contentArray[0].split(",");
         int contentIndex = 0;
         while (contentIndex < contentArray.length) {
             if (contentArray[contentIndex] == null) break;
@@ -590,7 +590,7 @@ public abstract class BaseSolver {
         int index = 0;
         while (index < stackLength) {
             CardStack cardStack = cardStacks[index];
-            int stackCardNum = 0;
+            int cardRunNum = 0;
             int everyStackNum = 0;
             for (CardRun cardRun : cardStack.runs) {
                 int cardRunIndex = 0;
@@ -598,9 +598,9 @@ public abstract class BaseSolver {
                 while (cardRunIndex < cardRun.cardCount) {
                     if (cardRun.cards[cardRunIndex].cardId != 0) {
                         if (this.solverContext.logLevel <= 0) {
-                            this.solverContext.log("Testing stack " + cardStack.stackIndex + " run " + stackCardNum + " entry " + cardRunIndex + " card " + cardRun.cards[cardRunIndex]);
+                            this.solverContext.log("Testing stack " + cardStack.stackIndex + " run " + cardRunNum + " entry " + cardRunIndex + " card " + cardRun.cards[cardRunIndex]);
                         }
-                        ++stackCardNum;
+                        ++cardRunNum;
                         //计算每一张牌的个数
                         int everyCardNum = this.everyCardNum(hashMap, cardRun.cards[cardRunIndex].cardId);
                         //这里主要是校验     如果数量大于1   spider > 2
@@ -781,7 +781,6 @@ public abstract class BaseSolver {
      */
     final void recordVisitedStateHash(long stateHash) {
         int depthBucketIndex = this.currentDepthBucketIndex();
-        //状态值存储太多就是丢弃
         if (this.R[depthBucketIndex].size() > this.bucketSize) {
             if (this.solverContext.logLevel <= 4) {
                 this.solverContext.log(
@@ -931,6 +930,8 @@ public abstract class BaseSolver {
 
     /**
      * 如果当前状态本身已经是一份更好的完整解，就把它复制到 bestSolutionState。
+     *
+     * 更新最优解
      */
     private void recordBetterSolutionIfNeeded(GameState candidateState) {
         //等于0 说明初次   或者当前的 是最优的
@@ -1010,7 +1011,8 @@ public abstract class BaseSolver {
     }
 
     /**
-     * 创建cardPool
+     *
+     * 从pool中取Card
      *
      * @param cardData
      * @return
@@ -1029,9 +1031,13 @@ public abstract class BaseSolver {
 
     abstract StringBuffer createStateHeader(String var1, int var2);
 
+    /**
+     * 初始化初始状态
+     * @return
+     */
     abstract boolean initializeSolver();
 
-    abstract void search(int var1);
+    abstract void search(int var1, int var2);
 
     abstract long computeStateHash();
 
@@ -1042,9 +1048,4 @@ public abstract class BaseSolver {
     abstract boolean isAllStackSolved(GameState var1);
 
 }
-
-
-
-
-
 

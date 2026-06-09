@@ -14,15 +14,18 @@ final class CardRun {
     // 当前有多少张牌
     public int cardCount;
     // 最多13张（K→A）   最优的时候就是13张
-    Card[] cards = new Card[13];
+    Card[] cards;
     // 所属牌栈   card所在牌栈    card Run所在牌栈
     CardStack overStack;
 
-    CardRun() {}
+    CardRun() {
+        this.cards = new Card[13];
+    }
 
     // 一个牌栈最少一个
     //如果为null， 那就创建设一个
     CardRun(Card card) {
+        this();
         this.cards[0] = card;
         this.cardCount = 1;
     }

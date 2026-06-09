@@ -26,3 +26,53 @@
 
 核心是：把太阳在黄道上的位置分成24份，每15°一个节气，用来指导农业。
 
+🧩 moveModeNames 含义
+static private String[] moveModeNames = new String[]{
+"?",              // 0 未知 / 未定义
+"toAces",         // 1 移到基础堆（A → K）
+"fromSpace",      // 2 从空闲单元拿牌
+"toSpace",        // 3 放到空闲单元
+"fromWork",       // 4 从工作列（主牌列）拿牌
+"toWork",         // 5 移到工作列
+"matching",       // 6 匹配（通常是自动拼接序列）
+"toAcesAuto",     // 7 自动移到基础堆（自动收牌）
+"expose",         // 8 翻开新牌（暴露底牌）
+"matchWithSplit", // 9 拆分后匹配（复杂移动）
+"toSpaceKing"     // 10 King 放入空列（特殊规则）
+};
+🎯 重点解释几个关键操作
+1️⃣ toAces
+把牌移动到右上角的基础堆（A → K）
+FreeCell 的核心目标
+2️⃣ toSpace / fromSpace
+空闲单元（FreeCell 的“4个临时格”）
+用来中转牌
+3️⃣ toWork / fromWork
+主游戏区域（8列）
+规则：
+颜色交替（红黑）
+数值递减（K → A）
+4️⃣ toAcesAuto
+自动收牌（常见功能）
+比如：
+当某张牌已经“安全”时自动上收
+5️⃣ matching
+多张牌连续移动（比如一串顺序正确的牌）
+常用于：
+自动拼接
+AI 或提示系统
+6️⃣ matchWithSplit
+比较高级的逻辑：
+先拆开一段序列
+再重新组合移动
+一般出现在：
+AI 搜索
+高级解法
+7️⃣ expose
+翻开被盖住的牌（类似“揭底牌”）
+比如移动后露出新牌
+8️⃣ toSpaceKing
+特殊规则：
+King（K）移动到空列
+很多 FreeCell 实现会单独处理这个情况
+

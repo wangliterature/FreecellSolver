@@ -3,14 +3,8 @@ package com.solvitaire.app;
 import java.util.LinkedList;
 
 /**
- * One logical stack inside a {@link StackGroup}.
- *
- * A stack owns an ordered list of {@link CardRun} objects. The last run in that list is the
- * currently exposed run (`topRun`). Search code mutates stacks very aggressively, so this class
- * centralizes three kinds of bookkeeping:
- * 1. Keeping `runs` and `topRun` in sync.
- * 2. Maintaining `StackGroup.emptyStackCount`.
- * 3. Encoding and undoing run transfers without allocating unnecessary objects.
+ * group分为3部分
+ * 8 4 4
  */
 final class CardStack {
     final SolverContext context;
@@ -58,10 +52,11 @@ final class CardStack {
     }
 
     /**
-     * Return the currently exposed top card, or `null` when the stack is empty.
+     * 返回最上面的card
      */
     final Card getTopCard() {
-        return this.topRun != null && this.topRun.cardCount != 0
+        return this.topRun != null
+                && this.topRun.cardCount != 0
                 ? this.topRun.cards[this.topRun.cardCount - 1]
                 : null;
     }
@@ -70,7 +65,8 @@ final class CardStack {
      * Return the encoded card id of the exposed top card, or `-1` when empty.
      */
     final int getTopCardValue() {
-        return this.topRun != null && this.topRun.cardCount != 0
+        return this.topRun != null
+                && this.topRun.cardCount != 0
                 ? this.topRun.cards[this.topRun.cardCount - 1].cardId
                 : -1;
     }
@@ -79,7 +75,8 @@ final class CardStack {
      * Return the rank of the exposed top card, or `0` when empty.
      */
     final int getTopRank() {
-        return this.topRun != null && this.topRun.cardCount != 0
+        return this.topRun != null
+                && this.topRun.cardCount != 0
                 ? this.topRun.cards[this.topRun.cardCount - 1].rank
                 : 0;
     }
@@ -227,6 +224,12 @@ final class CardStack {
      *
      * The `undoToken` encodes whether cards were split out of a run, whether the whole destination
      * run was merged back, and whether a completed suit was temporarily moved out to a side group.
+     *
+     * 等于20将整段全部复制
+     *
+     * 如果大于20，将一部分复制
+     *
+     * 小于20，顶部不存在，设置为顶部
      */
     void undoMoveCardsFrom(CardStack sourceStack, int undoToken) {
         if (undoToken > 0 && undoToken != 20) {
@@ -328,12 +331,14 @@ final class CardStack {
     }
 
     /**
-     * Foundation stacks only care about suit and strict rank progression.
+     * Foundation stacks only care about suit and strict rank progression.  处理found
+     *
+     * 花色是否连续  如果是found   如果不是只看是否大于1   如果不为null那么就看是否相同
      */
     private int evaluateFoundationJoin(CardRun destinationRun, Card sourceTopCard) {
         if (destinationRun == null) {
             if (this.foundationSuit > 0) {
-                return sourceTopCard.cardId == this.foundationSuit * 100 + 1 ? 1 : -1;
+                return sourceTopCard.cardId == this.foundationSuit * 100 + 1 ? 1 : -1; //值是否可以连上  颜色是否相同
             }
             return sourceTopCard.rank == 1 ? 1 : -1;
         }
@@ -385,12 +390,6 @@ final class CardStack {
         sourceStack.removeRun(sourceStack.topRun);
     }
 
-    /**
-     * Undo the temporary move of a completed suit into another group.
-     */
-    private int restoreCompletedSuitIfNeeded(int undoToken, StackGroup completedSuitGroup) {
-            return undoToken;
-    }
 
     /**
      * Restore cards into an already existing source top run.
@@ -418,7 +417,7 @@ final class CardStack {
 
     /**
      * Undo the special token `20`, which means "merge the whole destination top run back".
-     * 将当前的顶部加入倒原stack中
+     * 将当前的top添加到目标中
      * current cardRun copy sourceStack
      */
     private void mergeEntireTopRunBackIntoSource(CardStack sourceStack) {
