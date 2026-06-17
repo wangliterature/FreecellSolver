@@ -41,7 +41,7 @@ public final class FreeCellStandaloneMain {
    public static void main(String[] args) {
       runOnce(args);
    }
-
+   static SolverContext solverContext;
    /**
     * 完整执行一次求解流程。
     *
@@ -55,7 +55,7 @@ public final class FreeCellStandaloneMain {
       Path sourceSolutionFile = buildSolutionFilePath(sourceInputFile);
 
       try {
-         SolverContext solverContext = createSolverContext(preparedInputFile.inputFilePath);
+         solverContext = createSolverContext(preparedInputFile.inputFilePath);
          BaseSolver solver = createSolver(solverContext);
 
          deleteStaleSolutionFiles(preparedSolutionFile, sourceSolutionFile);
@@ -153,7 +153,7 @@ public final class FreeCellStandaloneMain {
    private static void printSolution(SolverContext solverContext, Path solutionFile) {
       int[] encodedMoves = readEncodedMovesFromSolutionFile(solutionFile);
       if (encodedMoves.length == 0) {
-         System.out.println("No solution found.");
+         solverContext.log("No solution found.");
          return;
       }
 

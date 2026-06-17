@@ -357,7 +357,7 @@ public abstract class BaseSolver {
             for (CardRun cardRun : cardStack.runs) {
                 int runIndex = 0;
                 while (runIndex < cardRun.cardCount) {
-                    int n3 = cardRun.cards[runIndex].cardId;
+                    int n3 = cardRun.getCards()[runIndex].getCardId();
                     if (n3 == 0) {
                         n3 = this.num3;
                     }
@@ -419,7 +419,7 @@ public abstract class BaseSolver {
             for (CardRun cardRun : cardStack.runs) {
                 int cardIndex = 0;
                 while (cardIndex < cardRun.cardCount) {
-                    stringBuffer.append("" + cardRun.cards[cardIndex]);
+                    stringBuffer.append("" + cardRun.getCards()[cardIndex]);
                     if (cardIndex < cardRun.cardCount - 1) {
                         stringBuffer.append("+");
                     }
@@ -596,18 +596,25 @@ public abstract class BaseSolver {
                 int cardRunIndex = 0;
                 //cardRun的长度不为0
                 while (cardRunIndex < cardRun.cardCount) {
-                    if (cardRun.cards[cardRunIndex].cardId != 0) {
+                    if (cardRun.getCards()[cardRunIndex].getCardId()!= 0) {
                         if (this.solverContext.logLevel <= 0) {
-                            this.solverContext.log("Testing stack " + cardStack.stackIndex + " run " + cardRunNum + " entry " + cardRunIndex + " card " + cardRun.cards[cardRunIndex]);
+                            this.solverContext.log(
+                                    "Testing stack "
+                                            + cardStack.stackIndex + " run "
+                                            + cardRunNum + " entry "
+                                            + cardRunIndex + " card "
+                                            + cardRun.getCards()[cardRunIndex]);
                         }
                         ++cardRunNum;
                         //计算每一张牌的个数
-                        int everyCardNum = this.everyCardNum(hashMap, cardRun.cards[cardRunIndex].cardId);
+                        int everyCardNum = this.everyCardNum(hashMap, cardRun.getCards()[cardRunIndex].getCardId());
                         //这里主要是校验     如果数量大于1   spider > 2
                         if (everyCardNum > maxNum) {
-                            Card nT2 = cardRun.cards[cardRunIndex];
-                            Card nT3 = cardRun.cards[cardRunIndex];
-                            this.solverContext.failFast("ERROR - Too many " + BaseSolver.bigZm(nT2.cardId) + " of " + BaseSolver.matchSuitColor(nT3.cardId) + "s in the deck");
+                            Card nT2 = cardRun.getCards()[cardRunIndex];
+                            Card nT3 = cardRun.getCards()[cardRunIndex];
+                            this.solverContext.failFast("ERROR - Too many " +
+                                    BaseSolver.bigZm(nT2.getCardId()) +
+                                    " of " + BaseSolver.matchSuitColor(nT3.getCardId()) + "s in the deck");
                         }
                         ++everyStackNum;
                     }

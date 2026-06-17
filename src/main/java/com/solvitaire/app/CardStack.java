@@ -44,7 +44,7 @@ final class CardStack {
         this.ownerGroup = ownerGroup;
         for (CardRun sourceRun : sourceStack.runs) {
             CardRun copiedRun = new CardRun(sourceRun);
-            copiedRun.overStack = this;
+            copiedRun.setOverStack(this);
             this.runs.add(copiedRun);
         }
         this.topRun = this.runs.isEmpty() ? null : this.runs.getLast();
@@ -57,7 +57,7 @@ final class CardStack {
     final Card getTopCard() {
         return this.topRun != null
                 && this.topRun.cardCount != 0
-                ? this.topRun.cards[this.topRun.cardCount - 1]
+                ? this.topRun.getCards()[this.topRun.cardCount - 1]
                 : null;
     }
 
@@ -67,7 +67,7 @@ final class CardStack {
     final int getTopCardValue() {
         return this.topRun != null
                 && this.topRun.cardCount != 0
-                ? this.topRun.cards[this.topRun.cardCount - 1].cardId
+                ? this.topRun.getCards()[this.topRun.cardCount - 1].getCardId()
                 : -1;
     }
 
@@ -77,7 +77,7 @@ final class CardStack {
     final int getTopRank() {
         return this.topRun != null
                 && this.topRun.cardCount != 0
-                ? this.topRun.cards[this.topRun.cardCount - 1].rank
+                ? this.topRun.getCards()[this.topRun.cardCount - 1].getRank()
                 : 0;
     }
 
@@ -95,7 +95,7 @@ final class CardStack {
             --this.ownerGroup.emptyStackCount;
         }
         this.runs.add(run);
-        run.overStack = this;
+        run.setOverStack(this);
         this.topRun = run;
         return run;
     }
@@ -187,7 +187,7 @@ final class CardStack {
      * two branches and kept deliberately explicit.
      */
     int evaluateJoin(CardRun destinationRun, CardRun sourceRun) {
-        Card sourceTopCard = sourceRun.cards[sourceRun.cardCount - 1];
+        Card sourceTopCard = sourceRun.getCards()[sourceRun.cardCount - 1];
         if (sourceTopCard == null) {
             return -1;
         }
@@ -198,7 +198,7 @@ final class CardStack {
             return -1;
         }
 
-        Card destinationTopCard = destinationRun.cards[destinationRun.cardCount - 1];
+        Card destinationTopCard = destinationRun.getCards()[destinationRun.cardCount - 1];
         return this.evaluateAlternatingColorJoin(destinationRun, sourceRun, destinationTopCard, sourceTopCard);
     }
 
@@ -321,9 +321,9 @@ final class CardStack {
         }
 
         CardRun previousRun = sourceStack.runs.get(sourceRunCount - 2);
-        Card previousTopCard = previousRun.cards[previousRun.cardCount - 1];
-        Card firstSourceCard = sourceStack.topRun.cards[0];
-        int joinCount = previousTopCard.rank == firstSourceCard.rank + 1 ? 1 : 0;
+        Card previousTopCard = previousRun.getCards()[previousRun.cardCount - 1];
+        Card firstSourceCard = sourceStack.topRun.getCards()[0];
+        int joinCount = previousTopCard.getRank() == firstSourceCard.getRank() + 1 ? 1 : 0;
         if ((joinCount != 0 && moveMode == 4) || (joinCount == 0 && moveMode == 5)) {
             return -1;
         }
@@ -338,11 +338,11 @@ final class CardStack {
     private int evaluateFoundationJoin(CardRun destinationRun, Card sourceTopCard) {
         if (destinationRun == null) {
             if (this.foundationSuit > 0) {
-                return sourceTopCard.cardId == this.foundationSuit * 100 + 1 ? 1 : -1; //值是否可以连上  颜色是否相同
+                return sourceTopCard.getCardId() == this.foundationSuit * 100 + 1 ? 1 : -1; //值是否可以连上  颜色是否相同
             }
-            return sourceTopCard.rank == 1 ? 1 : -1;
+            return sourceTopCard.getRank() == 1 ? 1 : -1;
         }
-        return sourceTopCard.cardId == destinationRun.cards[destinationRun.cardCount - 1].cardId + 1 ? 1 : -1;
+        return sourceTopCard.getCardId() == destinationRun.getCards()[destinationRun.cardCount - 1].getCardId() + 1 ? 1 : -1;
     }
 
 
@@ -374,7 +374,9 @@ final class CardStack {
         }
 
         if (this.context.logLevel <= 2) {
-            this.context.log("Joining card " + this.topRun.cards[this.topRun.cardCount - 1] + " with card " + sourceStack.topRun.cards[0]);
+            this.context.log(
+                    "Joining card " + this.topRun.getCards()[this.topRun.cardCount - 1]
+                    + " with card " + sourceStack.topRun.getCards()[0]);
         }
         return this.topRun.appendFromRun(sourceStack.topRun, cardCount);
     }
@@ -396,8 +398,8 @@ final class CardStack {
      */
     private void restoreCardsIntoExistingSourceRun(CardStack sourceStack, int restoredCardCount) {
         for (int cardIndex = 0; cardIndex < restoredCardCount; ++cardIndex) {
-            sourceStack.topRun.cards[sourceStack.topRun.cardCount + cardIndex] =
-                    this.topRun.cards[this.topRun.cardCount - restoredCardCount + cardIndex];
+            sourceStack.topRun.getCards()[sourceStack.topRun.cardCount + cardIndex] =
+                    this.topRun.getCards()[this.topRun.cardCount - restoredCardCount + cardIndex];
         }
         sourceStack.topRun.cardCount += restoredCardCount;
     }
@@ -409,7 +411,7 @@ final class CardStack {
     private void restoreCardsAsSeparateRun(CardStack sourceStack, int restoredCardCount) {
         CardRun restoredRun = new CardRun();
         for (int cardIndex = 0; cardIndex < restoredCardCount; ++cardIndex) {
-            restoredRun.cards[cardIndex] = this.topRun.cards[this.topRun.cardCount - restoredCardCount + cardIndex];
+            restoredRun.getCards()[cardIndex] = this.topRun.getCards()[this.topRun.cardCount - restoredCardCount + cardIndex];
         }
         restoredRun.cardCount = restoredCardCount;
         sourceStack.appendRun(restoredRun);
@@ -422,7 +424,7 @@ final class CardStack {
      */
     private void mergeEntireTopRunBackIntoSource(CardStack sourceStack) {
         for (int cardRunIndex = 0; cardRunIndex < this.topRun.cardCount; ++cardRunIndex) {
-            sourceStack.topRun.cards[sourceStack.topRun.cardCount++] = this.topRun.cards[cardRunIndex];
+            sourceStack.topRun.getCards()[sourceStack.topRun.cardCount++] = this.topRun.getCards()[cardRunIndex];
         }
     }
 

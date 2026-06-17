@@ -36,7 +36,7 @@ public class SolverContext {
     * 当前独立版先默认静默，后面要接文件或控制台都只改这一处。
     */
    void log(String message) {
-      System.out.println(message);
+//      System.out.println(message);
 //      try (FileWriter fw = new FileWriter("log.txt", true);
 //           BufferedWriter bw = new BufferedWriter(fw);
 //           PrintWriter out = new PrintWriter(bw)) {

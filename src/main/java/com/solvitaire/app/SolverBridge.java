@@ -53,15 +53,15 @@ abstract class SolverBridge {
    private String describeRegularMove(Move decodedMove, String encodedMoveText) {
       StringBuilder description = new StringBuilder();
       description.append("move ")
-         .append(decodedMove.movedCardCount)
-         .append(decodedMove.movedCardCount == 1 ? " card: " : " cards: ")
-         .append(this.describeStackLabel(decodedMove.sourceStack))
+         .append(decodedMove.getMovedCardCount())
+         .append(decodedMove.getMovedCardCount() == 1 ? " card: " : " cards: ")
+         .append(this.describeStackLabel(decodedMove.getSourceStack()))
          .append(" -> ")
-         .append(this.describeStackLabel(decodedMove.destinationStack));
-      if (decodedMove.splitMove) {
+         .append(this.describeStackLabel(decodedMove.getDestinationStack()));
+      if (decodedMove.isSplitMove()) {
          description.append(" (split)");
       }
-      if (decodedMove.autoMove) {
+      if (decodedMove.isAutoMove()) {
          description.append(" (auto)");
       }
       description.append(" [").append(encodedMoveText).append("]");
@@ -76,7 +76,7 @@ abstract class SolverBridge {
    private String describeSpecialMove(Move decodedMove, String encodedMoveText) {
       StringBuilder description = new StringBuilder();
       description.append("special move");
-      if (decodedMove.autoMove) {
+      if (decodedMove.isAutoMove()) {
          description.append(" (auto)");
       }
       description.append(" [").append(encodedMoveText).append("]");

@@ -11,19 +11,25 @@ import java.util.List;
  *
  * 这种表示对搜索和存盘很省空间，但直接读代码会非常痛苦，
  * 所以这里保留位编码方案，同时把相关工具方法改成了能看懂的名字。
+ *
+ * bits 31-24 : moveTypeFlags
+ * bits 23-16 : movedCardCount
+ * bits 15-8  : sourceGroup*10 + sourceStack
+ * bits 7-0   : destGroup*10 + destStack
  */
 public final class Move {
-   int moveTypeFlags;
-   StackGroup destinationGroup;
-   StackGroup sourceGroup;
-   CardStack destinationStack;
-   int destinationStackIndex;
-   CardStack sourceStack;
-   int sourceStackIndex;
-   int movedCardCount;
-   boolean specialMove;
-   boolean autoMove;
-   boolean splitMove;
+   private int moveTypeFlags;
+   //移动开始  和  结尾
+   private StackGroup destinationGroup;
+   private StackGroup sourceGroup;
+   private CardStack destinationStack;
+   private int destinationStackIndex;
+   private CardStack sourceStack;
+   private int sourceStackIndex;
+   private int movedCardCount;
+   private boolean specialMove;
+   private boolean autoMove;
+   private boolean splitMove;
 
    /**
     * 把一个位编码动作拆成可读字段。
@@ -31,7 +37,7 @@ public final class Move {
     * 这里在构造时一次性解码，是为了让后面的展示逻辑可以直接读字段，
     * 不必到处重复位运算。
     */
-   Move(SolverContext context, int encodedMove) {
+   public Move(SolverContext context, int encodedMove) {
       this.moveTypeFlags = encodedMove >> 24;
       this.specialMove = (this.moveTypeFlags & 8) != 0;
       this.autoMove = (this.moveTypeFlags & 0x10) != 0;
@@ -65,8 +71,19 @@ public final class Move {
     *
     * 保留这个输出，是因为位编码动作在调试日志里几乎不可读。
     */
+   private StringBuilder builder = new StringBuilder();
    public String toString() {
-      return this.movedCardCount + " cards, source " + this.sourceStack + " dest " + this.destinationStack + " auto:" + this.autoMove + " split:" + this.splitMove;
+      builder.setLength(0);
+      builder.append(this.movedCardCount)
+              .append(" cards, source ")
+              .append(this.sourceStack)
+              .append(" dest ")
+              .append(this.destinationStack)
+              .append(" auto:")
+              .append(this.autoMove)
+              .append(" split:")
+              .append(this.splitMove);
+      return builder.toString();
    }
 
    /**
@@ -205,5 +222,101 @@ public final class Move {
       }
 
       return descriptions.toArray(new String[0]);
+   }
+
+   public int getMoveTypeFlags() {
+      return moveTypeFlags;
+   }
+
+   public void setMoveTypeFlags(int moveTypeFlags) {
+      this.moveTypeFlags = moveTypeFlags;
+   }
+
+   public StackGroup getDestinationGroup() {
+      return destinationGroup;
+   }
+
+   public void setDestinationGroup(StackGroup destinationGroup) {
+      this.destinationGroup = destinationGroup;
+   }
+
+   public StackGroup getSourceGroup() {
+      return sourceGroup;
+   }
+
+   public void setSourceGroup(StackGroup sourceGroup) {
+      this.sourceGroup = sourceGroup;
+   }
+
+   public CardStack getDestinationStack() {
+      return destinationStack;
+   }
+
+   public void setDestinationStack(CardStack destinationStack) {
+      this.destinationStack = destinationStack;
+   }
+
+   public int getDestinationStackIndex() {
+      return destinationStackIndex;
+   }
+
+   public void setDestinationStackIndex(int destinationStackIndex) {
+      this.destinationStackIndex = destinationStackIndex;
+   }
+
+   public CardStack getSourceStack() {
+      return sourceStack;
+   }
+
+   public void setSourceStack(CardStack sourceStack) {
+      this.sourceStack = sourceStack;
+   }
+
+   public int getSourceStackIndex() {
+      return sourceStackIndex;
+   }
+
+   public void setSourceStackIndex(int sourceStackIndex) {
+      this.sourceStackIndex = sourceStackIndex;
+   }
+
+   public int getMovedCardCount() {
+      return movedCardCount;
+   }
+
+   public void setMovedCardCount(int movedCardCount) {
+      this.movedCardCount = movedCardCount;
+   }
+
+   public boolean isSpecialMove() {
+      return specialMove;
+   }
+
+   public void setSpecialMove(boolean specialMove) {
+      this.specialMove = specialMove;
+   }
+
+   public boolean isAutoMove() {
+      return autoMove;
+   }
+
+   public void setAutoMove(boolean autoMove) {
+      this.autoMove = autoMove;
+   }
+
+   public boolean isSplitMove() {
+      return splitMove;
+   }
+
+   public void setSplitMove(boolean splitMove) {
+      this.splitMove = splitMove;
+   }
+
+   public StringBuilder getBuilder() {
+      return builder;
+   }
+
+   public void setBuilder(StringBuilder builder) {
+      this.builder = builder;
    }
 }

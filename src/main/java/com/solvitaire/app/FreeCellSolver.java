@@ -5,6 +5,7 @@ package com.solvitaire.app;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.HashSet;
 
 /**
  *
@@ -353,7 +354,7 @@ final class FreeCellSolver extends BaseSolver {
      */
     private static boolean hasSingleAce(CardStack cardStack) {
         for (CardRun cardRun : cardStack.runs) {
-            if (cardRun.cardCount == 1 && cardRun.cards[0].rank == 1) {
+            if (cardRun.cardCount == 1 && cardRun.getCards()[0].getRank() == 1) {
                 return true;
             }
         }
@@ -372,7 +373,7 @@ final class FreeCellSolver extends BaseSolver {
      *   不做 ACES_AUTO 的红黑平衡门控。
      */
     private boolean generateAndTryMoves(int moveMode, int previousEncodedMove) {
-        System.out.println(moveModeNames[moveMode]);
+        this.solverContext.log(moveModeNames[moveMode]);
         if (this.solverContext.logLevel <= 3) {
             this.solverContext.log("Entered dojoins for mode " + moveModeNames[moveMode] + " complexity " + this.solverContext.complexity);
         }
@@ -430,7 +431,7 @@ final class FreeCellSolver extends BaseSolver {
                 continue;
             }
 
-            boolean canMoveToEmptyTableau = workAreaStack.topRun.cards[0].rank == 13;
+            boolean canMoveToEmptyTableau = workAreaStack.topRun.getCards()[0].getRank() == 13;
             for (CardStack tableauStack : tableauStacks) {
                 //桌面 栈 顶端不为null，或者是k，k肯定是放空白区域了
                 if (tableauStack.topRun != null || canMoveToEmptyTableau) {
@@ -639,7 +640,7 @@ final class FreeCellSolver extends BaseSolver {
             return false;
         }
 
-        boolean startsWithKing = sourceTableauStack.topRun.cards[0].rank == 13;
+        boolean startsWithKing = sourceTableauStack.topRun.getCards()[0].getRank() == 13;
         if ((moveMode == 10) != startsWithKing) {
             return false;
         }
@@ -943,7 +944,7 @@ final class FreeCellSolver extends BaseSolver {
             return;
         }
 
-        Card newlyCoveredCard = sourceStack.topRun.cards[sourceStack.topRun.cardCount - joinSplitCount - 1];
+        Card newlyCoveredCard = sourceStack.topRun.getCards()[sourceStack.topRun.cardCount - joinSplitCount - 1];
         if (this.isNextCardForAnyFoundation(newlyCoveredCard)) {
             this.solverContext.complexity += this.splitMatchesAcePenalty;
             if (this.solverContext.logLevel <= 3) {
@@ -957,10 +958,10 @@ final class FreeCellSolver extends BaseSolver {
      */
     private boolean isNextCardForAnyFoundation(Card candidateCard) {
         CardStack[] foundationStacks = this.solverContext.searchState.stackGroups[2].stacks;
-        return foundationStacks[0].getTopCardValue() + 1 == candidateCard.cardId
-                || foundationStacks[1].getTopCardValue() + 1 == candidateCard.cardId
-                || foundationStacks[2].getTopCardValue() + 1 == candidateCard.cardId
-                || foundationStacks[3].getTopCardValue() + 1 == candidateCard.cardId;
+        return foundationStacks[0].getTopCardValue() + 1 == candidateCard.getCardId()
+                || foundationStacks[1].getTopCardValue() + 1 == candidateCard.getCardId()
+                || foundationStacks[2].getTopCardValue() + 1 == candidateCard.getCardId()
+                || foundationStacks[3].getTopCardValue() + 1 == candidateCard.getCardId();
     }
 
     /**
@@ -1027,6 +1028,9 @@ final class FreeCellSolver extends BaseSolver {
         return moveMode != 6 && moveMode != 8 && moveMode != 2;
     }
 
+    HashSet<Integer> hashSet = new HashSet<>();
+    HashSet<Integer> hashSet2 = new HashSet<>();
+
     /**
      * 真正执行一次移动，并在新状态上继续递归。
      *
@@ -1053,16 +1057,33 @@ final class FreeCellSolver extends BaseSolver {
         if (undoMoveToken < 0) {
             return false;
         }
+        int baseFlag = moveFlags;
+//        if (!hashSet.contains(moveFlags)){
+//            hashSet.add(moveFlags);
+//            System.out.println(moveFlags+"===========================================");
+//        }
 
         if (this.solverContext.logLevel <= 2) {
             this.solverContext.log("Completed join with split of " + undoMoveToken);
         }
+        //没有从顶部全部复制
         if (movedCardCount != sourceRunCardCount) {
             moveFlags |= 1;
         }
         if (moveMode == 7) {
             moveFlags |= 16;
         }
+        if (!hashSet2.contains(moveFlags)){
+            hashSet2.add(moveFlags);
+            System.out.println(moveFlags+"======================"+baseFlag);
+        }
+//        0===========================================
+//        16===========================================
+//        2===========================================
+//        19===========================================
+//        3===========================================
+//        1===========================================
+//        18===========================================
         int encodedMove = Move.buildEncodedMove(moveFlags, movedCardCount, sourceStack, destinationStack);
         this.solverContext.searchState.moves[this.solverContext.searchState.depth] = encodedMove;
         ++this.solverContext.searchState.depth;
@@ -1122,9 +1143,9 @@ final class FreeCellSolver extends BaseSolver {
     private void waitForUnknownCardResolutionIfNeeded(CardStack sourceStack) {
         Card topCard = sourceStack.getTopCard();
         CardRun firstRun = sourceStack.runs.peekFirst();
-        boolean exposedUnknownTopCard = topCard != null && topCard.cardId == 0;
+        boolean exposedUnknownTopCard = topCard != null && topCard.getCardId() == 0;
         boolean exposedUnknownBottomCard = firstRun != null
-                && firstRun.cards[0].cardId == 0
+                && firstRun.getCards()[0].getCardId() == 0
                 && sourceStack.getCardCount() < 12;
 
         if (!exposedUnknownTopCard && !exposedUnknownBottomCard) {
