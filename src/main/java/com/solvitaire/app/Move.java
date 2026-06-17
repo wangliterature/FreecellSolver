@@ -16,6 +16,17 @@ import java.util.List;
  * bits 23-16 : movedCardCount
  * bits 15-8  : sourceGroup*10 + sourceStack
  * bits 7-0   : destGroup*10 + destStack
+ *
+ * 解析Flag:
+ *
+ *    moveFlags	baseFlag	含义
+ *    0	          0	       普通               普通移动
+ *    16	      0	       auto/special 之类  auto
+ *    2  	      2	       topRun存在
+ *    19	      2	       2 + 1 + 16
+ *    3	          2	       2 + 1
+ *    1	          0	       split但无topRun
+ *    18	      2	       2 + 16
  */
 public final class Move {
    private int moveTypeFlags;

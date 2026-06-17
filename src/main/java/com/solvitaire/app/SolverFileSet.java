@@ -10,8 +10,8 @@ import java.nio.file.Path;
  * 让调用方不必自己手动拼字符串。
  */
 public final class SolverFileSet {
-   int maxSolutionMoves = 999; //最大移动步数
-   String workingDirectoryPath;
+   private int maxSolutionMoves = 999; //最大移动步数
+   private String workingDirectoryPath;
    private final String inputFileName;
 
    /**
@@ -19,20 +19,21 @@ public final class SolverFileSet {
     *
     * 之所以在构造时就拆开，是因为旧 solver 频繁只需要“目录”或“文件名”中的一个。
     */
-   SolverFileSet(Path inputFile) {
+   public SolverFileSet(Path inputFile) {
       Path absoluteInputFile = inputFile.toAbsolutePath();
       Path parentDirectory = absoluteInputFile.getParent();
-      this.workingDirectoryPath = parentDirectory == null ? "" : parentDirectory + java.io.File.separator;
+      this.workingDirectoryPath
+              = parentDirectory == null ?
+              "" : parentDirectory + java.io.File.separator;
       this.inputFileName = absoluteInputFile.getFileName().toString();
    }
-
 
    /**
     * 返回输入文件完整路径。
     *
     * 这里集中封装路径拼接逻辑，避免在其他类里到处写字符串拼接。
     */
-   String inputFilePath() {
+   public String inputFilePath() {
       return this.workingDirectoryPath + this.inputFileName;
    }
 
@@ -41,7 +42,7 @@ public final class SolverFileSet {
     *
     * 继续沿用老项目的输出约定：`solution_原文件名`。
     */
-   String solutionFileName() {
+   public String solutionFileName() {
       return "solution_" + this.inputFileName;
    }
 
@@ -50,7 +51,27 @@ public final class SolverFileSet {
     *
     * 调用方只需要表达“我要写解文件”，不需要关心目录拼接细节。
     */
-   String solutionFilePath() {
+   public String solutionFilePath() {
       return this.workingDirectoryPath + this.solutionFileName();
+   }
+
+   public int getMaxSolutionMoves() {
+      return maxSolutionMoves;
+   }
+
+   public void setMaxSolutionMoves(int maxSolutionMoves) {
+      this.maxSolutionMoves = maxSolutionMoves;
+   }
+
+   public String getWorkingDirectoryPath() {
+      return workingDirectoryPath;
+   }
+
+   public void setWorkingDirectoryPath(String workingDirectoryPath) {
+      this.workingDirectoryPath = workingDirectoryPath;
+   }
+
+   public String getInputFileName() {
+      return inputFileName;
    }
 }

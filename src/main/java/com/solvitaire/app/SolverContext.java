@@ -17,16 +17,96 @@ import java.nio.file.Paths;
  * 但把几个原本难理解的方法名换成了带语义的名字，方便阅读。
  */
 public class SolverContext {
-   int logLevel = 0;
-   int searchBudget = 0;
-   int complexity = 0;
-   long searchStepCount = 0L;
-   boolean foundCompleteSolution = false;
-   SolverBridge bridge;
-   GameState initialState;
-   GameState searchState;
-   GameState bestSolutionState;
-   SolverFileSet fileSet;
+   private int logLevel = 0;
+   private int searchBudget = 0;
+   private int complexity = 0;
+   private long searchStepCount = 0L;
+   private boolean foundCompleteSolution = false;
+   private SolverBridge bridge;
+   private GameState initialState;
+   private GameState searchState;
+   private GameState bestSolutionState;
+   private SolverFileSet fileSet;
+
+   public int getLogLevel() {
+      return logLevel;
+   }
+
+   public void setLogLevel(int logLevel) {
+      this.logLevel = logLevel;
+   }
+
+   public int getSearchBudget() {
+      return searchBudget;
+   }
+
+   public void setSearchBudget(int searchBudget) {
+      this.searchBudget = searchBudget;
+   }
+
+   public int getComplexity() {
+      return complexity;
+   }
+
+   public void setComplexity(int complexity) {
+      this.complexity = complexity;
+   }
+
+   public long getSearchStepCount() {
+      return searchStepCount;
+   }
+
+   public void setSearchStepCount(long searchStepCount) {
+      this.searchStepCount = searchStepCount;
+   }
+
+   public boolean isFoundCompleteSolution() {
+      return foundCompleteSolution;
+   }
+
+   public void setFoundCompleteSolution(boolean foundCompleteSolution) {
+      this.foundCompleteSolution = foundCompleteSolution;
+   }
+
+   public SolverBridge getBridge() {
+      return bridge;
+   }
+
+   public void setBridge(SolverBridge bridge) {
+      this.bridge = bridge;
+   }
+
+   public GameState getInitialState() {
+      return initialState;
+   }
+
+   public void setInitialState(GameState initialState) {
+      this.initialState = initialState;
+   }
+
+   public GameState getSearchState() {
+      return searchState;
+   }
+
+   public void setSearchState(GameState searchState) {
+      this.searchState = searchState;
+   }
+
+   public GameState getBestSolutionState() {
+      return bestSolutionState;
+   }
+
+   public void setBestSolutionState(GameState bestSolutionState) {
+      this.bestSolutionState = bestSolutionState;
+   }
+
+   public SolverFileSet getFileSet() {
+      return fileSet;
+   }
+
+   public void setFileSet(SolverFileSet fileSet) {
+      this.fileSet = fileSet;
+   }
 
    /**
     * 统一的日志出口。
@@ -35,8 +115,8 @@ public class SolverContext {
     * 是为了让调用方不需要知道日志最终写到哪里。
     * 当前独立版先默认静默，后面要接文件或控制台都只改这一处。
     */
-   void log(String message) {
-//      System.out.println(message);
+   public void log(String message) {
+      System.out.println(message);
 //      try (FileWriter fw = new FileWriter("log.txt", true);
 //           BufferedWriter bw = new BufferedWriter(fw);
 //           PrintWriter out = new PrintWriter(bw)) {
@@ -54,7 +134,7 @@ public class SolverContext {
     * 原代码里这个语义叫 `fail`，但看名字不够直接；
     * 改成 `failFast` 后，调用点能明显看出“这里会立刻中断流程”。
     */
-   void failFast(String message) {
+   public void failFast(String message) {
       throw new IllegalStateException(message.replace("<br>", System.lineSeparator()));
    }
 
@@ -63,7 +143,7 @@ public class SolverContext {
     *
     * 这里单独和 `failFast` 分开，是为了区分“程序内部逻辑错误”和“用户输入不合法”。
     */
-   void throwInvalidInput(String message) {
+   public void throwInvalidInput(String message) {
       throw new IllegalArgumentException(message);
    }
 
@@ -74,7 +154,7 @@ public class SolverContext {
     * 单独封装文件写入，是为了把“自动建目录”和“是否追加”这两个细节藏起来，
     * 调用方只表达“我要写什么”。
     */
-   void writeUtf8TextFile(String path, String contents, boolean append) {
+   public void writeUtf8TextFile(String path, String contents, boolean append) {
       try {
          Path targetFile = Paths.get(path);
          Path parentDirectory = targetFile.getParent();
@@ -98,7 +178,7 @@ public class SolverContext {
     * 旧 solver 喜欢直接操作字符串数组，这里保留这种返回值，
     * 目的是少改主算法，只把名字改得更清楚。
     */
-   String[] readUtf8Lines(String path) {
+   public String[] readUtf8Lines(String path) {
       try {
          return Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8).toArray(new String[0]);
       } catch (IOException exception) {
@@ -113,7 +193,7 @@ public class SolverContext {
     * 之所以保留数值编码，是因为旧 solver 的整套比较、哈希、移动逻辑都依赖这套表示。
     * 这里真正改善的是“可读性”，所以把解析过程拆成了几步小方法。
     */
-   final int parseCardToken(String value) {
+   public int parseCardToken(String value) {
       String normalizedValue = value.trim().toLowerCase();
       if (normalizedValue.isEmpty()) {
          return 0;
@@ -144,8 +224,12 @@ public class SolverContext {
     */
    private void validateCardTokenLength(String cardToken) {
       int tokenLength = cardToken.length();
+      //是不是9以下的
       boolean isTwoCharacterToken = tokenLength == 2;
-      boolean isTenToken = tokenLength == 3 && cardToken.charAt(0) == '1' && cardToken.charAt(1) == '0';
+      boolean isTenToken =
+              tokenLength == 3
+              && cardToken.charAt(0) == '1'
+              && cardToken.charAt(1) == '0';
       if (!isTwoCharacterToken && !isTenToken) {
          this.throwInvalidInput("Invalid card " + cardToken + " in input file");
       }
@@ -180,6 +264,8 @@ public class SolverContext {
     *
     * 单独拆这个方法，是为了把“识别花色”和“识别点数”两个概念分开，
     * 读起来比一个超长 `switch` 更容易定位问题。
+    *
+    * 存储的是颜色+数值的cardId
     */
    private int resolveRankValue(String cardToken, char rankChar, int suitBase) {
       switch (rankChar) {

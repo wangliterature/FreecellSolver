@@ -428,6 +428,66 @@ final class CardStack {
         }
     }
 
+    public SolverContext getContext() {
+        return context;
+    }
+
+    public StackGroup getOwnerGroup() {
+        return ownerGroup;
+    }
+
+    public void setOwnerGroup(StackGroup ownerGroup) {
+        this.ownerGroup = ownerGroup;
+    }
+
+    public int getStackIndex() {
+        return stackIndex;
+    }
+
+    public void setStackIndex(int stackIndex) {
+        this.stackIndex = stackIndex;
+    }
+
+    public CardRun getTopRun() {
+        return topRun;
+    }
+
+    public void setTopRun(CardRun topRun) {
+        this.topRun = topRun;
+    }
+
+    public LinkedList<CardRun> getRuns() {
+        return runs;
+    }
+
+    public void setRuns(LinkedList<CardRun> runs) {
+        this.runs = runs;
+    }
+
+    public int getFoundationSuit() {
+        return foundationSuit;
+    }
+
+    public void setFoundationSuit(int foundationSuit) {
+        this.foundationSuit = foundationSuit;
+    }
+
+    public boolean isAlternatingColors() {
+        return alternatingColors;
+    }
+
+    public void setAlternatingColors(boolean alternatingColors) {
+        this.alternatingColors = alternatingColors;
+    }
+
+    public boolean isWorkingCopy() {
+        return workingCopy;
+    }
+
+    public void setWorkingCopy(boolean workingCopy) {
+        this.workingCopy = workingCopy;
+    }
+
     public String toString() {
         return this.workingCopy ? "Work" : this.ownerGroup.name + ":" + this.stackIndex % 10;
     }
