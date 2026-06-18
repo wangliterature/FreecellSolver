@@ -56,6 +56,8 @@ public final class StackGroup {
     /**
      * 计算牌当前group牌的总张数   找到牌区的总张数
      *
+     * 每一列的累加
+     *
      * @return
      */
     int countCards() {

@@ -7,8 +7,9 @@ import java.util.Arrays;
 
 /**
  * 可以出的牌
- *
  * 一列牌会变为多个牌栈
+ *
+ * 判断胜利的时候，判断每一列有几个cardRun，小于等于1，就可以全部可用
  */
 final class CardRun {
     // 当前有多少张牌
@@ -81,6 +82,7 @@ final class CardRun {
             ++addIndex;
         }
         this.cardCount += count;
+        //如果是对的   +20  啥意思
         if (count < cardRun.cardCount) {
             count += 20;
         }
