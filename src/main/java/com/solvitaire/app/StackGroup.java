@@ -49,7 +49,7 @@ public final class StackGroup {
         while (stackIndex < sourceGroup.stacks.length) {
             CardStack stack = sourceGroup.stacks[stackIndex];
             this.stacks[stackIndex] = new CardStack(this, stack);
-            this.stacks[stackIndex].workingCopy = workingCopy;
+            this.stacks[stackIndex].setWorkingCopy(workingCopy);
             ++stackIndex;
         }
     }

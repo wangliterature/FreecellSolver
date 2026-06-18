@@ -7,19 +7,19 @@ import java.util.LinkedList;
  * 8 4 4
  */
 final class CardStack {
-    final SolverContext context;
-    StackGroup ownerGroup;
-    int stackIndex;
-    CardRun topRun = null;
-    LinkedList<CardRun> runs = new LinkedList<>();
-    int foundationSuit;
-    boolean alternatingColors;
-    boolean workingCopy = false;
+    private final SolverContext context;
+    private StackGroup ownerGroup;
+    private int stackIndex;
+    private CardRun topRun = null;
+    private LinkedList<CardRun> runs = new LinkedList<>();
+    private int foundationSuit;
+    private boolean alternatingColors;
+    private boolean workingCopy = false;
 
     /**
      * Create a fresh empty stack for a newly built game state.
      */
-    CardStack(SolverContext context, StackGroup ownerGroup, int stackIndex, boolean alternatingColors) {
+    public CardStack(SolverContext context, StackGroup ownerGroup, int stackIndex, boolean alternatingColors) {
         this.context = context;
         this.ownerGroup = ownerGroup;
         this.stackIndex = stackIndex;
@@ -34,7 +34,7 @@ final class CardStack {
      * Search states rely on deep copies of runs so later mutations do not leak back into the source
      * state.
      */
-    CardStack(StackGroup ownerGroup, CardStack sourceStack) {
+    public CardStack(StackGroup ownerGroup, CardStack sourceStack) {
         this.context = sourceStack.context;
         this.stackIndex = sourceStack.stackIndex;
         this.foundationSuit = sourceStack.foundationSuit;
@@ -54,7 +54,7 @@ final class CardStack {
     /**
      * 返回最上面的card
      */
-    final Card getTopCard() {
+    public Card getTopCard() {
         return this.topRun != null
                 && this.topRun.cardCount != 0
                 ? this.topRun.getCards()[this.topRun.cardCount - 1]
@@ -64,7 +64,7 @@ final class CardStack {
     /**
      * Return the encoded card id of the exposed top card, or `-1` when empty.
      */
-    final int getTopCardValue() {
+    public int getTopCardValue() {
         return this.topRun != null
                 && this.topRun.cardCount != 0
                 ? this.topRun.getCards()[this.topRun.cardCount - 1].getCardId()
@@ -74,7 +74,7 @@ final class CardStack {
     /**
      * Return the rank of the exposed top card, or `0` when empty.
      */
-    final int getTopRank() {
+    public int getTopRank() {
         return this.topRun != null
                 && this.topRun.cardCount != 0
                 ? this.topRun.getCards()[this.topRun.cardCount - 1].getRank()
@@ -86,13 +86,15 @@ final class CardStack {
      *
      * This is the single place that turns an empty stack into a non-empty stack, so the enclosing
      * group's empty-stack count is adjusted here.
+     *
+     * 连接到顶部，  替换顶部topRun
      */
-    final CardRun appendRun(CardRun run) {
+    public CardRun appendRun(CardRun run) {
         if (run.cardCount == 0) {
             this.context.failFast("ERROR adding empty run to stack");
         }
         if (this.topRun == null && this.ownerGroup != null) {
-            --this.ownerGroup.emptyStackCount;
+            this.ownerGroup.setEmptyStackCount(this.ownerGroup.getStackCount()-1);
         }
         this.runs.add(run);
         run.setOverStack(this);
@@ -105,39 +107,19 @@ final class CardStack {
      *
      * Most callers remove the top run, but completed-suit handling also removes a run that was just
      * popped out for transfer to another group, so this method works for either case.
+     *
+     * 整个top移除
      */
-    void removeRun(CardRun run) {
+    public void removeRun(CardRun run) {
         this.runs.remove(run);
         if (this.runs.isEmpty()) {
             this.topRun = null;
             if (this.ownerGroup != null) {
-                ++this.ownerGroup.emptyStackCount;
+                this.ownerGroup.setEmptyStackCount(this.ownerGroup.getStackCount()+1);
             }
             return;
         }
         this.topRun = this.runs.getLast();
-    }
-
-    /**
-     * Remove and return the currently exposed top run.
-     *
-     * 删除最顶上的
-     */
-    CardRun popTopRun() {
-        if (this.runs.isEmpty()) {
-            return null;
-        }
-
-        CardRun removedRun = this.runs.removeLast();
-        if (this.runs.isEmpty()) {
-            this.topRun = null;
-            if (this.ownerGroup != null) {
-                ++this.ownerGroup.emptyStackCount;
-            }
-        } else {
-            this.topRun = this.runs.getLast();
-        }
-        return removedRun;
     }
 
     /**
@@ -150,7 +132,7 @@ final class CardStack {
         this.runs = new LinkedList<>();
         this.topRun = null;
         if (this.ownerGroup != null) {
-            this.ownerGroup.emptyStackCount = this.ownerGroup.stacks.length;
+            this.ownerGroup.setEmptyStackCount(this.ownerGroup.getStacks().length);
         }
         this.workingCopy = false;
     }
@@ -334,6 +316,8 @@ final class CardStack {
      * Foundation stacks only care about suit and strict rank progression.  处理found
      *
      * 花色是否连续  如果是found   如果不是只看是否大于1   如果不为null那么就看是否相同
+     *
+     * 是否可以进入funda
      */
     private int evaluateFoundationJoin(CardRun destinationRun, Card sourceTopCard) {
         if (destinationRun == null) {
@@ -373,7 +357,7 @@ final class CardStack {
             return undoToken;
         }
 
-        if (this.context.logLevel <= 2) {
+        if (this.context.getLogLevel() <= 2) {
             this.context.log(
                     "Joining card " + this.topRun.getCards()[this.topRun.cardCount - 1]
                     + " with card " + sourceStack.topRun.getCards()[0]);
@@ -393,8 +377,11 @@ final class CardStack {
     }
 
 
+    /// ///////////////////// 加个当前部分的值给其他列，分为全部给   给一部分   给到空列 /////////////////////
     /**
      * Restore cards into an already existing source top run.
+     *
+     * 处理非空列的  也是处理一部分
      */
     private void restoreCardsIntoExistingSourceRun(CardStack sourceStack, int restoredCardCount) {
         for (int cardIndex = 0; cardIndex < restoredCardCount; ++cardIndex) {
@@ -407,9 +394,12 @@ final class CardStack {
     /**
      * Restore cards as a fresh run above the source stack's current top run.
      * 将当前的几张添加倒目标中
+     *
+     * 放出去一部分   切割   这个应该是空列
      */
     private void restoreCardsAsSeparateRun(CardStack sourceStack, int restoredCardCount) {
         CardRun restoredRun = new CardRun();
+        //将当前的复制回restore
         for (int cardIndex = 0; cardIndex < restoredCardCount; ++cardIndex) {
             restoredRun.getCards()[cardIndex] = this.topRun.getCards()[this.topRun.cardCount - restoredCardCount + cardIndex];
         }
@@ -420,11 +410,15 @@ final class CardStack {
     /**
      * Undo the special token `20`, which means "merge the whole destination top run back".
      * 将当前的top添加到目标中
+     *
+     * 将当前的全部复制过去   放出去
+     *
      * current cardRun copy sourceStack
      */
     private void mergeEntireTopRunBackIntoSource(CardStack sourceStack) {
+        Card[] sourceCards = sourceStack.topRun.getCards();
         for (int cardRunIndex = 0; cardRunIndex < this.topRun.cardCount; ++cardRunIndex) {
-            sourceStack.topRun.getCards()[sourceStack.topRun.cardCount++] = this.topRun.getCards()[cardRunIndex];
+            sourceCards[sourceStack.topRun.cardCount++] = this.topRun.getCards()[cardRunIndex];
         }
     }
 
@@ -489,6 +483,6 @@ final class CardStack {
     }
 
     public String toString() {
-        return this.workingCopy ? "Work" : this.ownerGroup.name + ":" + this.stackIndex % 10;
+        return this.workingCopy ? "Work" : this.ownerGroup.getName() + ":" + this.stackIndex % 10;
     }
 }

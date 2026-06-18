@@ -15,35 +15,35 @@ public abstract class BaseSolver {
     protected static final int SEARCH_OUTCOME_CONTINUE = 0;
     protected static final int SEARCH_OUTCOME_PRUNE = 1;
     protected static final int SEARCH_OUTCOME_SOLVED = 2;
-    SolverContext solverContext;
+    private SolverContext solverContext;
     //桶的大小  每一个桶放多少个值
     private int bucketSize = 0x100000;
     //牌局的堆大小     比如table是10
-    int stackSize;
-    int randomUseIndex;
+    private int stackSize;
+    private int randomUseIndex;
     //pool的大小
-    int cardPoolDefaultSize;
+    private int cardPoolDefaultSize;
     private int buetMaxSize;
     private int[] sieveArray = new int[414];
     private int num1;
     private int num2;
     private int num3;
-    int maxSearchDepth = 200; //深度其实可以理解为步数   能接受的最优步数
-    int searchCreditLimit;
-    Card[] cardPoolArray;
-    int poolCardIndex;
+    private int maxSearchDepth = 200; //深度其实可以理解为步数   能接受的最优步数
+    private int searchCreditLimit;
+    private Card[] cardPoolArray;
+    private int poolCardIndex;
     private HashMap[] R = new HashMap[10];
     private HashMap[] S = new HashMap[10];
-    boolean isSolver = false;
-    int currenBackout = -1;
+    private boolean isSolver = false;
+    private int currenBackout = -1;
     //最深深度
     private int deepestRecursionDepth;
     private int deepestRecursionComplexity;
     private long[] longRandom1;
     private long[] longRandom2;
-    boolean bestSolutionUpdatedSinceLastConfirmation;
+    private boolean bestSolutionUpdatedSinceLastConfirmation;
 
-    BaseSolver(SolverContext solverContext, int searchCreditLimit) {
+    public BaseSolver(SolverContext solverContext, int searchCreditLimit) {
         this.solverContext = solverContext;
         this.searchCreditLimit = searchCreditLimit; //搜索限制
         Random random = new Random(314159265358979323L);
@@ -129,7 +129,7 @@ public abstract class BaseSolver {
         //搜素状态
         this.solverContext.setSearchState(null);
 //        完整解已经成立
-        this.solverContext.foundCompleteSolution = false;
+        this.solverContext.setFoundCompleteSolution(false);
         //分桶上限
 //        也就是说：
 //        如果 H = 200
@@ -138,8 +138,8 @@ public abstract class BaseSolver {
 //        这就是为什么这里要先给一个默认值。
         this.buetMaxSize = 200;
         //如果用户指定了，就分配基础上+2
-        if (this.solverContext.fileSet.maxSolutionMoves < 200) {
-            this.buetMaxSize = this.solverContext.fileSet.maxSolutionMoves + 2;
+        if (this.solverContext.getFileSet().getMaxSolutionMoves() < 200) {
+            this.buetMaxSize = this.solverContext.getFileSet().getMaxSolutionMoves() + 2;
         }
     }
 
@@ -163,8 +163,8 @@ public abstract class BaseSolver {
             return;
         }
         this.runSearchProcessLoop();
-        this.solverContext.bestSolutionState.reset();
-        if (this.solverContext.logLevel <= 6) {
+        this.solverContext.getBestSolutionState().reset();
+        if (this.solverContext.getLogLevel() <= 6) {
             this.solverContext.log("*** Exit from process ***");
         }
     }
@@ -196,7 +196,7 @@ public abstract class BaseSolver {
         } else {
             this.solverContext.failFast("ERROR<br>System has insufficient available RAM (" + maxHeapBytes / 1024000L + " megabytes)<br>Solitaire Solver would run too slowly");
         }
-        if (this.solverContext.logLevel <= 5) {
+        if (this.solverContext.getLogLevel() <= 5) {
             this.solverContext.log("Max heap memory: " + maxHeapBytes + " used: " + usedHeapBytes + " bucket size: " + this.bucketSize);
         }
     }
@@ -209,7 +209,7 @@ public abstract class BaseSolver {
             this.solverContext.log("*** " + this.getSolverName() + " initialisation failed for game mode 3");
             return false;
         }
-        if (this.solverContext.logLevel <= 9) {
+        if (this.solverContext.getLogLevel() <= 9) {
             this.solverContext.log("*** " + this.getSolverName() + " initialisation complete (Solvitaire version 5.1.2 on " + new Date() + ")");
         }
         return true;
@@ -241,11 +241,11 @@ public abstract class BaseSolver {
      * - 一旦出现 solved 或 backout 信号，立即结束本轮预算循环。
      */
     private void runBudgetLimitedSearch() {
-        if (this.solverContext.logLevel <= 4) {
+        if (this.solverContext.getLogLevel() <= 4) {
             this.solverContext.log("In process, entering solve loop");
         }
         // 预算窗口：从 0 开始逐轮下调，直到触达 -searchCreditLimit。
-        while (this.solverContext.searchBudget > -this.searchCreditLimit) {
+        while (this.solverContext.getSearchBudget() > -this.searchCreditLimit) {
             //分配缓存map
             this.initializeDuplicateStateBuckets();
             //清理参数
@@ -257,21 +257,26 @@ public abstract class BaseSolver {
                 return;
             }
 
-            if (this.solverContext.logLevel <= 4) {
-                this.solverContext.log("*** Deepest recursion for credit " + this.solverContext.searchBudget + " was " + this.deepestRecursionDepth + " with complexity " + this.deepestRecursionComplexity);
+            if (this.solverContext.getLogLevel() <= 4) {
+                this.solverContext.log("*** Deepest recursion for credit " +
+                        this.solverContext.getSearchBudget() +
+                        " was " + this.deepestRecursionDepth +
+                        " with complexity " + this.deepestRecursionComplexity);
             }
             // 固定步长下调预算：让下一轮以更宽松的复杂度门槛继续探索。
-            this.solverContext.searchBudget -= 30;
+            this.solverContext.setSearchBudget(this.solverContext.getSearchBudget() - 30);
         }
 
         // 兜底 final check：预算耗尽后，若仍未 solved 且未处于 backout，
         // 再做一次强制状态判定，避免漏掉边界条件下的完成局面。
         if (!this.isSolver && this.currenBackout <= 0) {
-            if (this.solverContext.logLevel <= 5) {
+            if (this.solverContext.getLogLevel() <= 5) {
                 this.solverContext.log("Credit expired and solve not flagged, do final check");
             }
             //循环结算，判断是否完成解题
-            this.isSolver = this.evaluateCurrentState(this.solverContext.searchState, true) == SEARCH_OUTCOME_SOLVED;
+            this.isSolver = this.evaluateCurrentState(
+                    this.solverContext.getSearchState(),
+                    true) == SEARCH_OUTCOME_SOLVED;
         }
     }
 
@@ -289,7 +294,7 @@ public abstract class BaseSolver {
      * Reset the per-pass bookkeeping immediately before the recursive search starts.
      */
     private void prepareSearchIteration() {
-        this.solverContext.complexity = this.solverContext.searchBudget;
+        this.solverContext.setComplexity(this.solverContext.getSearchBudget());
         this.currenBackout = -1;
         this.deepestRecursionDepth = 0;
         this.deepestRecursionComplexity = 0;
@@ -315,17 +320,17 @@ public abstract class BaseSolver {
             return this.handleSolvedSearchPass();
         }
 
-        if (this.solverContext.logLevel <= 5) {
+        if (this.solverContext.getLogLevel() <= 5) {
             this.solverContext.log("Exited solve loop without solution");
         }
         if (this.currenBackout > 0) {
             this.solverContext.log("The user aborted the solve so go back to user moves");
             this.currenBackout = -1;
-            this.solverContext.searchBudget = 0;
+            this.solverContext.setSearchBudget(0);
             return false;
         }
-        if (this.solverContext.searchState.depth > 0) {
-            this.solverContext.searchBudget = 0;
+        if (this.solverContext.getSearchState().getDepth() > 0) {
+            this.solverContext.setSearchBudget(0);
         }
         return false;
     }
@@ -337,10 +342,10 @@ public abstract class BaseSolver {
      * If playback is not requested, the outer loop stops immediately.
      */
     private boolean handleSolvedSearchPass() {
-        if (this.solverContext.logLevel <= 5) {
+        if (this.solverContext.getLogLevel() <= 5) {
             this.solverContext.log("Play solution");
         }
-          if (this.solverContext.logLevel <= 5) {
+          if (this.solverContext.getLogLevel() <= 5) {
             this.solverContext.log("Solved so exit process loop");
         }
         return true;
@@ -352,17 +357,17 @@ public abstract class BaseSolver {
             this.randomUseIndex = 0;
             l2 = 0L;
         }
-        if (cardStack.runs.size() == 0) {
+        if (cardStack.getRuns().size() == 0) {
             l2 += this.num2;
         } else {
-            for (CardRun cardRun : cardStack.runs) {
+            for (CardRun cardRun : cardStack.getRuns()) {
                 int runIndex = 0;
                 while (runIndex < cardRun.cardCount) {
                     int n3 = cardRun.getCards()[runIndex].getCardId();
                     if (n3 == 0) {
                         n3 = this.num3;
                     }
-                    l2 = flag ? (l2 += this.sieveNum(n3, l2)) : (l2 += this.sieveNum2(n3, cardStack.stackIndex, l2));
+                    l2 = flag ? (l2 += this.sieveNum(n3, l2)) : (l2 += this.sieveNum2(n3, cardStack.getStackIndex(), l2));
                     ++runIndex;
                 }
             }
@@ -393,15 +398,15 @@ public abstract class BaseSolver {
     }
 
     final void logWorkMoveInfo(int logLevel) {
-        this.printCurrentFinishLog(logLevel, this.solverContext.searchState, "Work moves");
+        this.printCurrentFinishLog(logLevel, this.solverContext.getSearchState(), "Work moves");
     }
 
     final void printCurrentFinishLog(int logLevel, GameState bestState, String headInfo) {
-        if (logLevel >= this.solverContext.logLevel) {
-            StringBuffer stringBuffer = this.createStateHeader(headInfo, bestState.depth);
+        if (logLevel >= this.solverContext.getLogLevel()) {
+            StringBuffer stringBuffer = this.createStateHeader(headInfo, bestState.getDepth());
             int moveIndex = 0;
-            while (moveIndex < bestState.depth) {
-                stringBuffer.append(Move.encodeMoveAsText(bestState.moves[moveIndex]));
+            while (moveIndex < bestState.getDepth()) {
+                stringBuffer.append(Move.encodeMoveAsText(bestState.getMoves()[moveIndex]));
                 stringBuffer.append(",");
                 ++moveIndex;
             }
@@ -410,7 +415,7 @@ public abstract class BaseSolver {
     }
 
     final void printStackInfo(int logLevel, StackGroup stackGroup) {
-        if (logLevel < this.solverContext.logLevel) {
+        if (logLevel < this.solverContext.getLogLevel()) {
             return;
         }
         int stackIndex = 0;

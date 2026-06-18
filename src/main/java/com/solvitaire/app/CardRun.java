@@ -58,7 +58,7 @@ public class CardRun {
      * @return
      */
     public int checkMoveDistance(Card card1, Card card2, int n2) {
-        if (!this.overStack.alternatingColors && card1.rankCommon(card2)) {
+        if (!this.overStack.isAlternatingColors() && card1.rankCommon(card2)) {
             return -1;
         }
         int diff = card1.diff(card2);

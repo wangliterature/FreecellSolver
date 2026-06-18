@@ -92,10 +92,10 @@ public final class FreeCellStandaloneMain {
     */
    private static SolverContext createSolverContext(Path preparedInputFile) {
       SolverContext solverContext = new SolverContext();
-      solverContext.logLevel = 1;
-      solverContext.fileSet = new SolverFileSet(preparedInputFile);
-      solverContext.initialState = createInitialFreeCellState(solverContext);
-      solverContext.bestSolutionState = new GameState();
+      solverContext.setLogLevel(1);
+      solverContext.setFileSet(new SolverFileSet(preparedInputFile));
+      solverContext.setInitialState(createInitialFreeCellState(solverContext));
+      solverContext.setBestSolutionState(new GameState());
       return solverContext;
    }
 
@@ -107,7 +107,7 @@ public final class FreeCellStandaloneMain {
     */
    private static BaseSolver createSolver(SolverContext solverContext) {
       FreeCellSolver solver = new FreeCellSolver(solverContext);
-      solverContext.bridge = new FreeCellBridge(solver);
+      solverContext.setBridge(new FreeCellBridge(solver));
       return solver;
    }
 
@@ -158,7 +158,8 @@ public final class FreeCellStandaloneMain {
       }
 
       System.out.println("Solved FreeCell in " + encodedMoves.length + " moves");
-      for (String step : Move.describeMoveSequence(solverContext.bridge, encodedMoves, 0, encodedMoves.length, false)) {
+      for (String step : Move.describeMoveSequence(solverContext.getBridge(),
+              encodedMoves, 0, encodedMoves.length, false)) {
          System.out.println(step);
       }
    }
@@ -251,10 +252,10 @@ public final class FreeCellStandaloneMain {
     */
    private static GameState createInitialFreeCellState(SolverContext solverContext) {
       GameState initialState = new GameState();
-      initialState.stackGroups[0] = new StackGroup(solverContext, "Tableau", 0, 8, 9);
-      initialState.stackGroups[1] = new StackGroup(solverContext, "FreeCell", 1, 4, 2);
-      initialState.stackGroups[2] = new StackGroup(solverContext, "Foundation", 2, 4, 2);
-      configureFoundationSuits(initialState.stackGroups[2]);
+      initialState.getStackGroups()[0] = new StackGroup(solverContext, "Tableau", 0, 8, 9);
+      initialState.getStackGroups()[1] = new StackGroup(solverContext, "FreeCell", 1, 4, 2);
+      initialState.getStackGroups()[2] = new StackGroup(solverContext, "Foundation", 2, 4, 2);
+      configureFoundationSuits(initialState.getStackGroups()[2]);
       return initialState;
    }
 
@@ -265,10 +266,10 @@ public final class FreeCellStandaloneMain {
     * 不重新发明一套映射，避免和原搜索逻辑不一致。
     */
    private static void configureFoundationSuits(StackGroup foundationGroup) {
-      foundationGroup.stacks[0].foundationSuit = 2;
-      foundationGroup.stacks[1].foundationSuit = 4;
-      foundationGroup.stacks[2].foundationSuit = 3;
-      foundationGroup.stacks[3].foundationSuit = 1;
+      foundationGroup.getStacks()[0].setFoundationSuit(2);
+      foundationGroup.getStacks()[1].setFoundationSuit(4);
+      foundationGroup.getStacks()[2].setFoundationSuit(3);
+      foundationGroup.getStacks()[3].setFoundationSuit(1);
    }
 
    /**

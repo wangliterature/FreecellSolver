@@ -91,10 +91,10 @@ public abstract class SolverBridge {
     */
    private String describeStackLabel(CardStack stack) {
       if (stack == null) return "none";
-      String groupName = stack.ownerGroup.getName();
-      if (stack.ownerGroup.getStackCount() <= 1) {
+      String groupName = stack.getOwnerGroup().getName();
+      if (stack.getOwnerGroup().getStackCount() <= 1) {
          return groupName;
       }
-      return groupName + "[" + stack.stackIndex + "]";
+      return groupName + "[" + stack.getStackIndex() + "]";
    }
 }

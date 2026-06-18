@@ -80,16 +80,16 @@ public final class Move {
       GameState initialState = context.getInitialState();
       if (this.specialMove) {
          if (bridge.overrideDestinationGroupIndex >= 0) {
-            this.destinationGroup = initialState.stackGroups[bridge.overrideDestinationGroupIndex];
+            this.destinationGroup = initialState.getStackGroups()[bridge.overrideDestinationGroupIndex];
             this.destinationStack = this.destinationGroup.getStacks()[0];
          }
          if (context.getBridge().overrideSourceGroupIndex >= 0) {
-            this.sourceGroup = initialState.stackGroups[bridge.overrideSourceGroupIndex];
+            this.sourceGroup = initialState.getStackGroups()[bridge.overrideSourceGroupIndex];
             this.sourceStack = this.sourceGroup.getStacks()[0];
          }
       } else {
-         this.destinationGroup = initialState.stackGroups[destinationGroupIndex];
-         this.sourceGroup = initialState.stackGroups[sourceGroupIndex];
+         this.destinationGroup = initialState.getStackGroups()[destinationGroupIndex];
+         this.sourceGroup = initialState.getStackGroups()[sourceGroupIndex];
          this.destinationStack = this.destinationGroup == null
                  ? null
                  :
