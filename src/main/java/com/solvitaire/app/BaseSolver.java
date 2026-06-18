@@ -419,10 +419,10 @@ public abstract class BaseSolver {
             return;
         }
         int stackIndex = 0;
-        while (stackIndex < stackGroup.stacks.length) {
-            StringBuffer stringBuffer = new StringBuffer(stackGroup.name + " stack " + stackIndex + ": ");
-            CardStack cardStack = stackGroup.stacks[stackIndex];
-            for (CardRun cardRun : cardStack.runs) {
+        while (stackIndex < stackGroup.getStacks().length) {
+            StringBuffer stringBuffer = new StringBuffer(stackGroup.getName() + " stack " + stackIndex + ": ");
+            CardStack cardStack = stackGroup.getStacks()[stackIndex];
+            for (CardRun cardRun : cardStack.getRuns()) {
                 int cardIndex = 0;
                 while (cardIndex < cardRun.cardCount) {
                     stringBuffer.append("" + cardRun.getCards()[cardIndex]);
@@ -446,10 +446,10 @@ public abstract class BaseSolver {
      * @return
      */
     final boolean loadCheckpointState() {
-        if (this.solverContext.logLevel <= 5) {
+        if (this.solverContext.getLogLevel() <= 5) {
             this.solverContext.log("Into loadCheckpoint for game mode 3");
         }
-        String[] contentArray = this.solverContext.readUtf8Lines(this.solverContext.fileSet.inputFilePath());
+        String[] contentArray = this.solverContext.readUtf8Lines(this.solverContext.getFileSet().inputFilePath());
         if (contentArray == null) {
             return false;
         }
@@ -470,13 +470,13 @@ public abstract class BaseSolver {
     private void saveSolutionFile(GameState gameState) {
         StringBuffer stringBuffer = new StringBuffer();
         int moveIndex = 0;
-        while (moveIndex < gameState.depth) {
-            stringBuffer.append(Move.encodeMoveAsText(gameState.moves[moveIndex]));
+        while (moveIndex < gameState.getDepth()) {
+            stringBuffer.append(Move.encodeMoveAsText(gameState.getMoves()[moveIndex]));
             stringBuffer.append(",");
             ++moveIndex;
         }
-        if (this.solverContext.fileSet != null) {
-            this.solverContext.writeUtf8TextFile(this.solverContext.fileSet.solutionFilePath(), stringBuffer.toString(), true);
+        if (this.solverContext.getFileSet() != null) {
+            this.solverContext.writeUtf8TextFile(this.solverContext.getFileSet().solutionFilePath(), stringBuffer.toString(), true);
         }
     }
 
@@ -484,10 +484,10 @@ public abstract class BaseSolver {
      * 没有存储最优的就保存有解的，有最优的 就保存最优的
      */
     final void saveResult() {
-        if (this.solverContext.bestSolutionState.depth == 0) {
-            saveSolutionFile(solverContext.searchState);
+        if (this.solverContext.getBestSolutionState().getDepth() == 0) {
+            saveSolutionFile(this.solverContext.getSearchState());
         } else {
-            saveSolutionFile(solverContext.bestSolutionState);
+            saveSolutionFile(this.solverContext.getBestSolutionState());
         }
     }
 
@@ -591,22 +591,22 @@ public abstract class BaseSolver {
      */
     final int calCardGroupCardNum(HashMap<Integer,Integer> hashMap, StackGroup stackGroup, int maxNum) {
         int allStackNum = 0;
-        CardStack[] cardStacks = stackGroup.stacks;
-        int stackLength = stackGroup.stacks.length;
+        CardStack[] cardStacks = stackGroup.getStacks();
+        int stackLength = stackGroup.getStacks().length;
         int index = 0;
         while (index < stackLength) {
             CardStack cardStack = cardStacks[index];
             int cardRunNum = 0;
             int everyStackNum = 0;
-            for (CardRun cardRun : cardStack.runs) {
+            for (CardRun cardRun : cardStack.getRuns()) {
                 int cardRunIndex = 0;
                 //cardRun的长度不为0
                 while (cardRunIndex < cardRun.cardCount) {
                     if (cardRun.getCards()[cardRunIndex].getCardId()!= 0) {
-                        if (this.solverContext.logLevel <= 0) {
+                        if (this.solverContext.getLogLevel() <= 0) {
                             this.solverContext.log(
                                     "Testing stack "
-                                            + cardStack.stackIndex + " run "
+                                            + cardStack.getStackIndex() + " run "
                                             + cardRunNum + " entry "
                                             + cardRunIndex + " card "
                                             + cardRun.getCards()[cardRunIndex]);
@@ -630,8 +630,8 @@ public abstract class BaseSolver {
             allStackNum += everyStackNum;
             ++index;
         }
-        if (this.solverContext.logLevel <= 3) {
-            this.solverContext.log("Numcards after stack " + stackGroup.name + " is " + allStackNum);
+        if (this.solverContext.getLogLevel() <= 3) {
+            this.solverContext.log("Numcards after stack " + stackGroup.getName() + " is " + allStackNum);
         }
         return allStackNum;
     }
@@ -643,14 +643,14 @@ public abstract class BaseSolver {
      * @return
      */
     final boolean isReversalOfPreviousMove(CardStack destinationStack, CardStack sourceStack) {
-        int latestEncodedMove = this.solverContext.searchState.moves[this.solverContext.searchState.depth - 1];
+        int latestEncodedMove = this.solverContext.getSearchState().getMoves()[this.solverContext.getSearchState().getDepth() - 1];
         int latestMovedCardCount = this.extractMovedCardCount(latestEncodedMove);
         int latestComparableFlags = this.normalizeMoveFlagsForReversalCheck(latestEncodedMove);
         int currentSourceCode = this.encodeStackLocation(sourceStack);
         int currentDestinationCode = this.encodeStackLocation(destinationStack);
 
-        for (int priorMoveIndex = this.solverContext.searchState.depth - 2; priorMoveIndex >= 0; --priorMoveIndex) {
-            int priorEncodedMove = this.solverContext.searchState.moves[priorMoveIndex];
+        for (int priorMoveIndex = this.solverContext.getSearchState().getDepth() - 2; priorMoveIndex >= 0; --priorMoveIndex) {
+            int priorEncodedMove = this.solverContext.getSearchState().getMoves()[priorMoveIndex];
             int priorComparableFlags = this.normalizeMoveFlagsForReversalCheck(priorEncodedMove);
             if ((priorComparableFlags & 8) != 0) {
                 break;
@@ -666,9 +666,9 @@ public abstract class BaseSolver {
                     && priorDestinationCode == currentSourceCode;
             if (sameMoveShape && !this.wasStackTouchedBetweenMoves(
                     currentSourceCode,
-                    this.solverContext.searchState.depth - 2,
+                    this.solverContext.getSearchState().getDepth() - 2,
                     priorMoveIndex)) {
-                if (this.solverContext.logLevel < 3) {
+                if (this.solverContext.getLogLevel() < 3) {
                     this.solverContext.log("Move "
                             + Move.encodeMoveAsText(latestEncodedMove)
                             + " is a reversal of "
@@ -693,7 +693,7 @@ public abstract class BaseSolver {
      * 可以区分出  3个group
      */
     private int encodeStackLocation(CardStack cardStack) {
-        return cardStack.ownerGroup.groupIndex * 10 + cardStack.stackIndex;
+        return cardStack.getOwnerGroup().getGroupIndex() * 10 + cardStack.getStackIndex();
     }
 
     /**
@@ -737,7 +737,7 @@ public abstract class BaseSolver {
      */
     private boolean wasStackTouchedBetweenMoves(int stackCode, int newestMoveIndex, int oldestMoveIndex) {
         for (int moveIndex = newestMoveIndex; moveIndex > oldestMoveIndex; --moveIndex) {
-            int encodedMove = this.solverContext.searchState.moves[moveIndex];
+            int encodedMove = this.solverContext.getSearchState().getMoves()[moveIndex];
             if (!this.isIgnoredByReversalScan(encodedMove)
                     && (this.extractMoveDestinationCode(encodedMove) == stackCode
                     || this.extractMoveSourceCode(encodedMove) == stackCode)) {
@@ -754,7 +754,7 @@ public abstract class BaseSolver {
      *
      */
     private int currentDepthBucketIndex() {
-        int depthBucketIndex = this.solverContext.searchState.depth * 10 / this.buetMaxSize;
+        int depthBucketIndex = this.solverContext.getSearchState().getDepth() * 10 / this.buetMaxSize;
         return Math.min(depthBucketIndex, 9);
     }
 
@@ -762,7 +762,7 @@ public abstract class BaseSolver {
      * 把“复杂度 + 深度”压成一个整型，作为哈希表里的附加信息。
      */
     private int packVisitedStateEntry() {
-        return this.solverContext.complexity << 16 | this.solverContext.searchState.depth;
+        return this.solverContext.getComplexity() << 16 | this.solverContext.getSearchState().getDepth();
     }
 
     /**
@@ -775,11 +775,11 @@ public abstract class BaseSolver {
         //当前不是最好的
         boolean currentBranchIsNotBetter
                 =
-                this.solverContext.complexity >= storedComplexity - 50
+                this.solverContext.getComplexity() >= storedComplexity - 50
                 &&
-                        (this.solverContext.fileSet.maxSolutionMoves == 999
+                        (this.solverContext.getFileSet().getMaxSolutionMoves() == 999
                                 ||
-                                this.solverContext.searchState.depth >= storedDepth);
+                                this.solverContext.getSearchState().getDepth() >= storedDepth);
         if (!currentBranchIsNotBetter) {
             return false;
         }
@@ -795,7 +795,7 @@ public abstract class BaseSolver {
     final void recordVisitedStateHash(long stateHash) {
         int depthBucketIndex = this.currentDepthBucketIndex();
         if (this.R[depthBucketIndex].size() > this.bucketSize) {
-            if (this.solverContext.logLevel <= 4) {
+            if (this.solverContext.getLogLevel() <= 4) {
                 this.solverContext.log(
                         String.format(
                                 "Discarding %d  hashes in bucket %d, counts %d/%d, " +
@@ -845,14 +845,14 @@ public abstract class BaseSolver {
      * 更新当前递归搜索
      */
     final void updateSearchProgressCheckpoint() {
-        if (this.solverContext.logLevel <= 3) {
+        if (this.solverContext.getLogLevel() <= 3) {
             this.logWorkMoveInfo(3); //打印work
             this.dumpState(3); //打印牌局
         }
         //搜索的深度
-        if (this.solverContext.searchState.depth > this.deepestRecursionDepth) {
-            this.deepestRecursionDepth = this.solverContext.searchState.depth;
-            this.deepestRecursionComplexity = this.solverContext.complexity;
+        if (this.solverContext.getSearchState().getDepth() > this.deepestRecursionDepth) {
+            this.deepestRecursionDepth = this.solverContext.getSearchState().getDepth();
+            this.deepestRecursionComplexity = this.solverContext.getComplexity();
         }
     }
 
@@ -892,7 +892,7 @@ public abstract class BaseSolver {
             return SEARCH_OUTCOME_SOLVED;
         }
         //当前深度
-        gameState.solutionLength = gameState.depth;
+        gameState.setSolutionLength(gameState.getDepth());
         //如果没解，但是比已有的结果更糟糕，就拉倒  不在继续    太糟糕的结果不在继续
         if (this.shouldPruneBecauseWorseThanKnownSolution(gameState)) {
             return SEARCH_OUTCOME_PRUNE;
@@ -924,8 +924,8 @@ public abstract class BaseSolver {
      * 已经有解，对于更大的可以不去考虑
      */
     private boolean shouldPruneBecauseWorseThanKnownSolution(GameState gameState) {
-        return this.solverContext.foundCompleteSolution
-                && this.solverContext.bestSolutionState.solutionLength < gameState.solutionLength;
+        return this.solverContext.isFoundCompleteSolution()
+                && this.solverContext.getBestSolutionState().getSolutionLength() < gameState.getSolutionLength();
     }
 
     /**
@@ -936,9 +936,9 @@ public abstract class BaseSolver {
      */
     private boolean exceedsConfiguredMoveLimit(int heuristicCost) {
         //减去一些离谱的
-        return this.solverContext.fileSet.maxSolutionMoves < 999
+        return this.solverContext.getFileSet().getMaxSolutionMoves() < 999
                 &&
-                heuristicCost > this.solverContext.fileSet.maxSolutionMoves;
+                heuristicCost > this.solverContext.getFileSet().getMaxSolutionMoves();
     }
 
     /**
@@ -950,13 +950,13 @@ public abstract class BaseSolver {
         //等于0 说明初次   或者当前的 是最优的
         boolean isBetterThanCurrentBest
                 =
-                this.solverContext.bestSolutionState.solutionLength == 0 ||
-                        candidateState.solutionLength < this.solverContext.bestSolutionState.solutionLength;
+                this.solverContext.getBestSolutionState().getSolutionLength() == 0 ||
+                        candidateState.getSolutionLength() < this.solverContext.getBestSolutionState().getSolutionLength();
         //没有超过预期
-        if (candidateState.solutionLength < this.solverContext.fileSet.maxSolutionMoves && isBetterThanCurrentBest) {
+        if (candidateState.getSolutionLength() < this.solverContext.getFileSet().getMaxSolutionMoves() && isBetterThanCurrentBest) {
             this.recordBestSolutionState(
                     candidateState,
-                    "Best solution currently " + candidateState.solutionLength + " moves"
+                    "Best solution currently " + candidateState.getSolutionLength() + " moves"
             );
         }
     }
@@ -965,19 +965,19 @@ public abstract class BaseSolver {
      * 判断是否应该把当前已知最佳解正式确认为“本轮已经 solved”。
      */
     private boolean shouldFinalizeBestSolution(boolean forceSolvedCheck) {
-        if (this.solverContext.bestSolutionState.solutionLength == 0) {
+        if (this.solverContext.getBestSolutionState().getSolutionLength() == 0) {
             return false;
         }
-        if (!forceSolvedCheck && this.solverContext.searchStepCount % 1000L != 0L) {
+        if (!forceSolvedCheck && this.solverContext.getSearchStepCount() % 1000L != 0L) {
             return false;
         }
-        if (!this.solverContext.foundCompleteSolution && !this.bestSolutionUpdatedSinceLastConfirmation) {
+        if (!this.solverContext.isFoundCompleteSolution() && !this.bestSolutionUpdatedSinceLastConfirmation) {
             return false;
         }
-        if (this.solverContext.logLevel <= 5) {
+        if (this.solverContext.getLogLevel() <= 5) {
             String logLabel = "Test final (forced " + forceSolvedCheck + ") best moves";
-            this.solverContext.log("Best solution length " + this.solverContext.bestSolutionState.solutionLength);
-            this.printCurrentFinishLog(5, this.solverContext.bestSolutionState, logLabel);
+            this.solverContext.log("Best solution length " + this.solverContext.getBestSolutionState().getSolutionLength());
+            this.printCurrentFinishLog(5, this.solverContext.getBestSolutionState(), logLabel);
         }
         return true;
     }
@@ -989,7 +989,7 @@ public abstract class BaseSolver {
      */
     private void markSolverAsSolved() {
         this.isSolver = true;
-        this.printCurrentFinishLog(9, this.solverContext.bestSolutionState, "Solved best moves");
+        this.printCurrentFinishLog(9, this.solverContext.getBestSolutionState(), "Solved best moves");
         this.saveResult();
     }
 
@@ -1005,13 +1005,13 @@ public abstract class BaseSolver {
             GameState bestState,
             String logMessage
     ) {
-        if (this.solverContext.logLevel <= 5) {
+        if (this.solverContext.getLogLevel() <= 5) {
             this.solverContext.log(logMessage);
             this.dumpState(5);
         }
-        this.solverContext.bestSolutionState = new GameState(bestState, true);
+        this.solverContext.setBestSolutionState(new GameState(bestState, true));
         this.bestSolutionUpdatedSinceLastConfirmation = true;
-        this.solverContext.foundCompleteSolution = true;
+        this.solverContext.setFoundCompleteSolution(true);
     }
 
     /**
@@ -1020,7 +1020,7 @@ public abstract class BaseSolver {
      * @return
      */
     int computeCurrentDepth(GameState gameState)  {
-        return gameState.depth + 1;
+        return gameState.getDepth() + 1;
     }
 
     /**
@@ -1059,6 +1059,59 @@ public abstract class BaseSolver {
     abstract void dumpState(int var1);
 
     abstract boolean isAllStackSolved(GameState var1);
+
+    // Accessors for subclasses keep BaseSolver state private while still configurable.
+    protected final SolverContext getSolverContext() {
+        return this.solverContext;
+    }
+
+    protected final void setStackSize(int stackSize) {
+        this.stackSize = stackSize;
+    }
+
+    protected final int getStackSize() {
+        return this.stackSize;
+    }
+
+    protected final void setCardPoolDefaultSize(int cardPoolDefaultSize) {
+        this.cardPoolDefaultSize = cardPoolDefaultSize;
+    }
+
+    protected final int getCardPoolDefaultSize() {
+        return this.cardPoolDefaultSize;
+    }
+
+    protected final int getCurrentBackout() {
+        return this.currenBackout;
+    }
+
+    protected final void setCurrentBackout(int currentBackout) {
+        this.currenBackout = currentBackout;
+    }
+
+    protected final void decrementCurrentBackout() {
+        --this.currenBackout;
+    }
+
+    protected final boolean isSolvedFlag() {
+        return this.isSolver;
+    }
+
+    protected final void setSolvedFlag(boolean solved) {
+        this.isSolver = solved;
+    }
+
+    protected final int getMaxSearchDepth() {
+        return this.maxSearchDepth;
+    }
+
+    protected final int getRandomUseIndex() {
+        return this.randomUseIndex;
+    }
+
+    protected final void setRandomUseIndex(int randomUseIndex) {
+        this.randomUseIndex = randomUseIndex;
+    }
 
 }
 

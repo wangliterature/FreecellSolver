@@ -93,6 +93,7 @@ final class CardStack {
         if (run.cardCount == 0) {
             this.context.failFast("ERROR adding empty run to stack");
         }
+        /// 如果当前stack不存在group，就加入，空减去1  并将自己设置为顶部
         if (this.topRun == null && this.ownerGroup != null) {
             this.ownerGroup.setEmptyStackCount(this.ownerGroup.getStackCount()-1);
         }
@@ -108,7 +109,7 @@ final class CardStack {
      * Most callers remove the top run, but completed-suit handling also removes a run that was just
      * popped out for transfer to another group, so this method works for either case.
      *
-     * 整个top移除
+     * 整个top移除    如果都移除了就空位加1
      */
     public void removeRun(CardRun run) {
         this.runs.remove(run);
@@ -127,9 +128,11 @@ final class CardStack {
      *
      * During initialization the owning group's empty count is reset to the full stack count so the
      * group starts from a known baseline.
+     *
+     *
      */
     final void clear() {
-        this.runs = new LinkedList<>();
+        this.runs.clear();
         this.topRun = null;
         if (this.ownerGroup != null) {
             this.ownerGroup.setEmptyStackCount(this.ownerGroup.getStacks().length);

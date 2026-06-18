@@ -19,7 +19,7 @@ public abstract class SolverBridge {
     */
    public SolverBridge(BaseSolver solver) {
       this.solver = solver;
-      this.context = solver.solverContext;
+      this.context = solver.getSolverContext();
    }
 
    /**

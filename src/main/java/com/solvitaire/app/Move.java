@@ -213,10 +213,10 @@ public final class Move {
          movedCardCount %= 20;
       }
 
-      int sourceCode = sourceStack == null ? 0 : sourceStack.ownerGroup.getGroupIndex() * 10 + sourceStack.stackIndex;
+      int sourceCode = sourceStack == null ? 0 : sourceStack.getOwnerGroup().getGroupIndex() * 10 + sourceStack.getStackIndex();
       int destinationCode = destinationStack == null ?
-              0 : destinationStack.ownerGroup.getGroupIndex() * 10
-              + destinationStack.stackIndex;
+              0 : destinationStack.getOwnerGroup().getGroupIndex() * 10
+              + destinationStack.getStackIndex();
       return flagBits << 24 | movedCardCount << 16 | sourceCode << 8 | destinationCode;
    }
 
