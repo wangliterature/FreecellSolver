@@ -27,6 +27,24 @@ import java.util.List;
  *    3	          2	       2 + 1
  *    1	          0	       split但无topRun
  *    18	      2	       2 + 16
+ *
+ * 拆分值：
+ *
+ *    0   0      [NORMAL]
+ *    1   1      [SPLIT]
+ *    2   10     [JOIN]
+ *    3   11     [JOIN][SPLIT]
+ *    16  10000  [AUTO]
+ *    18  10010  [JOIN][AUTO]
+ *    19  10011  [JOIN][SPLIT][AUTO]
+ *
+ *
+ * 具体的含义：
+ *     0  :普通的移动
+ *     1  :split
+ *     2  :Join   tale --> table
+ *     3  :进入fundation
+ *     16. :
  */
 public final class Move {
    private int moveTypeFlags;
@@ -58,21 +76,27 @@ public final class Move {
       this.destinationStackIndex = Move.extractDestinationStackIndex(encodedMove);
       this.sourceStackIndex = Move.extractSourceStackIndex(encodedMove);
       this.movedCardCount = (encodedMove & 0xF0000) >> 16;
-
+      SolverBridge bridge = context.getBridge();
+      GameState initialState = context.getInitialState();
       if (this.specialMove) {
-         if (context.bridge.overrideDestinationGroupIndex >= 0) {
-            this.destinationGroup = context.initialState.stackGroups[context.bridge.overrideDestinationGroupIndex];
-            this.destinationStack = this.destinationGroup.stacks[0];
+         if (bridge.overrideDestinationGroupIndex >= 0) {
+            this.destinationGroup = initialState.stackGroups[bridge.overrideDestinationGroupIndex];
+            this.destinationStack = this.destinationGroup.getStacks()[0];
          }
-         if (context.bridge.overrideSourceGroupIndex >= 0) {
-            this.sourceGroup = context.initialState.stackGroups[context.bridge.overrideSourceGroupIndex];
-            this.sourceStack = this.sourceGroup.stacks[0];
+         if (context.getBridge().overrideSourceGroupIndex >= 0) {
+            this.sourceGroup = initialState.stackGroups[bridge.overrideSourceGroupIndex];
+            this.sourceStack = this.sourceGroup.getStacks()[0];
          }
       } else {
-         this.destinationGroup = context.initialState.stackGroups[destinationGroupIndex];
-         this.sourceGroup = context.initialState.stackGroups[sourceGroupIndex];
-         this.destinationStack = this.destinationGroup == null ? null : this.destinationGroup.stacks[this.destinationStackIndex];
-         this.sourceStack = this.sourceGroup == null ? null : this.sourceGroup.stacks[this.sourceStackIndex];
+         this.destinationGroup = initialState.stackGroups[destinationGroupIndex];
+         this.sourceGroup = initialState.stackGroups[sourceGroupIndex];
+         this.destinationStack = this.destinationGroup == null
+                 ? null
+                 :
+                 this.destinationGroup.getStacks()[this.destinationStackIndex];
+         this.sourceStack = this.sourceGroup == null
+                 ? null
+                 : this.sourceGroup.getStacks()[this.sourceStackIndex];
          this.splitMove = (this.moveTypeFlags & 1) != 0;
       }
    }
@@ -189,8 +213,10 @@ public final class Move {
          movedCardCount %= 20;
       }
 
-      int sourceCode = sourceStack == null ? 0 : sourceStack.ownerGroup.groupIndex * 10 + sourceStack.stackIndex;
-      int destinationCode = destinationStack == null ? 0 : destinationStack.ownerGroup.groupIndex * 10 + destinationStack.stackIndex;
+      int sourceCode = sourceStack == null ? 0 : sourceStack.ownerGroup.getGroupIndex() * 10 + sourceStack.stackIndex;
+      int destinationCode = destinationStack == null ?
+              0 : destinationStack.ownerGroup.getGroupIndex() * 10
+              + destinationStack.stackIndex;
       return flagBits << 24 | movedCardCount << 16 | sourceCode << 8 | destinationCode;
    }
 

@@ -110,23 +110,24 @@ public abstract class BaseSolver {
      * //        这里实际上是在做：
      * //        给普通模式一个默认大上限，给特殊模式保留自己的限制逻辑。
      */
-    final void initializeBaseState() {
+    public final void initializeBaseState() {
         initCardPool();
         this.isSolver = false;
         //步数开始为0
-        this.solverContext.searchStepCount = 0L;    //搜索的步数
+        this.solverContext.setSearchStepCount(0L);    //搜索的步数
 //        第一轮搜索先从“最严格/最保守”的预算开始
-        this.solverContext.searchBudget = 0;
+        this.solverContext.setSearchBudget(0);
 //        在base init中，将递归深度和播放位置设置为0
-        if (this.solverContext.logLevel <= 5) {
+        if (this.solverContext.getLogLevel() <= 5) {
             this.solverContext.log("In baseinit, set recursiondepth and playlocation to 0");
         }
         //清理状态
-        if (this.solverContext.initialState != null) {
-            this.solverContext.initialState.reset();
+        GameState initialState = this.solverContext.getInitialState();
+        if (initialState != null) {
+            initialState.reset();
         }
         //搜素状态
-        this.solverContext.searchState = null;
+        this.solverContext.setSearchState(null);
 //        完整解已经成立
         this.solverContext.foundCompleteSolution = false;
         //分桶上限
