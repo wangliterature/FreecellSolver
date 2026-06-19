@@ -76,29 +76,17 @@ public final class Move {
       this.destinationStackIndex = Move.extractDestinationStackIndex(encodedMove);
       this.sourceStackIndex = Move.extractSourceStackIndex(encodedMove);
       this.movedCardCount = (encodedMove & 0xF0000) >> 16;
-      SolverBridge bridge = context.getBridge();
       GameState initialState = context.getInitialState();
-      if (this.specialMove) {
-         if (bridge.overrideDestinationGroupIndex >= 0) {
-            this.destinationGroup = initialState.getStackGroups()[bridge.overrideDestinationGroupIndex];
-            this.destinationStack = this.destinationGroup.getStacks()[0];
-         }
-         if (context.getBridge().overrideSourceGroupIndex >= 0) {
-            this.sourceGroup = initialState.getStackGroups()[bridge.overrideSourceGroupIndex];
-            this.sourceStack = this.sourceGroup.getStacks()[0];
-         }
-      } else {
-         this.destinationGroup = initialState.getStackGroups()[destinationGroupIndex];
-         this.sourceGroup = initialState.getStackGroups()[sourceGroupIndex];
-         this.destinationStack = this.destinationGroup == null
-                 ? null
-                 :
-                 this.destinationGroup.getStacks()[this.destinationStackIndex];
-         this.sourceStack = this.sourceGroup == null
-                 ? null
-                 : this.sourceGroup.getStacks()[this.sourceStackIndex];
-         this.splitMove = (this.moveTypeFlags & 1) != 0;
-      }
+      this.destinationGroup = initialState.getStackGroups()[destinationGroupIndex];
+      this.sourceGroup = initialState.getStackGroups()[sourceGroupIndex];
+      this.destinationStack = this.destinationGroup == null
+              ? null
+              :
+              this.destinationGroup.getStacks()[this.destinationStackIndex];
+      this.sourceStack = this.sourceGroup == null
+              ? null
+              : this.sourceGroup.getStacks()[this.sourceStackIndex];
+      this.splitMove = (this.moveTypeFlags & 1) != 0;
    }
 
    /**

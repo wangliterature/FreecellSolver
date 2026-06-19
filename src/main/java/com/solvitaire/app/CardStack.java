@@ -18,6 +18,8 @@ final class CardStack {
 
     /**
      * Create a fresh empty stack for a newly built game state.
+     *
+     * alternatingColors在下面需要岔开，  上面和完成部分不需要
      */
     public CardStack(SolverContext context, StackGroup ownerGroup, int stackIndex, boolean alternatingColors) {
         this.context = context;

@@ -76,6 +76,8 @@ public final class FreeCellStandaloneMain {
     *
     * 这里保留一个默认样例文件，是为了让本地调试更快；
     * 传入参数时则优先使用用户指定的文件。
+    *
+    * 得到文件路径
     */
    private static Path resolveInputFileFromArgs(String[] args) {
       if (args.length == 1) {
