@@ -7,7 +7,6 @@ package com.solvitaire.app;
  * 这个类的存在就是为了把展示逻辑隔离出来，避免算法类里夹杂大量字符串拼接。
  */
 public abstract class SolverBridge {
-   protected int overrideDestinationGroupIndex = -1;
    protected final BaseSolver solver;
    protected final SolverContext context;
 

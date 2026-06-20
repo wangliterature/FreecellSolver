@@ -157,7 +157,7 @@ public abstract class BaseSolver {
     /**
      * 开始解题
      */
-    final void solve() {
+    public void solve() {
         this.configureBucketSizeForAvailableHeap();
         if (!this.initializeSolverAndLogStart()) {
             return;
@@ -411,6 +411,7 @@ public abstract class BaseSolver {
                 ++moveIndex;
             }
             this.solverContext.log(stringBuffer.toString());
+            System.out.println("============================");
         }
     }
 
@@ -846,13 +847,7 @@ public abstract class BaseSolver {
      */
     final void updateSearchProgressCheckpoint() {
         if (this.solverContext.getLogLevel() <= 3) {
-            this.logWorkMoveInfo(3); //打印work
             this.dumpState(3); //打印牌局
-        }
-        //搜索的深度
-        if (this.solverContext.getSearchState().getDepth() > this.deepestRecursionDepth) {
-            this.deepestRecursionDepth = this.solverContext.getSearchState().getDepth();
-            this.deepestRecursionComplexity = this.solverContext.getComplexity();
         }
     }
 
@@ -925,7 +920,8 @@ public abstract class BaseSolver {
      */
     private boolean shouldPruneBecauseWorseThanKnownSolution(GameState gameState) {
         return this.solverContext.isFoundCompleteSolution()
-                && this.solverContext.getBestSolutionState().getSolutionLength() < gameState.getSolutionLength();
+                && this.solverContext.getBestSolutionState().getSolutionLength()
+                < gameState.getSolutionLength();
     }
 
     /**
@@ -958,6 +954,8 @@ public abstract class BaseSolver {
                     candidateState,
                     "Best solution currently " + candidateState.getSolutionLength() + " moves"
             );
+        }else {
+            this.bestSolutionUpdatedSinceLastConfirmation = false;
         }
     }
 
@@ -965,16 +963,26 @@ public abstract class BaseSolver {
      * 判断是否应该把当前已知最佳解正式确认为“本轮已经 solved”。
      */
     private boolean shouldFinalizeBestSolution(boolean forceSolvedCheck) {
+        //没有找到结果  不保存
         if (this.solverContext.getBestSolutionState().getSolutionLength() == 0) {
             return false;
         }
-        if (!forceSolvedCheck && this.solverContext.getSearchStepCount() % 1000L != 0L) {
+
+////        这句不理解
+//        if (!forceSolvedCheck && this.solverContext.getSearchStepCount() % 10000L != 0L) {
+//            return false;
+//        }
+
+
+        if (!this.solverContext.isFoundCompleteSolution()) {
             return false;
         }
-        if (!this.solverContext.isFoundCompleteSolution() && !this.bestSolutionUpdatedSinceLastConfirmation) {
+        if (!this.bestSolutionUpdatedSinceLastConfirmation){
             return false;
         }
         if (this.solverContext.getLogLevel() <= 5) {
+            boolean b = this.solverContext.getSearchStepCount() % 1000L != 0L;
+            this.solverContext.log(b+"==================================");
             String logLabel = "Test final (forced " + forceSolvedCheck + ") best moves";
             this.solverContext.log("Best solution length " + this.solverContext.getBestSolutionState().getSolutionLength());
             this.printCurrentFinishLog(5, this.solverContext.getBestSolutionState(), logLabel);

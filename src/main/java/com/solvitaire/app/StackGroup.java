@@ -4,12 +4,13 @@
 package com.solvitaire.app;
 
 /**
- * 桌面牌堆
+ * 桌面牌堆栈
  *
  *  1.groupIndex  编号
  *  2.一共就3个
  *
- *  他很简单， 保存当前的栈数据   统计个数
+ *  他很简单， 保存当前的栈数据
+ *  统计个数
  */
 public final class StackGroup {
     private SolverContext context;
@@ -131,8 +132,3 @@ public final class StackGroup {
         this.stacks = stacks;
     }
 }
-
-
-
-
-

@@ -491,7 +491,10 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.tryMoveStackAndRecurse(destinationTableauStack, sourceTableauStack, moveMode, previousEncodedMove);
             }
+            System.out.println("==============================");
         }
+
+        System.out.println("-=--------------------");
     }
 
     /**
@@ -543,7 +546,7 @@ final class FreeCellSolver extends BaseSolver {
         }
 
         for (CardStack foundationStack : this.getSolverContext().getSearchState().getStackGroups()[2].getStacks()) {
-            // 当前收牌堆不满足“安全推进”条件，直接跳过这个目标堆。
+            // 当前收牌堆不满足“安全推进”条件，直接跳过这个目标堆。   各个颜色尽量平头前进
             if (!this.shouldAutoAdvanceFoundation(foundationStack, lowestBlackFoundationRank, lowestRedFoundationRank)) {
                 continue;
             }
@@ -684,6 +687,9 @@ final class FreeCellSolver extends BaseSolver {
      *
      * 这里用 13 作为初始哨兵值，表示“尚未遇到更低值”；
      * 遍历时只保留每种颜色的最小 topRank。
+     *
+     *
+     * 这里没有问题，找的就是最小的
      */
     private int[] findLowestFoundationRanksByColor() {
         int lowestBlackFoundationRank = 13;
@@ -1241,6 +1247,7 @@ final class FreeCellSolver extends BaseSolver {
                     if (this.getSolverContext().getLogLevel() <= 2) {
                         this.getSolverContext().log("Loading card " + encodedCard + " into stack " + stackIndex + " level " + rowIndex);
                     }
+                    //先获取原来的栈顶是不是存在runGroup
                     CardRun currentTopRun = targetStack.getTopRun();
                     CardRun newSingleCardRun = new CardRun(this.getCardFromPool(encodedCard));
                     if (currentTopRun != null) {
@@ -1273,6 +1280,8 @@ final class FreeCellSolver extends BaseSolver {
      *
      * 这里仍然保留旧 solver 的统计项顺序，
      * 因为很多调试输出已经默认按这个顺序阅读。
+     *
+     * 一共多少步，  然后是每个操作分别是多少步
      */
     @Override
     final StringBuffer createStateHeader(String string, int depth) {

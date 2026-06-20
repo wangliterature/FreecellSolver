@@ -32,6 +32,7 @@ public class CardRun {
 
     public CardRun(CardRun card) {
         this.cardCount = card.cardCount;
+        //原样复制
         this.cards = Arrays.copyOf(card.cards, 13);
     }
 
@@ -58,9 +59,11 @@ public class CardRun {
      * @return
      */
     public int checkMoveDistance(Card card1, Card card2, int n2) {
+        //颜色是都要求交替  值是不是相同
         if (!this.overStack.isAlternatingColors() && card1.rankCommon(card2)) {
             return -1;
         }
+        //计算距离，是不是等于间距值，或者指定的间距值
         int diff = card1.diff(card2);
         if (diff <= 0 || diff > n2) {
             diff = -1;
@@ -94,7 +97,7 @@ public class CardRun {
             ++addIndex;
         }
         this.cardCount += count;
-        //标记是否全部移动
+        //标记是否全部移动   没有全部复制，那就说明是拆分
         if (count < cardRun.cardCount) {
             count += 20;
         }

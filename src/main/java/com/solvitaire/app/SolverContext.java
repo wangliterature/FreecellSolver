@@ -20,7 +20,7 @@ public class SolverContext {
    private int logLevel = 0;
    private int searchBudget = 0;
    private int complexity = 0;
-   private long searchStepCount = 0L;
+   private long searchStepCount = 0L; //每次循环的时候加1
    private boolean foundCompleteSolution = false;
    private SolverBridge bridge;
    private GameState initialState;

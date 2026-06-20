@@ -6,7 +6,7 @@ import java.util.LinkedList;
  * group分为3部分
  * 8 4 4
  */
-final class CardStack {
+public class CardStack {
     private final SolverContext context;
     private StackGroup ownerGroup;
     private int stackIndex;
@@ -157,6 +157,7 @@ final class CardStack {
         if (moveMode == 2 || moveMode == 6) {
             return this.evaluateJoinIntoEmptyStack(sourceStack, moveMode);
         }
+        // 1.是不是整列都可以搬移过去
         if (moveMode == 1) {
             return this.evaluateDirectJoinFrom(sourceStack);
         }
@@ -178,14 +179,17 @@ final class CardStack {
         if (sourceTopCard == null) {
             return -1;
         }
+        //处理fundation的
         if (this.foundationSuit != 0) {
             return this.evaluateFoundationJoin(destinationRun, sourceTopCard);
         }
+        //这个是处理table和free区域的
         if (destinationRun == null || sourceRun.cardCount == 0) {
             return -1;
         }
-
+        //获取最后一个卡牌
         Card destinationTopCard = destinationRun.getCards()[destinationRun.cardCount - 1];
+        //这部分的处理方式就是，当前CardRun的最后一个和目标的最后一个是不是等于  目标的卡牌的高度  其实我写可能就是头和尾来进行比较
         return this.evaluateAlternatingColorJoin(destinationRun, sourceRun, destinationTopCard, sourceTopCard);
     }
 
@@ -252,15 +256,20 @@ final class CardStack {
 
     /**
      * Helper for move mode 2 / 6, where only empty destinations are legal.
+     *
+     * 顶部不是null，说明有值
      */
     private int evaluateJoinIntoEmptyStack(CardStack sourceStack, int moveMode) {
-        if (this.topRun != null) {
+        if (this.topRun == null) {
+            if (moveMode == 6) {
+                //
+                return sourceStack.topRun.cardCount != 1 ? 1 : 0;
+             }else {
+                return sourceStack.topRun.cardCount;
+            }
+        }else {
             return -1;
         }
-        if (moveMode != 6) {
-            return sourceStack.topRun.cardCount;
-        }
-        return sourceStack.topRun.cardCount != 1 ? 1 : 0;
     }
 
     /**
@@ -272,7 +281,7 @@ final class CardStack {
     }
 
     /**
-     * Helper for joins that only allow sources already compressed into a single run.
+     * Helper for joins that only allow sources already compressed into a single run.  单张牌移动
      */
     private int evaluateSingleRunJoinFrom(CardStack sourceStack) {
         if (sourceStack.runs.size() != 1) {
@@ -345,8 +354,10 @@ final class CardStack {
             Card sourceTopCard
     ) {
         int joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount);
-        if (joinCount > 0 && !(joinCount % 2 == 0 ^ CardRun.isAlternatingColor(destinationTopCard, sourceTopCard))) {
-            return -1;
+        if (joinCount > 0) {
+            if (!(joinCount % 2 == 0 ^ CardRun.isAlternatingColor(destinationTopCard, sourceTopCard))) {
+                return -1;
+            }
         }
         return joinCount;
     }
