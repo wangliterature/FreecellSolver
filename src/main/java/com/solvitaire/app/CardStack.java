@@ -142,7 +142,7 @@ public class CardStack {
         this.workingCopy = false;
     }
 
-    private static int xx = 0;
+
     /**
      * Evaluate how many cards could be joined from `sourceStack` onto this stack.
      *
@@ -161,13 +161,12 @@ public class CardStack {
         }
         // 1.是不是整列都可以搬移过去
         if (moveMode == 1) {
-            xx++;
-            System.out.println(xx +"===================xxxxxxxxxxxxxxxxxxxxxxxxx");
             return this.evaluateDirectJoinFrom(sourceStack);
         }
         if (moveMode == 3) {
             return this.evaluateSingleRunJoinFrom(sourceStack);
         }
+        //应该是执行不到的
         return this.evaluateSplitAwareJoinFrom(sourceStack, moveMode);
     }
 
@@ -292,12 +291,15 @@ public class CardStack {
         if (sourceStack.runs.size() != 1) {
             return -1;
         }
-
+        //计算两个栈的连起来的插值
         int directJoinCount = this.evaluateJoin(this.topRun, sourceStack.topRun);
         if (directJoinCount > 0) {
             return directJoinCount;
+        }else if (directJoinCount < 0) {
+            return -1;
+        }else {
+            return 0;
         }
-        return this.evaluateJoin(this.topRun, sourceStack.topRun) == 0 ? 0 : -1;
     }
 
     /**
@@ -339,13 +341,17 @@ public class CardStack {
      * 是否可以进入funda
      */
     private int evaluateFoundationJoin(CardRun destinationRun, Card sourceTopCard) {
+        //如果为null，说明foundation没有牌
         if (destinationRun == null) {
             if (this.foundationSuit > 0) {
                 return sourceTopCard.getCardId() == this.foundationSuit * 100 + 1 ? 1 : -1; //值是否可以连上  颜色是否相同
             }
+            //应该是执行不到的饿
             return sourceTopCard.getRank() == 1 ? 1 : -1;
         }
-        return sourceTopCard.getCardId() == destinationRun.getCards()[destinationRun.cardCount - 1].getCardId() + 1 ? 1 : -1;
+        return sourceTopCard.getCardId()
+                == destinationRun.getCards()[destinationRun.cardCount - 1]
+                .getCardId() + 1 ? 1 : -1;
     }
 
 
@@ -358,6 +364,7 @@ public class CardStack {
             Card destinationTopCard,
             Card sourceTopCard
     ) {
+        //计算加入的数量  但是如果是交替的，不符合就返回-1
         int joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount);
         if (joinCount > 0) {
             if (!(joinCount % 2 == 0 ^ CardRun.isAlternatingColor(destinationTopCard, sourceTopCard))) {
@@ -369,6 +376,8 @@ public class CardStack {
 
     /**
      * Move the selected cards out of `sourceStack` and onto this stack.
+     *
+     * 将cardTop复制
      */
     private int appendSelectedCardsFromSource(CardStack sourceStack, int cardCount) {
         if (this.topRun == null) {
@@ -402,7 +411,7 @@ public class CardStack {
     /**
      * Restore cards into an already existing source top run.
      *
-     * 处理非空列的  也是处理一部分
+     * 处理非空列的  也是处理一部分  将一部分加入到目标中
      */
     private void restoreCardsIntoExistingSourceRun(CardStack sourceStack, int restoredCardCount) {
         for (int cardIndex = 0; cardIndex < restoredCardCount; ++cardIndex) {
@@ -414,26 +423,23 @@ public class CardStack {
 
     /**
      * Restore cards as a fresh run above the source stack's current top run.
-     * 将当前的几张添加倒目标中
+     * 将当前的指定张数，复制目标中，目标为null的时候
      *
-     * 放出去一部分   切割   这个应该是空列
      */
     private void restoreCardsAsSeparateRun(CardStack sourceStack, int restoredCardCount) {
         CardRun restoredRun = new CardRun();
         //将当前的复制回restore
         for (int cardIndex = 0; cardIndex < restoredCardCount; ++cardIndex) {
-            restoredRun.getCards()[cardIndex] = this.topRun.getCards()[this.topRun.cardCount - restoredCardCount + cardIndex];
+            restoredRun.getCards()[cardIndex]
+                    = this.topRun.getCards()[this.topRun.cardCount
+                    - restoredCardCount + cardIndex];
         }
         restoredRun.cardCount = restoredCardCount;
         sourceStack.appendRun(restoredRun);
     }
 
     /**
-     * Undo the special token `20`, which means "merge the whole destination top run back".
-     * 将当前的top添加到目标中
-     *
-     * 将当前的全部复制过去   放出去
-     *
+     * 将当前的全部复制过去
      * current cardRun copy sourceStack
      */
     private void mergeEntireTopRunBackIntoSource(CardStack sourceStack) {

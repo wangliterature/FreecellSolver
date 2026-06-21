@@ -1,9 +1,11 @@
 package com.solvitaire.app;
 
 /**
- * card
- *
- * 包含了 花色 值  id 所属的stack
+ * main:
+ *    包含了 花色 值  id
+ *    cardId = suit * 100 + rank
+ *    suit = cardId / 100
+ *    rank = cardId % 100
  */
 public final class Card {
    //花色

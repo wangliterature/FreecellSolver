@@ -1076,22 +1076,6 @@ final class FreeCellSolver extends BaseSolver {
             int movedCardCount,
             int joinSplitCount
     ) {
-        if (moveMode == 9){
-            int xx=0;
-            Card[] cards = sourceStack.getTopRun().getCards();
-            for (Card card : cards) {
-                if (card != null) {
-                    xx++;
-                }
-            }
-            if (xx == joinSplitCount){
-                System.out.println(sourceStack.getTopRun().getCards().length+"------------"+joinSplitCount);
-            }else {
-                System.out.println("===============");
-            }
-        }
-
-
         int moveFlags = destinationStack.getTopRun() != null ? 2 : 0;
 
         // 执行移动并拿到回滚令牌；后续 finally 会用它还原现场。
@@ -1111,17 +1095,7 @@ final class FreeCellSolver extends BaseSolver {
         if (moveMode == 7) {
             moveFlags |= 16;
         }
-        if (!hashSet2.contains(moveFlags)){
-            hashSet2.add(moveFlags);
-            System.out.println(moveFlags+"======================"+baseFlag);
-        }
-//        0===========================================
-//        16===========================================
-//        2===========================================
-//        19===========================================
-//        3===========================================
-//        1===========================================
-//        18===========================================
+
         int encodedMove = Move.buildEncodedMove(moveFlags, movedCardCount, sourceStack, destinationStack);
         this.getSolverContext().getSearchState().getMoves()[this.getSolverContext().getSearchState().getDepth()] = encodedMove;
         this.getSolverContext().getSearchState().setDepth(this.getSolverContext().getSearchState().getDepth() + 1);

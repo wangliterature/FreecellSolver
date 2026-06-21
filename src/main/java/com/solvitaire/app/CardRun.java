@@ -6,9 +6,9 @@ package com.solvitaire.app;
 import java.util.Arrays;
 
 /**
- * 可以出的牌
+ * 可以出的牌序列，一个牌栈是以一组cardRun
+ * 判结束就是一列中没有cardRun,或者是仅仅存在一组Runcard
  *
- * 一列牌会变为多个牌栈
  */
 public class CardRun {
     // 当前有多少张牌
@@ -32,29 +32,41 @@ public class CardRun {
 
     public CardRun(CardRun card) {
         this.cardCount = card.cardCount;
-        //原样复制
+        //原样复制   仅仅创建cardRun不会重复创建Card
         this.cards = Arrays.copyOf(card.cards, 13);
     }
 
-    //颜色交替
+    /**
+     * 颜色交替
+     *
+     * eg:
+     *    true ^ true = false
+     *    true ^ false = true
+     *    false ^ true = true
+     *    false ^ false = false
+     */
     public static boolean isAlternatingColor(Card card2, Card card3) {
         return CardRun.isRed(card2) ^ CardRun.isRed(card3);
     }
 
-    //  花色
+    /**
+     * 花色:
+     *
+     * eg ：
+     *
+     *  1,4 红桃
+     *
+     */
     private static boolean isRed(Card card) {
         return card.getSuit() == 1 || card.getSuit() == 4;
     }
 
     /**
-     * 首先开始的那个牌最后一张，  、
-     * 你现在有几张来进行比较呢
-     * 最后比较的结果  就需要小于几，
-     * topRun本身就是一个有序列
+     * 两个牌都是栈的最后一个，然后两个相减，如果值小于等于0 失败
+     * 如果是大于需要被移除牌堆的牌数量（最后一个cardRun并不是栈的所以后牌数量），
+     * 也是失败
      *
-     * 这里需要更改，并不是全部移动， 如果要移动过来，差距是多少
-     *
-     * eg:开始是9
+     * * eg:开始是9
      *  我们差距是6，就可以，差距是10，就不可以
      *
      * 计算间距
@@ -64,7 +76,7 @@ public class CardRun {
      * @return
      */
     public int checkMoveDistance(Card card1, Card card2, int n2) {
-        //颜色是都要求交替  值是不是相同
+        //颜色是都要求交替
         if (!this.overStack.isAlternatingColors() && card1.rankCommon(card2)) {
             return -1;
         }
