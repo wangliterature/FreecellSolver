@@ -486,6 +486,7 @@ final class FreeCellSolver extends BaseSolver {
                 if (this.getCurrentBackout() > 0) {
                     return;
                 }
+                //如果目标存在1，就跳过   为啥soure也跳过，就不知道了
                 if (this.shouldSkipTableauTarget(moveMode, sourceTableauStack, destinationTableauStack)) {
                     continue;
                 }
@@ -659,7 +660,15 @@ final class FreeCellSolver extends BaseSolver {
         if (sourceTableauStack.getTopRun() == null) {
             return false;
         }
-        return moveMode != 8 || FreeCellSolver.hasSingleAce(sourceTableauStack);
+        if (FreeCellSolver.hasSingleAce(sourceTableauStack)){
+            return true;
+        }
+        if (moveMode == 8){
+            return false;
+        }else {
+            return true;
+        }
+//        return moveMode != 8 || FreeCellSolver.hasSingleAce(sourceTableauStack);
     }
 
     /**
@@ -673,9 +682,19 @@ final class FreeCellSolver extends BaseSolver {
         if (moveMode == 8) {
             return FreeCellSolver.hasSingleAce(destinationTableauStack);
         }
-        return moveMode == 6
-                && FreeCellSolver.hasSingleAce(sourceTableauStack)
-                && !FreeCellSolver.hasSingleAce(destinationTableauStack);
+        // 原始有  目标没有
+        if (moveMode ==  6){
+            if (FreeCellSolver.hasSingleAce(sourceTableauStack)){
+                if (FreeCellSolver.hasSingleAce(destinationTableauStack)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+
+//        return moveMode == 6
+//                && FreeCellSolver.hasSingleAce(sourceTableauStack)
+//                && !FreeCellSolver.hasSingleAce(destinationTableauStack);
     }
 
     /**
@@ -815,7 +834,7 @@ final class FreeCellSolver extends BaseSolver {
             int joinMode = this.resolveJoinMode(moveMode, destinationStack);
             // evaluateJoinFrom 返回“拆分长度”语义：<0 不可接，0 代表整段接。
             int joinSplitCount = destinationStack.evaluateJoinFrom(sourceStack, joinMode); //走found
-            this.applySplitMatchesAcePenaltyIfNeeded(moveMode, sourceStack, joinSplitCount);
+            this.applySplitMatchesAcePenaltyIfNeeded(moveMode, sourceStack, joinSplitCount); //小于等于0
             if (joinSplitCount < 0) {
                 if (this.getSolverContext().getLogLevel() <= 3) {
                     // 记录 join 失败的直接原因，便于定位候选被拒位置；不改变判定结果。
@@ -931,13 +950,11 @@ final class FreeCellSolver extends BaseSolver {
             case TO_SPACE_KING:
                 return 2;
             case FROM_WORK:
+            case EXPOSE:
                 // 从 freecell 往 tableau 移动时，目标为空列与非空列使用不同 join 协议。
                 return destinationStack.getTopRun() == null ? 2 : 1;
             case TO_WORK:
                 return 6;
-            case EXPOSE:
-                // expose 模式同样区分“落到空列”与“接到现有 run”两种 join 规则。
-                return destinationStack.getTopRun() == null ? 2 : 1;
             default:
                 return -1;
         }
@@ -1059,17 +1076,30 @@ final class FreeCellSolver extends BaseSolver {
             int movedCardCount,
             int joinSplitCount
     ) {
+        if (moveMode == 9){
+            int xx=0;
+            Card[] cards = sourceStack.getTopRun().getCards();
+            for (Card card : cards) {
+                if (card != null) {
+                    xx++;
+                }
+            }
+            if (xx == joinSplitCount){
+                System.out.println(sourceStack.getTopRun().getCards().length+"------------"+joinSplitCount);
+            }else {
+                System.out.println("===============");
+            }
+        }
+
+
         int moveFlags = destinationStack.getTopRun() != null ? 2 : 0;
+
         // 执行移动并拿到回滚令牌；后续 finally 会用它还原现场。
         int undoMoveToken = destinationStack.moveCardsFrom(sourceStack, joinSplitCount);
         if (undoMoveToken < 0) {
             return false;
         }
         int baseFlag = moveFlags;
-//        if (!hashSet.contains(moveFlags)){
-//            hashSet.add(moveFlags);
-//            System.out.println(moveFlags+"===========================================");
-//        }
 
         if (this.getSolverContext().getLogLevel() <= 2) {
             this.getSolverContext().log("Completed join with split of " + undoMoveToken);

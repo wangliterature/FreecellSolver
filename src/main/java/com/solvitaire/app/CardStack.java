@@ -142,6 +142,7 @@ public class CardStack {
         this.workingCopy = false;
     }
 
+    private static int xx = 0;
     /**
      * Evaluate how many cards could be joined from `sourceStack` onto this stack.
      *
@@ -154,11 +155,14 @@ public class CardStack {
         if (sourceStack.topRun == null) {
             return -1;
         }
+        //目标列为null
         if (moveMode == 2 || moveMode == 6) {
             return this.evaluateJoinIntoEmptyStack(sourceStack, moveMode);
         }
         // 1.是不是整列都可以搬移过去
         if (moveMode == 1) {
+            xx++;
+            System.out.println(xx +"===================xxxxxxxxxxxxxxxxxxxxxxxxx");
             return this.evaluateDirectJoinFrom(sourceStack);
         }
         if (moveMode == 3) {
@@ -257,13 +261,14 @@ public class CardStack {
     /**
      * Helper for move mode 2 / 6, where only empty destinations are legal.
      *
-     * 顶部不是null，说明有值
+     * 顶部不是null，说明有值   如果是模式6  就返回1 or 0
+     *
      */
     private int evaluateJoinIntoEmptyStack(CardStack sourceStack, int moveMode) {
         if (this.topRun == null) {
             if (moveMode == 6) {
                 //
-                return sourceStack.topRun.cardCount != 1 ? 1 : 0;
+                return sourceStack.topRun.cardCount != 1 ? 1 : 0; //如果本身一张那就 不移动
              }else {
                 return sourceStack.topRun.cardCount;
             }
