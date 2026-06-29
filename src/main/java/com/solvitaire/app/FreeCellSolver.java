@@ -375,7 +375,6 @@ final class FreeCellSolver extends BaseSolver {
      *   不做 ACES_AUTO 的红黑平衡门控。
      */
     private boolean generateAndTryMoves(int moveMode, int previousEncodedMove) {
-        this.getSolverContext().log(moveModeNames[moveMode]);
         if (this.getSolverContext().getLogLevel() <= 3) {
             this.getSolverContext().log("Entered dojoins for mode " + moveModeNames[moveMode] + " complexity " + this.getSolverContext().getComplexity());
         }
@@ -492,10 +491,7 @@ final class FreeCellSolver extends BaseSolver {
                 }
                 this.tryMoveStackAndRecurse(destinationTableauStack, sourceTableauStack, moveMode, previousEncodedMove);
             }
-            System.out.println("==============================");
         }
-
-        System.out.println("-=--------------------");
     }
 
     /**
@@ -685,7 +681,7 @@ final class FreeCellSolver extends BaseSolver {
         // 原始有  目标没有
         if (moveMode ==  6){
             if (FreeCellSolver.hasSingleAce(sourceTableauStack)){
-                if (FreeCellSolver.hasSingleAce(destinationTableauStack)) {
+                if (!FreeCellSolver.hasSingleAce(destinationTableauStack)) {
                     return true;
                 }
             }
@@ -1231,7 +1227,9 @@ final class FreeCellSolver extends BaseSolver {
      */
     @Override
     boolean loadStateFromLines(String[] inputLines, int lineCount) {
+        /// 一个三个group，牌是放在第一个group种的
         StackGroup tableauGroup = this.getSolverContext().getInitialState().getStackGroups()[0];
+        //0-7 是 8   数量是77776666
         int tableauRowCount = 7;
         int[] stackHeights = new int[]{7, 7, 7, 7, 6, 6, 6, 6};
 
@@ -1257,7 +1255,7 @@ final class FreeCellSolver extends BaseSolver {
                     if (currentTopRun != null) {
                         //top是否可以加入单个
                         int joinMode = targetStack.evaluateJoin(currentTopRun, newSingleCardRun);
-                        //如果可以连在后面就连在后面
+                        //如果可以连在后面就连在后面   如果不能跟这，就
                         if (joinMode > 0) {
                             currentTopRun.appendFromRun(newSingleCardRun, joinMode);
                         } else {
@@ -1265,9 +1263,11 @@ final class FreeCellSolver extends BaseSolver {
                             targetStack.appendRun(newSingleCardRun);
                         }
                     } else {
+                        //如果为null就直接加进去
                         targetStack.appendRun(newSingleCardRun);
                     }
                 }
+                System.out.println("======================");
             }
         } catch (Exception exception) {
             this.getSolverContext().throwInvalidInput("Error interpreting the card data.  Probably unexpected number of cards somewhere in the file.");

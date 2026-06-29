@@ -39,7 +39,10 @@ public final class FreeCellStandaloneMain {
     * 真正的流程放到 `runOnce`，这样后续想补测试或复用时更方便。
     */
    public static void main(String[] args) {
-      runOnce(args);
+//      runOnce(args);
+       for (int rowIndex = 0; rowIndex < 7; ++rowIndex) {
+           System.out.println("Row " + rowIndex + ":");
+       }
    }
    static SolverContext solverContext;
    /**
@@ -94,7 +97,7 @@ public final class FreeCellStandaloneMain {
     */
    private static SolverContext createSolverContext(Path preparedInputFile) {
       SolverContext solverContext = new SolverContext();
-      solverContext.setLogLevel(1);
+      solverContext.setLogLevel(8);
       solverContext.setFileSet(new SolverFileSet(preparedInputFile));
       solverContext.setInitialState(createInitialFreeCellState(solverContext));
       solverContext.setBestSolutionState(new GameState());

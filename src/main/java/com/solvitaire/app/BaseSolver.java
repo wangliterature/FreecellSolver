@@ -46,6 +46,10 @@ public abstract class BaseSolver {
     public BaseSolver(SolverContext solverContext, int searchCreditLimit) {
         this.solverContext = solverContext;
         this.searchCreditLimit = searchCreditLimit; //搜索限制
+        initRandomData();
+    }
+
+    private void initRandomData() {
         Random random = new Random(314159265358979323L);
         LongStream longStream = random.longs(150L, 1L, 1000000000000L);
         this.longRandom1 = longStream.toArray();
@@ -255,13 +259,13 @@ public abstract class BaseSolver {
             // 本轮出现 solved 或 backout，外层立即停机，不再继续降预算。
             if (this.isSolver || this.currenBackout > 0) {
                 return;
-            }
+            }          this.solverContext.log("*** Deepest recursion for credit " +
+                    this.solverContext.getSearchBudget() +
+                    " was " + this.deepestRecursionDepth +
+                    " with complexity " + this.deepestRecursionComplexity);
 
             if (this.solverContext.getLogLevel() <= 4) {
-                this.solverContext.log("*** Deepest recursion for credit " +
-                        this.solverContext.getSearchBudget() +
-                        " was " + this.deepestRecursionDepth +
-                        " with complexity " + this.deepestRecursionComplexity);
+
             }
             // 固定步长下调预算：让下一轮以更宽松的复杂度门槛继续探索。
             this.solverContext.setSearchBudget(this.solverContext.getSearchBudget() - 30);

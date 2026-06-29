@@ -200,7 +200,7 @@ public class CardStack {
      * Transfer cards from `sourceStack` onto this stack and return the undo token expected by
      * `undoMoveCardsFrom(...)`.
      *
-     *
+     * 0表示整段接上
      */
     int moveCardsFrom(CardStack sourceStack, int cardCount) {
         int undoToken = cardCount;
@@ -365,8 +365,10 @@ public class CardStack {
             Card sourceTopCard
     ) {
         //计算加入的数量  但是如果是交替的，不符合就返回-1
+//        求段之间的距离
         int joinCount = destinationRun.checkMoveDistance(destinationTopCard, sourceTopCard, sourceRun.cardCount);
         if (joinCount > 0) {
+            //颜色交替
             if (!(joinCount % 2 == 0 ^ CardRun.isAlternatingColor(destinationTopCard, sourceTopCard))) {
                 return -1;
             }

@@ -104,21 +104,21 @@ public class CardRun {
      * 3.如果只复制一部分，那么就返回复制的长度
      *
      * @param cardRun
-     * @param count
+     * @param addLength
      * @return
      */
-    public int appendFromRun(CardRun cardRun, int count) {
+    public int appendFromRun(CardRun cardRun, int addLength) {
         int addIndex = 0;
-        while (addIndex < count) {
-            this.cards[this.cardCount + addIndex] = cardRun.cards[cardRun.cardCount - count + addIndex];
+        while (addIndex < addLength) {
+            this.cards[this.cardCount + addIndex] = cardRun.cards[cardRun.cardCount - addLength + addIndex];
             ++addIndex;
         }
-        this.cardCount += count;
+        this.cardCount += addLength;
         //标记是否全部移动   没有全部复制，那就说明是拆分
-        if (count < cardRun.cardCount) {
-            count += 20;
+        if (addLength < cardRun.cardCount) {
+            addLength += 20;
         }
-        return count;
+        return addLength;
     }
 
     public Card[] getCards() {

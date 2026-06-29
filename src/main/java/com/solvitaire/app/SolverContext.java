@@ -17,11 +17,11 @@ import java.nio.file.Paths;
  * 但把几个原本难理解的方法名换成了带语义的名字，方便阅读。
  */
 public class SolverContext {
-   private int logLevel = 0;
-   private int searchBudget = 0;
-   private int complexity = 0;
-   private long searchStepCount = 0L; //每次循环的时候加1
-   private boolean foundCompleteSolution = false;
+   private int logLevel;
+   private int searchBudget;
+   private int complexity;
+   private long searchStepCount; //每次循环的时候加1
+   private boolean foundCompleteSolution;
    private SolverBridge bridge;
    private GameState initialState;
    private GameState searchState;
